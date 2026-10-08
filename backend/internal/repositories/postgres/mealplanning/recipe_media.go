@@ -23,13 +23,10 @@ func (q *repository) RecipeMediaExists(ctx context.Context, recipeMediaID string
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeMediaID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeMediaIDKey, recipeMediaID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
 
 	result, err := q.generatedQuerier.CheckRecipeMediaExistence(ctx, q.readDB, recipeMediaID)
 	if err != nil {
@@ -44,33 +41,17 @@ func (q *repository) GetRecipeMedia(ctx context.Context, recipeMediaID string) (
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeMediaID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeMediaIDKey, recipeMediaID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
 
 	result, err := q.generatedQuerier.GetRecipeMedia(ctx, q.readDB, recipeMediaID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting recipe media")
 	}
 
-	recipeMedia := &types.RecipeMedia{
-		CreatedAt:           result.CreatedAt,
-		ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ID:                  result.ID,
-		BelongsToRecipe:     database.StringPointerFromNullString(result.BelongsToRecipe),
-		BelongsToRecipeStep: database.StringPointerFromNullString(result.BelongsToRecipeStep),
-		MimeType:            result.MimeType,
-		InternalPath:        result.InternalPath,
-		ExternalPath:        result.ExternalPath,
-		Index:               uint16(result.Index),
-	}
-
-	return recipeMedia, nil
+	return recipeMediaFromRow(result), nil
 }
 
 // getRecipeMediaForRecipe fetches a list of recipe media from the database that meet a particular filter.
@@ -78,13 +59,10 @@ func (q *repository) getRecipeMediaForRecipe(ctx context.Context, recipeID strin
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeIDKey, recipeID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	results, err := q.generatedQuerier.GetRecipeMediaForRecipe(ctx, q.readDB, database.NullStringFromString(recipeID))
 	if err != nil {
@@ -93,18 +71,7 @@ func (q *repository) getRecipeMediaForRecipe(ctx context.Context, recipeID strin
 
 	recipeMedia := make([]*types.RecipeMedia, len(results))
 	for i, result := range results {
-		recipeMedia[i] = &types.RecipeMedia{
-			CreatedAt:           result.CreatedAt,
-			ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:                  result.ID,
-			BelongsToRecipe:     database.StringPointerFromNullString(result.BelongsToRecipe),
-			BelongsToRecipeStep: database.StringPointerFromNullString(result.BelongsToRecipeStep),
-			MimeType:            result.MimeType,
-			InternalPath:        result.InternalPath,
-			ExternalPath:        result.ExternalPath,
-			Index:               uint16(result.Index),
-		}
+		recipeMedia[i] = recipeMediaFromRow((*generated.GetRecipeMediaRow)(result))
 	}
 
 	return recipeMedia, nil
@@ -115,19 +82,13 @@ func (q *repository) getRecipeMediaForRecipeStep(ctx context.Context, recipeID, 
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeStepID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
 	results, err := q.generatedQuerier.GetRecipeMediaForRecipeStep(ctx, q.readDB, &generated.GetRecipeMediaForRecipeStepParams{
 		RecipeID:     database.NullStringFromString(recipeID),
@@ -139,18 +100,7 @@ func (q *repository) getRecipeMediaForRecipeStep(ctx context.Context, recipeID, 
 
 	recipeMedia := []*types.RecipeMedia{}
 	for _, result := range results {
-		recipeMedia = append(recipeMedia, &types.RecipeMedia{
-			CreatedAt:           result.CreatedAt,
-			ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:                  result.ID,
-			BelongsToRecipe:     database.StringPointerFromNullString(result.BelongsToRecipe),
-			BelongsToRecipeStep: database.StringPointerFromNullString(result.BelongsToRecipeStep),
-			MimeType:            result.MimeType,
-			InternalPath:        result.InternalPath,
-			ExternalPath:        result.ExternalPath,
-			Index:               uint16(result.Index),
-		})
+		recipeMedia = append(recipeMedia, recipeMediaFromRow((*generated.GetRecipeMediaRow)(result)))
 	}
 
 	return recipeMedia, nil
@@ -240,13 +190,10 @@ func (q *repository) ArchiveRecipeMedia(ctx context.Context, recipeMediaID strin
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeMediaID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeMediaIDKey, recipeMediaID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
 
 	return q.withEvent(ctx, logger, types.RecipeMediaArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeMediaIDKey: recipeMediaID,
@@ -262,4 +209,22 @@ func (q *repository) ArchiveRecipeMedia(ctx context.Context, recipeMediaID strin
 
 		return nil
 	})
+}
+
+// recipeMediaFromRow maps a recipe media row to its domain type. The by-ID, per-recipe and per-step
+// reads select the same columns, so each of their row types converts to
+// generated.GetRecipeMediaRow.
+func recipeMediaFromRow(result *generated.GetRecipeMediaRow) *types.RecipeMedia {
+	return &types.RecipeMedia{
+		CreatedAt:           result.CreatedAt,
+		ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ID:                  result.ID,
+		BelongsToRecipe:     database.StringPointerFromNullString(result.BelongsToRecipe),
+		BelongsToRecipeStep: database.StringPointerFromNullString(result.BelongsToRecipeStep),
+		MimeType:            result.MimeType,
+		InternalPath:        result.InternalPath,
+		ExternalPath:        result.ExternalPath,
+		Index:               uint16(result.Index),
+	}
 }

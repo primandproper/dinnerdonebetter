@@ -25,13 +25,10 @@ func (q *repository) ValidInstrumentExists(ctx context.Context, validInstrumentI
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validInstrumentID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidInstrumentIDKey, validInstrumentID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
 
 	result, err := q.generatedQuerier.CheckValidInstrumentExistence(ctx, q.readDB, validInstrumentID)
 	if err != nil {
@@ -46,35 +43,17 @@ func (q *repository) GetValidInstrument(ctx context.Context, validInstrumentID s
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validInstrumentID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidInstrumentIDKey, validInstrumentID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
 
 	result, err := q.generatedQuerier.GetValidInstrument(ctx, q.readDB, validInstrumentID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting valid instrument")
 	}
 
-	validInstrument := &types.ValidInstrument{
-		CreatedAt:                      result.CreatedAt,
-		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-		IconPath:                       result.IconPath,
-		ID:                             result.ID,
-		Name:                           result.Name,
-		PluralName:                     result.PluralName,
-		Description:                    result.Description,
-		Slug:                           result.Slug,
-		DisplayInSummaryLists:          result.DisplayInSummaryLists,
-		IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-		UsableForStorage:               result.UsableForStorage,
-	}
-
-	return validInstrument, nil
+	return validInstrumentFromRow(result), nil
 }
 
 // GetRandomValidInstrument fetches a valid instrument from the database.
@@ -87,22 +66,7 @@ func (q *repository) GetRandomValidInstrument(ctx context.Context) (*types.Valid
 		return nil, observability.PrepareError(err, span, "scanning validInstrument")
 	}
 
-	validInstrument := &types.ValidInstrument{
-		CreatedAt:                      result.CreatedAt,
-		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-		IconPath:                       result.IconPath,
-		ID:                             result.ID,
-		Name:                           result.Name,
-		PluralName:                     result.PluralName,
-		Description:                    result.Description,
-		Slug:                           result.Slug,
-		DisplayInSummaryLists:          result.DisplayInSummaryLists,
-		IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-		UsableForStorage:               result.UsableForStorage,
-	}
-
-	return validInstrument, nil
+	return validInstrumentFromRow((*generated.GetValidInstrumentRow)(result)), nil
 }
 
 // SearchForValidInstruments fetches a valid instrument from the database.
@@ -139,20 +103,7 @@ func (q *repository) SearchForValidInstruments(ctx context.Context, query string
 	x := filtering.Drain(
 		results,
 		func(result *generated.SearchForValidInstrumentsRow) *types.ValidInstrument {
-			return &types.ValidInstrument{
-				CreatedAt:                      result.CreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-				IconPath:                       result.IconPath,
-				ID:                             result.ID,
-				Name:                           result.Name,
-				PluralName:                     result.PluralName,
-				Description:                    result.Description,
-				Slug:                           result.Slug,
-				DisplayInSummaryLists:          result.DisplayInSummaryLists,
-				IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-				UsableForStorage:               result.UsableForStorage,
-			}
+			return validInstrumentFromListRow((*generated.GetValidInstrumentsRow)(result))
 		},
 		func(result *generated.SearchForValidInstrumentsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -193,20 +144,7 @@ func (q *repository) SearchForValidInstrumentsNotOwnedByAccount(ctx context.Cont
 	x := filtering.Drain(
 		results,
 		func(result *generated.SearchForValidInstrumentsNotOwnedByAccountRow) *types.ValidInstrument {
-			return &types.ValidInstrument{
-				CreatedAt:                      result.CreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-				IconPath:                       result.IconPath,
-				ID:                             result.ID,
-				Name:                           result.Name,
-				PluralName:                     result.PluralName,
-				Description:                    result.Description,
-				Slug:                           result.Slug,
-				DisplayInSummaryLists:          result.DisplayInSummaryLists,
-				IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-				UsableForStorage:               result.UsableForStorage,
-			}
+			return validInstrumentFromListRow((*generated.GetValidInstrumentsRow)(result))
 		},
 		func(result *generated.SearchForValidInstrumentsNotOwnedByAccountRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -244,22 +182,7 @@ func (q *repository) GetValidInstruments(ctx context.Context, filter *filtering.
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetValidInstrumentsRow) *types.ValidInstrument {
-			return &types.ValidInstrument{
-				CreatedAt:                      result.CreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-				IconPath:                       result.IconPath,
-				ID:                             result.ID,
-				Name:                           result.Name,
-				PluralName:                     result.PluralName,
-				Description:                    result.Description,
-				Slug:                           result.Slug,
-				DisplayInSummaryLists:          result.DisplayInSummaryLists,
-				IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-				UsableForStorage:               result.UsableForStorage,
-			}
-		},
+		validInstrumentFromListRow,
 		func(result *generated.GetValidInstrumentsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -284,20 +207,7 @@ func (q *repository) GetValidInstrumentsWithIDs(ctx context.Context, ids []strin
 
 	instruments := []*types.ValidInstrument{}
 	for _, result := range results {
-		instruments = append(instruments, &types.ValidInstrument{
-			CreatedAt:                      result.CreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			IconPath:                       result.IconPath,
-			ID:                             result.ID,
-			Name:                           result.Name,
-			PluralName:                     result.PluralName,
-			Description:                    result.Description,
-			Slug:                           result.Slug,
-			DisplayInSummaryLists:          result.DisplayInSummaryLists,
-			IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-			UsableForStorage:               result.UsableForStorage,
-		})
+		instruments = append(instruments, validInstrumentFromRow((*generated.GetValidInstrumentRow)(result)))
 	}
 
 	return instruments, nil
@@ -439,13 +349,10 @@ func (q *repository) ArchiveValidInstrument(ctx context.Context, validInstrument
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validInstrumentID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidInstrumentIDKey, validInstrumentID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
 
 	return q.withEvent(ctx, logger, types.ValidInstrumentArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidInstrumentIDKey: validInstrumentID,
@@ -461,4 +368,43 @@ func (q *repository) ArchiveValidInstrument(ctx context.Context, validInstrument
 
 		return nil
 	})
+}
+
+// validInstrumentFromRow maps a valid instrument row to its domain type. Every read that returns
+// valid instruments by ID selects the same columns, so each of those queries' row types converts
+// to generated.GetValidInstrumentRow and comes through here.
+func validInstrumentFromRow(result *generated.GetValidInstrumentRow) *types.ValidInstrument {
+	return &types.ValidInstrument{
+		CreatedAt:                      result.CreatedAt,
+		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+		IconPath:                       result.IconPath,
+		ID:                             result.ID,
+		Name:                           result.Name,
+		PluralName:                     result.PluralName,
+		Description:                    result.Description,
+		Slug:                           result.Slug,
+		DisplayInSummaryLists:          result.DisplayInSummaryLists,
+		IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
+		UsableForStorage:               result.UsableForStorage,
+	}
+}
+
+// validInstrumentFromListRow is validInstrumentFromRow for the paginated reads, whose rows also
+// carry the filtered and total counts and so convert to generated.GetValidInstrumentsRow instead.
+func validInstrumentFromListRow(result *generated.GetValidInstrumentsRow) *types.ValidInstrument {
+	return &types.ValidInstrument{
+		CreatedAt:                      result.CreatedAt,
+		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+		IconPath:                       result.IconPath,
+		ID:                             result.ID,
+		Name:                           result.Name,
+		PluralName:                     result.PluralName,
+		Description:                    result.Description,
+		Slug:                           result.Slug,
+		DisplayInSummaryLists:          result.DisplayInSummaryLists,
+		IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
+		UsableForStorage:               result.UsableForStorage,
+	}
 }

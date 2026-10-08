@@ -20,30 +20,26 @@ var (
 	_ types.MealPlanRecipeOptionSelectionDataManager = (*repository)(nil)
 )
 
+// The keys a selection's recipe step and selection type are logged, traced and emitted under. They
+// have no entry in mealplanningkeys, and keep the spelling they have always been recorded with.
+const (
+	recipeStepIDKey  = "recipe_step_id"
+	selectionTypeKey = "selection_type"
+)
+
 // GetSelection fetches a meal plan recipe option selection from the database.
 func (q *repository) GetMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string) (*types.MealPlanRecipeOptionSelection, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanOptionID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
+		idArg{recipeStepIDKey, recipeStepID},
+		idArg{selectionTypeKey, selectionType},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-
-	if recipeStepID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("recipe_step_id", recipeStepID)
-	tracing.AttachToSpan(span, "recipe_step_id", recipeStepID)
-
-	if selectionType == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("selection_type", selectionType)
-	tracing.AttachToSpan(span, "selection_type", selectionType)
 
 	result, err := q.generatedQuerier.GetMealPlanRecipeOptionSelection(ctx, q.readDB, &generated.GetMealPlanRecipeOptionSelectionParams{
 		MealPlanOptionID: mealPlanOptionID,
@@ -79,13 +75,10 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanOptionID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -107,20 +100,7 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 
 	y := filtering.Drain(
 		results,
-		func(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) *types.MealPlanRecipeOptionSelection {
-			return &types.MealPlanRecipeOptionSelection{
-				ID:                      result.ID,
-				BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-				RecipeID:                result.RecipeID,
-				RecipeStepID:            result.RecipeStepID,
-				IngredientIndex:         uint16(result.IngredientIndex),
-				SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
-				SelectionType:           result.SelectionType,
-				CreatedAt:               result.CreatedAt,
-				LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-			}
-		},
+		mealPlanRecipeOptionSelectionFromListRow,
 		func(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -140,11 +120,10 @@ func (q *repository) GetSelectionsForMealPlan(ctx context.Context, mealPlanID st
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(logger, span, idArg{mealplanningkeys.MealPlanIDKey, mealPlanID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -168,18 +147,7 @@ func (q *repository) GetSelectionsForMealPlan(ctx context.Context, mealPlanID st
 
 	x := make([]*types.MealPlanRecipeOptionSelection, 0, len(results))
 	for _, result := range results {
-		selection := &types.MealPlanRecipeOptionSelection{
-			ID:                      result.ID,
-			BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-			RecipeID:                result.RecipeID,
-			RecipeStepID:            result.RecipeStepID,
-			IngredientIndex:         uint16(result.IngredientIndex),
-			SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
-			SelectionType:           result.SelectionType,
-			CreatedAt:               result.CreatedAt,
-			LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-		}
+		selection := mealPlanRecipeOptionSelectionFromListRow((*generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow)(result))
 
 		x = append(x, selection)
 	}
@@ -243,25 +211,14 @@ func (q *repository) UpdateMealPlanRecipeOptionSelection(ctx context.Context, me
 		return platformerrors.ErrNilInputParameter
 	}
 
-	logger := q.logger.Clone()
-
-	if mealPlanOptionID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
+		idArg{recipeStepIDKey, recipeStepID},
+		idArg{selectionTypeKey, selectionType},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-
-	if recipeStepID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("recipe_step_id", recipeStepID)
-	tracing.AttachToSpan(span, "recipe_step_id", recipeStepID)
-
-	if selectionType == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("selection_type", selectionType)
-	tracing.AttachToSpan(span, "selection_type", selectionType)
 
 	if input.SelectedOptionIndex == nil {
 		return platformerrors.ErrInvalidIDProvided
@@ -310,31 +267,20 @@ func (q *repository) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, m
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanOptionID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
+		idArg{recipeStepIDKey, recipeStepID},
+		idArg{selectionTypeKey, selectionType},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
-	if recipeStepID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("recipe_step_id", recipeStepID)
-	tracing.AttachToSpan(span, "recipe_step_id", recipeStepID)
-
-	if selectionType == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("selection_type", selectionType)
-	tracing.AttachToSpan(span, "selection_type", selectionType)
-
-	if err := q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-		"recipe_step_id":                     recipeStepID,
+		recipeStepIDKey:                      recipeStepID,
 		"ingredient_index":                   ingredientIndex,
-		"selection_type":                     selectionType,
+		selectionTypeKey:                     selectionType,
 	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanRecipeOptionSelection(ctx, tx, &generated.ArchiveMealPlanRecipeOptionSelectionParams{
 			MealPlanOptionID: mealPlanOptionID,
@@ -358,4 +304,23 @@ func (q *repository) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, m
 	logger.Info("meal plan recipe option selection archived")
 
 	return nil
+}
+
+// mealPlanRecipeOptionSelectionFromListRow maps a meal plan recipe option selection row to its
+// domain type. The per-option and per-meal-plan reads both carry the filtered and total counts
+// alongside the table's columns, so each converts to
+// generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow and comes through here.
+func mealPlanRecipeOptionSelectionFromListRow(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) *types.MealPlanRecipeOptionSelection {
+	return &types.MealPlanRecipeOptionSelection{
+		ID:                      result.ID,
+		BelongsToMealPlanOption: result.BelongsToMealPlanOption,
+		RecipeID:                result.RecipeID,
+		RecipeStepID:            result.RecipeStepID,
+		IngredientIndex:         uint16(result.IngredientIndex),
+		SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
+		SelectionType:           result.SelectionType,
+		CreatedAt:               result.CreatedAt,
+		LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
+	}
 }

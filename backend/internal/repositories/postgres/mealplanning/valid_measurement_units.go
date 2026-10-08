@@ -25,13 +25,10 @@ func (q *repository) ValidMeasurementUnitExists(ctx context.Context, validMeasur
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
 	result, err := q.generatedQuerier.CheckValidMeasurementUnitExistence(ctx, q.readDB, validMeasurementUnitID)
 	if err != nil {
@@ -46,36 +43,17 @@ func (q *repository) GetValidMeasurementUnit(ctx context.Context, validMeasureme
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
 	result, err := q.generatedQuerier.GetValidMeasurementUnit(ctx, q.readDB, validMeasurementUnitID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "scanning valid measurement unit")
 	}
 
-	validMeasurementUnit := &types.ValidMeasurementUnit{
-		CreatedAt:     result.CreatedAt,
-		LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-		Name:          result.Name,
-		IconPath:      result.IconPath,
-		ID:            result.ID,
-		Description:   result.Description,
-		PluralName:    result.PluralName,
-		Slug:          result.Slug,
-		Volumetric:    database.BoolFromNullBool(result.Volumetric),
-		Universal:     result.Universal,
-		Metric:        result.Metric,
-		Imperial:      result.Imperial,
-	}
-
-	return validMeasurementUnit, nil
+	return validMeasurementUnitFromRow(result), nil
 }
 
 // GetRandomValidMeasurementUnit fetches a valid measurement unit from the database.
@@ -88,23 +66,7 @@ func (q *repository) GetRandomValidMeasurementUnit(ctx context.Context) (*types.
 		return nil, observability.PrepareError(err, span, "scanning valid measurement unit")
 	}
 
-	validMeasurementUnit := &types.ValidMeasurementUnit{
-		CreatedAt:     result.CreatedAt,
-		LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-		Name:          result.Name,
-		IconPath:      result.IconPath,
-		ID:            result.ID,
-		Description:   result.Description,
-		PluralName:    result.PluralName,
-		Slug:          result.Slug,
-		Volumetric:    database.BoolFromNullBool(result.Volumetric),
-		Universal:     result.Universal,
-		Metric:        result.Metric,
-		Imperial:      result.Imperial,
-	}
-
-	return validMeasurementUnit, nil
+	return validMeasurementUnitFromRow((*generated.GetValidMeasurementUnitRow)(result)), nil
 }
 
 // SearchForValidMeasurementUnits fetches a valid measurement unit from the database.
@@ -141,21 +103,7 @@ func (q *repository) SearchForValidMeasurementUnits(ctx context.Context, query s
 	x := filtering.Drain(
 		results,
 		func(result *generated.SearchForValidMeasurementUnitsRow) *types.ValidMeasurementUnit {
-			return &types.ValidMeasurementUnit{
-				CreatedAt:     result.CreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-				Name:          result.Name,
-				IconPath:      result.IconPath,
-				ID:            result.ID,
-				Description:   result.Description,
-				PluralName:    result.PluralName,
-				Slug:          result.Slug,
-				Volumetric:    database.BoolFromNullBool(result.Volumetric),
-				Universal:     result.Universal,
-				Metric:        result.Metric,
-				Imperial:      result.Imperial,
-			}
+			return validMeasurementUnitFromListRow((*generated.GetValidMeasurementUnitsRow)(result))
 		},
 		func(result *generated.SearchForValidMeasurementUnitsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -201,21 +149,7 @@ func (q *repository) ValidMeasurementUnitsForIngredientID(ctx context.Context, v
 	x := filtering.Drain(
 		results,
 		func(result *generated.SearchValidMeasurementUnitsByIngredientIDRow) *types.ValidMeasurementUnit {
-			return &types.ValidMeasurementUnit{
-				CreatedAt:     result.CreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-				Name:          result.Name,
-				IconPath:      result.IconPath,
-				ID:            result.ID,
-				Description:   result.Description,
-				PluralName:    result.PluralName,
-				Slug:          result.Slug,
-				Volumetric:    database.BoolFromNullBool(result.Volumetric),
-				Universal:     result.Universal,
-				Metric:        result.Metric,
-				Imperial:      result.Imperial,
-			}
+			return validMeasurementUnitFromListRow((*generated.GetValidMeasurementUnitsRow)(result))
 		},
 		func(result *generated.SearchValidMeasurementUnitsByIngredientIDRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -253,23 +187,7 @@ func (q *repository) GetValidMeasurementUnits(ctx context.Context, filter *filte
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetValidMeasurementUnitsRow) *types.ValidMeasurementUnit {
-			return &types.ValidMeasurementUnit{
-				CreatedAt:     result.CreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-				Name:          result.Name,
-				IconPath:      result.IconPath,
-				ID:            result.ID,
-				Description:   result.Description,
-				PluralName:    result.PluralName,
-				Slug:          result.Slug,
-				Volumetric:    database.BoolFromNullBool(result.Volumetric),
-				Universal:     result.Universal,
-				Metric:        result.Metric,
-				Imperial:      result.Imperial,
-			}
-		},
+		validMeasurementUnitFromListRow,
 		func(result *generated.GetValidMeasurementUnitsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -294,21 +212,7 @@ func (q *repository) GetValidMeasurementUnitsWithIDs(ctx context.Context, ids []
 
 	x := []*types.ValidMeasurementUnit{}
 	for _, result := range results {
-		x = append(x, &types.ValidMeasurementUnit{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			Name:          result.Name,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Description:   result.Description,
-			PluralName:    result.PluralName,
-			Slug:          result.Slug,
-			Volumetric:    database.BoolFromNullBool(result.Volumetric),
-			Universal:     result.Universal,
-			Metric:        result.Metric,
-			Imperial:      result.Imperial,
-		})
+		x = append(x, validMeasurementUnitFromRow((*generated.GetValidMeasurementUnitRow)(result)))
 	}
 
 	return x, nil
@@ -453,13 +357,10 @@ func (q *repository) ArchiveValidMeasurementUnit(ctx context.Context, validMeasu
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
 	return q.withEvent(ctx, logger, types.ValidMeasurementUnitArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitIDKey: validMeasurementUnitID,
@@ -475,4 +376,46 @@ func (q *repository) ArchiveValidMeasurementUnit(ctx context.Context, validMeasu
 
 		return nil
 	})
+}
+
+// validMeasurementUnitFromRow maps a valid measurement unit row to its domain type. Every read that
+// returns valid measurement units by ID selects the same columns, so each of those queries' row
+// types converts to generated.GetValidMeasurementUnitRow and comes through here.
+func validMeasurementUnitFromRow(result *generated.GetValidMeasurementUnitRow) *types.ValidMeasurementUnit {
+	return &types.ValidMeasurementUnit{
+		CreatedAt:     result.CreatedAt,
+		LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+		Name:          result.Name,
+		IconPath:      result.IconPath,
+		ID:            result.ID,
+		Description:   result.Description,
+		PluralName:    result.PluralName,
+		Slug:          result.Slug,
+		Volumetric:    database.BoolFromNullBool(result.Volumetric),
+		Universal:     result.Universal,
+		Metric:        result.Metric,
+		Imperial:      result.Imperial,
+	}
+}
+
+// validMeasurementUnitFromListRow is validMeasurementUnitFromRow for the paginated reads, whose rows
+// also carry the filtered and total counts and so convert to generated.GetValidMeasurementUnitsRow
+// instead.
+func validMeasurementUnitFromListRow(result *generated.GetValidMeasurementUnitsRow) *types.ValidMeasurementUnit {
+	return &types.ValidMeasurementUnit{
+		CreatedAt:     result.CreatedAt,
+		LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+		Name:          result.Name,
+		IconPath:      result.IconPath,
+		ID:            result.ID,
+		Description:   result.Description,
+		PluralName:    result.PluralName,
+		Slug:          result.Slug,
+		Volumetric:    database.BoolFromNullBool(result.Volumetric),
+		Universal:     result.Universal,
+		Metric:        result.Metric,
+		Imperial:      result.Imperial,
+	}
 }

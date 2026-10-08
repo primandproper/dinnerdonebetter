@@ -30,19 +30,13 @@ func (q *repository) AccountInstrumentOwnershipExists(ctx context.Context, accou
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if accountInstrumentOwnershipID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID},
+		idArg{identitykeys.AccountIDKey, accountID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID)
-	tracing.AttachToSpan(span, mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID)
-
-	if accountID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	result, err := q.generatedQuerier.CheckAccountInstrumentOwnershipExistence(ctx, q.readDB, &generated.CheckAccountInstrumentOwnershipExistenceParams{
 		ID:               accountInstrumentOwnershipID,
@@ -60,19 +54,13 @@ func (q *repository) GetAccountInstrumentOwnership(ctx context.Context, accountI
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if accountInstrumentOwnershipID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID},
+		idArg{identitykeys.AccountIDKey, accountID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID)
-	tracing.AttachToSpan(span, mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID)
-
-	if accountID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	result, err := q.generatedQuerier.GetAccountInstrumentOwnership(ctx, q.readDB, &generated.GetAccountInstrumentOwnershipParams{
 		ID:               accountInstrumentOwnershipID,
@@ -248,19 +236,13 @@ func (q *repository) ArchiveAccountInstrumentOwnership(ctx context.Context, acco
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if accountInstrumentOwnershipID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID},
+		idArg{identitykeys.AccountIDKey, accountID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID)
-	tracing.AttachToSpan(span, mealplanningkeys.AccountInstrumentOwnershipIDKey, accountInstrumentOwnershipID)
-
-	if accountID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	return q.withRecord(ctx, logger, auditEntry(resourceTypeAccountInstrumentOwnerships, accountInstrumentOwnershipID, platformaudit.EventArchived), types.AccountInstrumentOwnershipArchivedServiceEventType, accountID, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: accountInstrumentOwnershipID,

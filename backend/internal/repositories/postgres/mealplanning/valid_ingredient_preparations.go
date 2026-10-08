@@ -24,13 +24,10 @@ func (q *repository) ValidIngredientPreparationExists(ctx context.Context, valid
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientPreparationID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID)
 
 	result, err := q.generatedQuerier.CheckValidIngredientPreparationExistence(ctx, q.readDB, validIngredientPreparationID)
 	if err != nil {
@@ -45,92 +42,17 @@ func (q *repository) GetValidIngredientPreparation(ctx context.Context, validIng
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientPreparationID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID)
 
 	result, err := q.generatedQuerier.GetValidIngredientPreparation(ctx, q.readDB, validIngredientPreparationID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid ingredient preparation retrieval")
 	}
 
-	validIngredientPreparation := &mealplanning.ValidIngredientPreparation{
-		CreatedAt:     result.ValidIngredientPreparationCreatedAt,
-		LastUpdatedAt: database.TimePointerFromNullTime(result.ValidIngredientPreparationLastUpdatedAt),
-		ArchivedAt:    database.TimePointerFromNullTime(result.ValidIngredientPreparationArchivedAt),
-		Notes:         result.ValidIngredientPreparationNotes,
-		ID:            result.ValidIngredientPreparationID,
-		Ingredient: mealplanning.ValidIngredient{
-			CreatedAt:                      result.ValidIngredientCreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
-			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-			IconPath:                       result.ValidIngredientIconPath,
-			Warning:                        result.ValidIngredientWarning,
-			PluralName:                     result.ValidIngredientPluralName,
-			StorageInstructions:            result.ValidIngredientStorageInstructions,
-			Name:                           result.ValidIngredientName,
-			ID:                             result.ValidIngredientID,
-			Description:                    result.ValidIngredientDescription,
-			Slug:                           result.ValidIngredientSlug,
-			ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
-			ContainsShellfish:              result.ValidIngredientContainsShellfish,
-			IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
-			ContainsPeanut:                 result.ValidIngredientContainsPeanut,
-			ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
-			ContainsEgg:                    result.ValidIngredientContainsEgg,
-			ContainsWheat:                  result.ValidIngredientContainsWheat,
-			ContainsSoy:                    result.ValidIngredientContainsSoy,
-			AnimalDerived:                  result.ValidIngredientAnimalDerived,
-			RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
-			ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
-			ContainsSesame:                 result.ValidIngredientContainsSesame,
-			ContainsFish:                   result.ValidIngredientContainsFish,
-			ContainsGluten:                 result.ValidIngredientContainsGluten,
-			ContainsDairy:                  result.ValidIngredientContainsDairy,
-			ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
-			AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
-			IsStarch:                       result.ValidIngredientIsStarch,
-			IsProtein:                      result.ValidIngredientIsProtein,
-			IsGrain:                        result.ValidIngredientIsGrain,
-			IsFruit:                        result.ValidIngredientIsFruit,
-			IsSalt:                         result.ValidIngredientIsSalt,
-			IsFat:                          result.ValidIngredientIsFat,
-			IsAcid:                         result.ValidIngredientIsAcid,
-			IsHeat:                         result.ValidIngredientIsHeat,
-		},
-		Preparation: mealplanning.ValidPreparation{
-			CreatedAt:                   result.ValidPreparationCreatedAt,
-			MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-			MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-			MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-			ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-			LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-			IconPath:                    result.ValidPreparationIconPath,
-			PastTense:                   result.ValidPreparationPastTense,
-			ID:                          result.ValidPreparationID,
-			Name:                        result.ValidPreparationName,
-			Description:                 result.ValidPreparationDescription,
-			Slug:                        result.ValidPreparationSlug,
-			RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-			TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-			TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-			ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-			ConsumesVessel:              result.ValidPreparationConsumesVessel,
-			OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-			YieldsNothing:               result.ValidPreparationYieldsNothing,
-		},
-	}
-
-	return validIngredientPreparation, nil
+	return validIngredientPreparationFromRow(result), nil
 }
 
 // GetValidIngredientPreparations fetches a list of valid ingredient preparations from the database that meet a particular filter.
@@ -159,79 +81,7 @@ func (q *repository) GetValidIngredientPreparations(ctx context.Context, filter 
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetValidIngredientPreparationsRow) *mealplanning.ValidIngredientPreparation {
-			return &mealplanning.ValidIngredientPreparation{
-				CreatedAt:     result.ValidIngredientPreparationCreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidIngredientPreparationLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidIngredientPreparationArchivedAt),
-				Notes:         result.ValidIngredientPreparationNotes,
-				ID:            result.ValidIngredientPreparationID,
-				Ingredient: mealplanning.ValidIngredient{
-					CreatedAt:                      result.ValidIngredientCreatedAt,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
-					MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-					MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-					IconPath:                       result.ValidIngredientIconPath,
-					Warning:                        result.ValidIngredientWarning,
-					PluralName:                     result.ValidIngredientPluralName,
-					StorageInstructions:            result.ValidIngredientStorageInstructions,
-					Name:                           result.ValidIngredientName,
-					ID:                             result.ValidIngredientID,
-					Description:                    result.ValidIngredientDescription,
-					Slug:                           result.ValidIngredientSlug,
-					ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
-					ContainsShellfish:              result.ValidIngredientContainsShellfish,
-					IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
-					ContainsPeanut:                 result.ValidIngredientContainsPeanut,
-					ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
-					ContainsEgg:                    result.ValidIngredientContainsEgg,
-					ContainsWheat:                  result.ValidIngredientContainsWheat,
-					ContainsSoy:                    result.ValidIngredientContainsSoy,
-					AnimalDerived:                  result.ValidIngredientAnimalDerived,
-					RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
-					ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
-					ContainsSesame:                 result.ValidIngredientContainsSesame,
-					ContainsFish:                   result.ValidIngredientContainsFish,
-					ContainsGluten:                 result.ValidIngredientContainsGluten,
-					ContainsDairy:                  result.ValidIngredientContainsDairy,
-					ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
-					AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
-					IsStarch:                       result.ValidIngredientIsStarch,
-					IsProtein:                      result.ValidIngredientIsProtein,
-					IsGrain:                        result.ValidIngredientIsGrain,
-					IsFruit:                        result.ValidIngredientIsFruit,
-					IsSalt:                         result.ValidIngredientIsSalt,
-					IsFat:                          result.ValidIngredientIsFat,
-					IsAcid:                         result.ValidIngredientIsAcid,
-					IsHeat:                         result.ValidIngredientIsHeat,
-				},
-				Preparation: mealplanning.ValidPreparation{
-					CreatedAt:                   result.ValidPreparationCreatedAt,
-					MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-					MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-					MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-					MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-					ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-					LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-					IconPath:                    result.ValidPreparationIconPath,
-					PastTense:                   result.ValidPreparationPastTense,
-					ID:                          result.ValidPreparationID,
-					Name:                        result.ValidPreparationName,
-					Description:                 result.ValidPreparationDescription,
-					Slug:                        result.ValidPreparationSlug,
-					RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-					TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-					TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-					ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-					ConsumesVessel:              result.ValidPreparationConsumesVessel,
-					OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-					YieldsNothing:               result.ValidPreparationYieldsNothing,
-				},
-			}
-		},
+		validIngredientPreparationFromListRow,
 		func(result *generated.GetValidIngredientPreparationsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -276,77 +126,7 @@ func (q *repository) GetValidIngredientPreparationsForPreparation(ctx context.Co
 	x = filtering.Drain(
 		results,
 		func(result *generated.GetValidIngredientPreparationsForPreparationRow) *mealplanning.ValidIngredientPreparation {
-			return &mealplanning.ValidIngredientPreparation{
-				CreatedAt:     result.ValidIngredientPreparationCreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidIngredientPreparationLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidIngredientPreparationArchivedAt),
-				Notes:         result.ValidIngredientPreparationNotes,
-				ID:            result.ValidIngredientPreparationID,
-				Ingredient: mealplanning.ValidIngredient{
-					CreatedAt:                      result.ValidIngredientCreatedAt,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
-					MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-					MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-					IconPath:                       result.ValidIngredientIconPath,
-					Warning:                        result.ValidIngredientWarning,
-					PluralName:                     result.ValidIngredientPluralName,
-					StorageInstructions:            result.ValidIngredientStorageInstructions,
-					Name:                           result.ValidIngredientName,
-					ID:                             result.ValidIngredientID,
-					Description:                    result.ValidIngredientDescription,
-					Slug:                           result.ValidIngredientSlug,
-					ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
-					ContainsShellfish:              result.ValidIngredientContainsShellfish,
-					IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
-					ContainsPeanut:                 result.ValidIngredientContainsPeanut,
-					ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
-					ContainsEgg:                    result.ValidIngredientContainsEgg,
-					ContainsWheat:                  result.ValidIngredientContainsWheat,
-					ContainsSoy:                    result.ValidIngredientContainsSoy,
-					AnimalDerived:                  result.ValidIngredientAnimalDerived,
-					RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
-					ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
-					ContainsSesame:                 result.ValidIngredientContainsSesame,
-					ContainsFish:                   result.ValidIngredientContainsFish,
-					ContainsGluten:                 result.ValidIngredientContainsGluten,
-					ContainsDairy:                  result.ValidIngredientContainsDairy,
-					ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
-					AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
-					IsStarch:                       result.ValidIngredientIsStarch,
-					IsProtein:                      result.ValidIngredientIsProtein,
-					IsGrain:                        result.ValidIngredientIsGrain,
-					IsFruit:                        result.ValidIngredientIsFruit,
-					IsSalt:                         result.ValidIngredientIsSalt,
-					IsFat:                          result.ValidIngredientIsFat,
-					IsAcid:                         result.ValidIngredientIsAcid,
-					IsHeat:                         result.ValidIngredientIsHeat,
-				},
-				Preparation: mealplanning.ValidPreparation{
-					CreatedAt:                   result.ValidPreparationCreatedAt,
-					MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-					MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-					MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-					MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-					ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-					LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-					IconPath:                    result.ValidPreparationIconPath,
-					PastTense:                   result.ValidPreparationPastTense,
-					ID:                          result.ValidPreparationID,
-					Name:                        result.ValidPreparationName,
-					Description:                 result.ValidPreparationDescription,
-					Slug:                        result.ValidPreparationSlug,
-					RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-					TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-					TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-					ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-					ConsumesVessel:              result.ValidPreparationConsumesVessel,
-					OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-					YieldsNothing:               result.ValidPreparationYieldsNothing,
-				},
-			}
+			return validIngredientPreparationFromListRow((*generated.GetValidIngredientPreparationsRow)(result))
 		},
 		func(result *generated.GetValidIngredientPreparationsForPreparationRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -392,77 +172,7 @@ func (q *repository) GetValidIngredientPreparationsForIngredient(ctx context.Con
 	x = filtering.Drain(
 		results,
 		func(result *generated.GetValidIngredientPreparationsForIngredientRow) *mealplanning.ValidIngredientPreparation {
-			return &mealplanning.ValidIngredientPreparation{
-				CreatedAt:     result.ValidIngredientPreparationCreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidIngredientPreparationLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidIngredientPreparationArchivedAt),
-				Notes:         result.ValidIngredientPreparationNotes,
-				ID:            result.ValidIngredientPreparationID,
-				Ingredient: mealplanning.ValidIngredient{
-					CreatedAt:                      result.ValidIngredientCreatedAt,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
-					MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-					MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-					IconPath:                       result.ValidIngredientIconPath,
-					Warning:                        result.ValidIngredientWarning,
-					PluralName:                     result.ValidIngredientPluralName,
-					StorageInstructions:            result.ValidIngredientStorageInstructions,
-					Name:                           result.ValidIngredientName,
-					ID:                             result.ValidIngredientID,
-					Description:                    result.ValidIngredientDescription,
-					Slug:                           result.ValidIngredientSlug,
-					ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
-					ContainsShellfish:              result.ValidIngredientContainsShellfish,
-					IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
-					ContainsPeanut:                 result.ValidIngredientContainsPeanut,
-					ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
-					ContainsEgg:                    result.ValidIngredientContainsEgg,
-					ContainsWheat:                  result.ValidIngredientContainsWheat,
-					ContainsSoy:                    result.ValidIngredientContainsSoy,
-					AnimalDerived:                  result.ValidIngredientAnimalDerived,
-					RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
-					ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
-					ContainsSesame:                 result.ValidIngredientContainsSesame,
-					ContainsFish:                   result.ValidIngredientContainsFish,
-					ContainsGluten:                 result.ValidIngredientContainsGluten,
-					ContainsDairy:                  result.ValidIngredientContainsDairy,
-					ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
-					AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
-					IsStarch:                       result.ValidIngredientIsStarch,
-					IsProtein:                      result.ValidIngredientIsProtein,
-					IsGrain:                        result.ValidIngredientIsGrain,
-					IsFruit:                        result.ValidIngredientIsFruit,
-					IsSalt:                         result.ValidIngredientIsSalt,
-					IsFat:                          result.ValidIngredientIsFat,
-					IsAcid:                         result.ValidIngredientIsAcid,
-					IsHeat:                         result.ValidIngredientIsHeat,
-				},
-				Preparation: mealplanning.ValidPreparation{
-					CreatedAt:                   result.ValidPreparationCreatedAt,
-					MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-					MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-					MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-					MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-					ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-					LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-					IconPath:                    result.ValidPreparationIconPath,
-					PastTense:                   result.ValidPreparationPastTense,
-					ID:                          result.ValidPreparationID,
-					Name:                        result.ValidPreparationName,
-					Description:                 result.ValidPreparationDescription,
-					Slug:                        result.ValidPreparationSlug,
-					RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-					TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-					TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-					ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-					ConsumesVessel:              result.ValidPreparationConsumesVessel,
-					OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-					YieldsNothing:               result.ValidPreparationYieldsNothing,
-				},
-			}
+			return validIngredientPreparationFromListRow((*generated.GetValidIngredientPreparationsRow)(result))
 		},
 		func(result *generated.GetValidIngredientPreparationsForIngredientRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -492,77 +202,7 @@ func (q *repository) GetValidIngredientPreparationsByIDs(ctx context.Context, id
 
 	resultMap := make(map[string]*mealplanning.ValidIngredientPreparation, len(results))
 	for _, result := range results {
-		resultMap[result.ValidIngredientPreparationID] = &mealplanning.ValidIngredientPreparation{
-			CreatedAt:     result.ValidIngredientPreparationCreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.ValidIngredientPreparationLastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ValidIngredientPreparationArchivedAt),
-			Notes:         result.ValidIngredientPreparationNotes,
-			ID:            result.ValidIngredientPreparationID,
-			Ingredient: mealplanning.ValidIngredient{
-				CreatedAt:                      result.ValidIngredientCreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
-				MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-				MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-				IconPath:                       result.ValidIngredientIconPath,
-				Warning:                        result.ValidIngredientWarning,
-				PluralName:                     result.ValidIngredientPluralName,
-				StorageInstructions:            result.ValidIngredientStorageInstructions,
-				Name:                           result.ValidIngredientName,
-				ID:                             result.ValidIngredientID,
-				Description:                    result.ValidIngredientDescription,
-				Slug:                           result.ValidIngredientSlug,
-				ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
-				ContainsShellfish:              result.ValidIngredientContainsShellfish,
-				IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
-				ContainsPeanut:                 result.ValidIngredientContainsPeanut,
-				ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
-				ContainsEgg:                    result.ValidIngredientContainsEgg,
-				ContainsWheat:                  result.ValidIngredientContainsWheat,
-				ContainsSoy:                    result.ValidIngredientContainsSoy,
-				AnimalDerived:                  result.ValidIngredientAnimalDerived,
-				RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
-				ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
-				ContainsSesame:                 result.ValidIngredientContainsSesame,
-				ContainsFish:                   result.ValidIngredientContainsFish,
-				ContainsGluten:                 result.ValidIngredientContainsGluten,
-				ContainsDairy:                  result.ValidIngredientContainsDairy,
-				ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
-				AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
-				IsStarch:                       result.ValidIngredientIsStarch,
-				IsProtein:                      result.ValidIngredientIsProtein,
-				IsGrain:                        result.ValidIngredientIsGrain,
-				IsFruit:                        result.ValidIngredientIsFruit,
-				IsSalt:                         result.ValidIngredientIsSalt,
-				IsFat:                          result.ValidIngredientIsFat,
-				IsAcid:                         result.ValidIngredientIsAcid,
-				IsHeat:                         result.ValidIngredientIsHeat,
-			},
-			Preparation: mealplanning.ValidPreparation{
-				CreatedAt:                   result.ValidPreparationCreatedAt,
-				MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-				MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-				MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-				MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-				MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-				MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-				ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-				LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-				IconPath:                    result.ValidPreparationIconPath,
-				PastTense:                   result.ValidPreparationPastTense,
-				ID:                          result.ValidPreparationID,
-				Name:                        result.ValidPreparationName,
-				Description:                 result.ValidPreparationDescription,
-				Slug:                        result.ValidPreparationSlug,
-				RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-				TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-				TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-				ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-				ConsumesVessel:              result.ValidPreparationConsumesVessel,
-				OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-				YieldsNothing:               result.ValidPreparationYieldsNothing,
-			},
-		}
+		resultMap[result.ValidIngredientPreparationID] = validIngredientPreparationFromRow((*generated.GetValidIngredientPreparationRow)(result))
 	}
 
 	return resultMap, nil
@@ -658,13 +298,10 @@ func (q *repository) ArchiveValidIngredientPreparation(ctx context.Context, vali
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientPreparationID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientPreparationIDKey, validIngredientPreparationID)
 
 	return q.withEvent(ctx, logger, mealplanning.ValidIngredientPreparationArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientPreparationIDKey: validIngredientPreparationID,
@@ -680,4 +317,158 @@ func (q *repository) ArchiveValidIngredientPreparation(ctx context.Context, vali
 
 		return nil
 	})
+}
+
+// validIngredientPreparationFromRow maps a valid ingredient preparation row, with its joined ingredient
+// and preparation, to its domain type. The by-ID reads select the same columns, so each of those
+// queries' row types converts to generated.GetValidIngredientPreparationRow and comes through here.
+func validIngredientPreparationFromRow(result *generated.GetValidIngredientPreparationRow) *mealplanning.ValidIngredientPreparation {
+	return &mealplanning.ValidIngredientPreparation{
+		CreatedAt:     result.ValidIngredientPreparationCreatedAt,
+		LastUpdatedAt: database.TimePointerFromNullTime(result.ValidIngredientPreparationLastUpdatedAt),
+		ArchivedAt:    database.TimePointerFromNullTime(result.ValidIngredientPreparationArchivedAt),
+		Notes:         result.ValidIngredientPreparationNotes,
+		ID:            result.ValidIngredientPreparationID,
+		Ingredient: mealplanning.ValidIngredient{
+			CreatedAt:                      result.ValidIngredientCreatedAt,
+			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
+			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
+			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
+			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
+			IconPath:                       result.ValidIngredientIconPath,
+			Warning:                        result.ValidIngredientWarning,
+			PluralName:                     result.ValidIngredientPluralName,
+			StorageInstructions:            result.ValidIngredientStorageInstructions,
+			Name:                           result.ValidIngredientName,
+			ID:                             result.ValidIngredientID,
+			Description:                    result.ValidIngredientDescription,
+			Slug:                           result.ValidIngredientSlug,
+			ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
+			ContainsShellfish:              result.ValidIngredientContainsShellfish,
+			IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
+			ContainsPeanut:                 result.ValidIngredientContainsPeanut,
+			ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
+			ContainsEgg:                    result.ValidIngredientContainsEgg,
+			ContainsWheat:                  result.ValidIngredientContainsWheat,
+			ContainsSoy:                    result.ValidIngredientContainsSoy,
+			AnimalDerived:                  result.ValidIngredientAnimalDerived,
+			RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
+			ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
+			ContainsSesame:                 result.ValidIngredientContainsSesame,
+			ContainsFish:                   result.ValidIngredientContainsFish,
+			ContainsGluten:                 result.ValidIngredientContainsGluten,
+			ContainsDairy:                  result.ValidIngredientContainsDairy,
+			ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
+			AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
+			IsStarch:                       result.ValidIngredientIsStarch,
+			IsProtein:                      result.ValidIngredientIsProtein,
+			IsGrain:                        result.ValidIngredientIsGrain,
+			IsFruit:                        result.ValidIngredientIsFruit,
+			IsSalt:                         result.ValidIngredientIsSalt,
+			IsFat:                          result.ValidIngredientIsFat,
+			IsAcid:                         result.ValidIngredientIsAcid,
+			IsHeat:                         result.ValidIngredientIsHeat,
+		},
+		Preparation: mealplanning.ValidPreparation{
+			CreatedAt:                   result.ValidPreparationCreatedAt,
+			MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
+			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
+			MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
+			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
+			MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
+			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
+			ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
+			LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
+			IconPath:                    result.ValidPreparationIconPath,
+			PastTense:                   result.ValidPreparationPastTense,
+			ID:                          result.ValidPreparationID,
+			Name:                        result.ValidPreparationName,
+			Description:                 result.ValidPreparationDescription,
+			Slug:                        result.ValidPreparationSlug,
+			RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
+			TemperatureRequired:         result.ValidPreparationTemperatureRequired,
+			TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
+			ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
+			ConsumesVessel:              result.ValidPreparationConsumesVessel,
+			OnlyForVessels:              result.ValidPreparationOnlyForVessels,
+			YieldsNothing:               result.ValidPreparationYieldsNothing,
+		},
+	}
+}
+
+// validIngredientPreparationFromListRow is validIngredientPreparationFromRow for the paginated reads,
+// whose rows also carry the filtered and total counts and so convert to
+// generated.GetValidIngredientPreparationsRow instead.
+func validIngredientPreparationFromListRow(result *generated.GetValidIngredientPreparationsRow) *mealplanning.ValidIngredientPreparation {
+	return &mealplanning.ValidIngredientPreparation{
+		CreatedAt:     result.ValidIngredientPreparationCreatedAt,
+		LastUpdatedAt: database.TimePointerFromNullTime(result.ValidIngredientPreparationLastUpdatedAt),
+		ArchivedAt:    database.TimePointerFromNullTime(result.ValidIngredientPreparationArchivedAt),
+		Notes:         result.ValidIngredientPreparationNotes,
+		ID:            result.ValidIngredientPreparationID,
+		Ingredient: mealplanning.ValidIngredient{
+			CreatedAt:                      result.ValidIngredientCreatedAt,
+			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
+			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
+			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
+			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
+			IconPath:                       result.ValidIngredientIconPath,
+			Warning:                        result.ValidIngredientWarning,
+			PluralName:                     result.ValidIngredientPluralName,
+			StorageInstructions:            result.ValidIngredientStorageInstructions,
+			Name:                           result.ValidIngredientName,
+			ID:                             result.ValidIngredientID,
+			Description:                    result.ValidIngredientDescription,
+			Slug:                           result.ValidIngredientSlug,
+			ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
+			ContainsShellfish:              result.ValidIngredientContainsShellfish,
+			IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
+			ContainsPeanut:                 result.ValidIngredientContainsPeanut,
+			ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
+			ContainsEgg:                    result.ValidIngredientContainsEgg,
+			ContainsWheat:                  result.ValidIngredientContainsWheat,
+			ContainsSoy:                    result.ValidIngredientContainsSoy,
+			AnimalDerived:                  result.ValidIngredientAnimalDerived,
+			RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
+			ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
+			ContainsSesame:                 result.ValidIngredientContainsSesame,
+			ContainsFish:                   result.ValidIngredientContainsFish,
+			ContainsGluten:                 result.ValidIngredientContainsGluten,
+			ContainsDairy:                  result.ValidIngredientContainsDairy,
+			ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
+			AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
+			IsStarch:                       result.ValidIngredientIsStarch,
+			IsProtein:                      result.ValidIngredientIsProtein,
+			IsGrain:                        result.ValidIngredientIsGrain,
+			IsFruit:                        result.ValidIngredientIsFruit,
+			IsSalt:                         result.ValidIngredientIsSalt,
+			IsFat:                          result.ValidIngredientIsFat,
+			IsAcid:                         result.ValidIngredientIsAcid,
+			IsHeat:                         result.ValidIngredientIsHeat,
+		},
+		Preparation: mealplanning.ValidPreparation{
+			CreatedAt:                   result.ValidPreparationCreatedAt,
+			MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
+			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
+			MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
+			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
+			MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
+			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
+			ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
+			LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
+			IconPath:                    result.ValidPreparationIconPath,
+			PastTense:                   result.ValidPreparationPastTense,
+			ID:                          result.ValidPreparationID,
+			Name:                        result.ValidPreparationName,
+			Description:                 result.ValidPreparationDescription,
+			Slug:                        result.ValidPreparationSlug,
+			RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
+			TemperatureRequired:         result.ValidPreparationTemperatureRequired,
+			TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
+			ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
+			ConsumesVessel:              result.ValidPreparationConsumesVessel,
+			OnlyForVessels:              result.ValidPreparationOnlyForVessels,
+			YieldsNothing:               result.ValidPreparationYieldsNothing,
+		},
+	}
 }

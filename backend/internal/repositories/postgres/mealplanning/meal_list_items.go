@@ -46,13 +46,10 @@ func (q *repository) GetMealListItems(ctx context.Context, mealListID, userID st
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealListID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.MealListIDKey, mealListID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealListIDKey, mealListID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealListIDKey, mealListID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -210,21 +207,15 @@ func (q *repository) ArchiveMealListItem(ctx context.Context, mealListItemID, me
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealListID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealListIDKey, mealListID},
+		idArg{mealplanningkeys.MealListItemIDKey, mealListItemID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealListIDKey, mealListID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealListIDKey, mealListID)
 
-	if mealListItemID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealListItemIDKey, mealListItemID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealListItemIDKey, mealListItemID)
-
-	if err := q.withEvent(ctx, logger, types.MealListItemArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, types.MealListItemArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealListIDKey:     mealListID,
 		mealplanningkeys.MealListItemIDKey: mealListItemID,
 	}, func(tx database.Tx) error {

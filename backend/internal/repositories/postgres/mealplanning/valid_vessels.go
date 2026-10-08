@@ -26,13 +26,10 @@ func (q *repository) ValidVesselExists(ctx context.Context, validVesselID string
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validVesselID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidVesselIDKey, validVesselID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)
 
 	result, err := q.generatedQuerier.CheckValidVesselExistence(ctx, q.readDB, validVesselID)
 	if err != nil {
@@ -47,13 +44,10 @@ func (q *repository) GetValidVessel(ctx context.Context, validVesselID string) (
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validVesselID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidVesselIDKey, validVesselID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)
 
 	result, err := q.generatedQuerier.GetValidVessel(ctx, q.readDB, validVesselID)
 	if err != nil {
@@ -183,25 +177,7 @@ func (q *repository) SearchForValidVessels(ctx context.Context, query string, fi
 	)
 
 	for _, result := range results {
-		validVessel := &types.ValidVessel{
-			CreatedAt:                      result.CreatedAt,
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			IconPath:                       result.IconPath,
-			PluralName:                     result.PluralName,
-			Description:                    result.Description,
-			Name:                           result.Name,
-			Slug:                           result.Slug,
-			Shape:                          string(result.Shape),
-			ID:                             result.ID,
-			WidthInMillimeters:             database.Float32FromNullString(result.WidthInMillimeters),
-			LengthInMillimeters:            database.Float32FromNullString(result.LengthInMillimeters),
-			HeightInMillimeters:            database.Float32FromNullString(result.HeightInMillimeters),
-			Capacity:                       database.Float32FromString(result.Capacity),
-			IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-			DisplayInSummaryLists:          result.DisplayInSummaryLists,
-			UsableForStorage:               result.UsableForStorage,
-		}
+		validVessel := validVesselFromListRow((*generated.GetValidVesselsRow)(result))
 
 		if result.CapacityUnit.Valid && result.CapacityUnit.String != "" {
 			validVessel.CapacityUnit, err = q.GetValidMeasurementUnit(ctx, result.CapacityUnit.String)
@@ -259,25 +235,7 @@ func (q *repository) GetValidVessels(ctx context.Context, filter *filtering.Quer
 			filteredCount = uint64(result.FilteredCount)
 			totalCount = uint64(result.TotalCount)
 		}
-		validVessel := &types.ValidVessel{
-			CreatedAt:                      result.CreatedAt,
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			IconPath:                       result.IconPath,
-			PluralName:                     result.PluralName,
-			Description:                    result.Description,
-			Name:                           result.Name,
-			Slug:                           result.Slug,
-			Shape:                          string(result.Shape),
-			ID:                             result.ID,
-			WidthInMillimeters:             database.Float32FromNullString(result.WidthInMillimeters),
-			LengthInMillimeters:            database.Float32FromNullString(result.LengthInMillimeters),
-			HeightInMillimeters:            database.Float32FromNullString(result.HeightInMillimeters),
-			Capacity:                       database.Float32FromString(result.Capacity),
-			IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
-			DisplayInSummaryLists:          result.DisplayInSummaryLists,
-			UsableForStorage:               result.UsableForStorage,
-		}
+		validVessel := validVesselFromListRow(result)
 
 		if result.CapacityUnit.Valid && result.CapacityUnit.String != "" {
 			validVessel.CapacityUnit, err = q.GetValidMeasurementUnit(ctx, result.CapacityUnit.String)
@@ -518,13 +476,10 @@ func (q *repository) ArchiveValidVessel(ctx context.Context, validVesselID strin
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validVesselID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidVesselIDKey, validVesselID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)
 
 	return q.withEvent(ctx, logger, types.ValidVesselArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidVesselIDKey: validVesselID,
@@ -540,4 +495,32 @@ func (q *repository) ArchiveValidVessel(ctx context.Context, validVesselID strin
 
 		return nil
 	})
+}
+
+// validVesselFromListRow maps a paginated valid vessel row to its domain type, without its capacity
+// unit: these rows carry only the unit's ID, and the callers fetch the unit themselves. The search
+// row converts to generated.GetValidVesselsRow, so both paginated reads come through here.
+//
+// The by-ID, random and with-IDs reads each map the joined capacity unit differently, so they keep
+// their own literals.
+func validVesselFromListRow(result *generated.GetValidVesselsRow) *types.ValidVessel {
+	return &types.ValidVessel{
+		CreatedAt:                      result.CreatedAt,
+		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+		IconPath:                       result.IconPath,
+		PluralName:                     result.PluralName,
+		Description:                    result.Description,
+		Name:                           result.Name,
+		Slug:                           result.Slug,
+		Shape:                          string(result.Shape),
+		ID:                             result.ID,
+		WidthInMillimeters:             database.Float32FromNullString(result.WidthInMillimeters),
+		LengthInMillimeters:            database.Float32FromNullString(result.LengthInMillimeters),
+		HeightInMillimeters:            database.Float32FromNullString(result.HeightInMillimeters),
+		Capacity:                       database.Float32FromString(result.Capacity),
+		IncludeInGeneratedInstructions: result.IncludeInGeneratedInstructions,
+		DisplayInSummaryLists:          result.DisplayInSummaryLists,
+		UsableForStorage:               result.UsableForStorage,
+	}
 }

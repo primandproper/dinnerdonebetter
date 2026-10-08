@@ -115,13 +115,10 @@ func (q *repository) MealExists(ctx context.Context, mealID string) (exists bool
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.MealIDKey, mealID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealIDKey, mealID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
 
 	result, err := q.generatedQuerier.CheckMealExistence(ctx, q.readDB, mealID)
 	if err != nil {
@@ -136,13 +133,10 @@ func (q *repository) GetMeal(ctx context.Context, mealID string) (*mealplanning.
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.MealIDKey, mealID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealIDKey, mealID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
 
 	results, err := q.generatedQuerier.GetMeal(ctx, q.readDB, mealID)
 	if err != nil {
@@ -152,19 +146,7 @@ func (q *repository) GetMeal(ctx context.Context, mealID string) (*mealplanning.
 	var meal *mealplanning.Meal
 	for _, result := range results {
 		if meal == nil {
-			meal = &mealplanning.Meal{
-				CreatedAt:            result.CreatedAt,
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ID:                   result.ID,
-				Description:          result.Description,
-				CreatedByUser:        result.CreatedByUser,
-				Name:                 result.Name,
-				Components:           nil,
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				EligibleForMealPlans: result.EligibleForMealPlans,
-			}
+			meal = mealFromRow(result)
 		}
 
 		recipe, recipeErr := q.getRecipe(ctx, result.ComponentRecipeID)
@@ -482,19 +464,7 @@ func (q *repository) GetMealsWithIDs(ctx context.Context, ids []string) ([]*meal
 	for _, result := range results {
 		m, exists := mealsByID[result.ID]
 		if !exists {
-			m = &mealplanning.Meal{
-				CreatedAt:            result.CreatedAt,
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ID:                   result.ID,
-				Description:          result.Description,
-				CreatedByUser:        result.CreatedByUser,
-				Name:                 result.Name,
-				Components:           nil,
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				EligibleForMealPlans: result.EligibleForMealPlans,
-			}
+			m = mealFromRow((*generated.GetMealRow)(result))
 			mealsByID[result.ID] = m
 		}
 
@@ -718,14 +688,13 @@ func (q *repository) createMealComponent(ctx context.Context, querier database.T
 		return platformerrors.ErrNilInputParameter
 	}
 
-	if mealID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(logger, span, idArg{mealplanningkeys.MealIDKey, mealID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealIDKey, mealID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
 
 	// create the meal.
-	if err := q.generatedQuerier.CreateMealComponent(ctx, querier, &generated.CreateMealComponentParams{
+	if err = q.generatedQuerier.CreateMealComponent(ctx, querier, &generated.CreateMealComponentParams{
 		ID:                identifiers.New(),
 		BelongsToMeal:     mealID,
 		RecipeID:          input.RecipeID,
@@ -768,21 +737,15 @@ func (q *repository) ArchiveMeal(ctx context.Context, mealID, userID string) err
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealIDKey, mealID},
+		idArg{platformkeys.UserIDKey, userID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealIDKey, mealID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
 
-	if userID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
-
-	if err := q.withEvent(ctx, logger, mealplanning.MealArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, mealplanning.MealArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealIDKey: mealID,
 	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMeal(ctx, tx, &generated.ArchiveMealParams{
@@ -837,4 +800,25 @@ func (q *repository) AddMealImage(ctx context.Context, mealID, uploadedMediaID, 
 	}
 
 	return nil
+}
+
+// mealFromRow maps the meal columns of a by-ID meal read to its domain type, leaving Components
+// nil for the caller to hydrate. GetMeal and GetMealsWithIDs select the same columns, so the
+// latter's row converts to generated.GetMealRow. The paginated reads cannot come through here:
+// each reaches components through a different join, so their rows differ in nullability and
+// share no type.
+func mealFromRow(result *generated.GetMealRow) *mealplanning.Meal {
+	return &mealplanning.Meal{
+		CreatedAt:            result.CreatedAt,
+		ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ID:                   result.ID,
+		Description:          result.Description,
+		CreatedByUser:        result.CreatedByUser,
+		Name:                 result.Name,
+		Components:           nil,
+		MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
+		MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
+		EligibleForMealPlans: result.EligibleForMealPlans,
+	}
 }

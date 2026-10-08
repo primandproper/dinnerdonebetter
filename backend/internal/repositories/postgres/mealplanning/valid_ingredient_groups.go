@@ -25,13 +25,10 @@ func (q *repository) ValidIngredientGroupExists(ctx context.Context, validIngred
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientGroupID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID)
 
 	result, err := q.generatedQuerier.CheckValidIngredientGroupExistence(ctx, q.readDB, validIngredientGroupID)
 	if err != nil {
@@ -46,13 +43,10 @@ func (q *repository) GetValidIngredientGroup(ctx context.Context, validIngredien
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientGroupID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID)
 
 	result, err := q.generatedQuerier.GetValidIngredientGroup(ctx, q.readDB, validIngredientGroupID)
 	if err != nil {
@@ -76,52 +70,7 @@ func (q *repository) GetValidIngredientGroup(ctx context.Context, validIngredien
 	}
 
 	for _, memberResult := range membersResults {
-		validIngredientGroup.Members = append(validIngredientGroup.Members, &mealplanning.ValidIngredientGroupMember{
-			CreatedAt:      memberResult.CreatedAt,
-			ArchivedAt:     database.TimePointerFromNullTime(memberResult.ArchivedAt),
-			ID:             memberResult.ID,
-			BelongsToGroup: memberResult.BelongsToGroup,
-			ValidIngredient: mealplanning.ValidIngredient{
-				CreatedAt:                      memberResult.ValidIngredientCreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(memberResult.ValidIngredientLastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(memberResult.ValidIngredientArchivedAt),
-				MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(memberResult.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-				MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(memberResult.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-				IconPath:                       memberResult.ValidIngredientIconPath,
-				Warning:                        memberResult.ValidIngredientWarning,
-				PluralName:                     memberResult.ValidIngredientPluralName,
-				StorageInstructions:            memberResult.ValidIngredientStorageInstructions,
-				Name:                           memberResult.ValidIngredientName,
-				ID:                             memberResult.ValidIngredientID,
-				Description:                    memberResult.ValidIngredientDescription,
-				Slug:                           memberResult.ValidIngredientSlug,
-				ShoppingSuggestions:            memberResult.ValidIngredientShoppingSuggestions,
-				ContainsShellfish:              memberResult.ValidIngredientContainsShellfish,
-				IsLiquid:                       database.BoolFromNullBool(memberResult.ValidIngredientIsLiquid),
-				ContainsPeanut:                 memberResult.ValidIngredientContainsPeanut,
-				ContainsTreeNut:                memberResult.ValidIngredientContainsTreeNut,
-				ContainsEgg:                    memberResult.ValidIngredientContainsEgg,
-				ContainsWheat:                  memberResult.ValidIngredientContainsWheat,
-				ContainsSoy:                    memberResult.ValidIngredientContainsSoy,
-				AnimalDerived:                  memberResult.ValidIngredientAnimalDerived,
-				RestrictToPreparations:         memberResult.ValidIngredientRestrictToPreparations,
-				ContaminatesEquipment:          memberResult.ValidIngredientContaminatesEquipment,
-				ContainsSesame:                 memberResult.ValidIngredientContainsSesame,
-				ContainsFish:                   memberResult.ValidIngredientContainsFish,
-				ContainsGluten:                 memberResult.ValidIngredientContainsGluten,
-				ContainsDairy:                  memberResult.ValidIngredientContainsDairy,
-				ContainsAlcohol:                memberResult.ValidIngredientContainsAlcohol,
-				AnimalFlesh:                    memberResult.ValidIngredientAnimalFlesh,
-				IsStarch:                       memberResult.ValidIngredientIsStarch,
-				IsProtein:                      memberResult.ValidIngredientIsProtein,
-				IsGrain:                        memberResult.ValidIngredientIsGrain,
-				IsFruit:                        memberResult.ValidIngredientIsFruit,
-				IsSalt:                         memberResult.ValidIngredientIsSalt,
-				IsFat:                          memberResult.ValidIngredientIsFat,
-				IsAcid:                         memberResult.ValidIngredientIsAcid,
-				IsHeat:                         memberResult.ValidIngredientIsHeat,
-			},
-		})
+		validIngredientGroup.Members = append(validIngredientGroup.Members, validIngredientGroupMemberFromRow(memberResult))
 	}
 
 	return validIngredientGroup, nil
@@ -167,16 +116,7 @@ func (q *repository) SearchForValidIngredientGroups(ctx context.Context, query s
 		filteredCount = uint64(result.FilteredCount)
 		totalCount = uint64(result.TotalCount)
 
-		validIngredientGroup := &mealplanning.ValidIngredientGroup{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:            result.ID,
-			Name:          result.Name,
-			Slug:          result.Slug,
-			Description:   result.Description,
-			Members:       []*mealplanning.ValidIngredientGroupMember{},
-		}
+		validIngredientGroup := validIngredientGroupFromListRow((*generated.GetValidIngredientGroupsRow)(result))
 
 		var membersResults []*generated.GetValidIngredientGroupMembersRow
 		membersResults, err = q.generatedQuerier.GetValidIngredientGroupMembers(ctx, q.readDB, result.ID)
@@ -185,52 +125,7 @@ func (q *repository) SearchForValidIngredientGroups(ctx context.Context, query s
 		}
 
 		for _, memberResult := range membersResults {
-			validIngredientGroup.Members = append(validIngredientGroup.Members, &mealplanning.ValidIngredientGroupMember{
-				CreatedAt:      memberResult.CreatedAt,
-				ArchivedAt:     database.TimePointerFromNullTime(memberResult.ArchivedAt),
-				ID:             memberResult.ID,
-				BelongsToGroup: memberResult.BelongsToGroup,
-				ValidIngredient: mealplanning.ValidIngredient{
-					CreatedAt:                      memberResult.ValidIngredientCreatedAt,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(memberResult.ValidIngredientLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(memberResult.ValidIngredientArchivedAt),
-					MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(memberResult.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-					MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(memberResult.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-					IconPath:                       memberResult.ValidIngredientIconPath,
-					Warning:                        memberResult.ValidIngredientWarning,
-					PluralName:                     memberResult.ValidIngredientPluralName,
-					StorageInstructions:            memberResult.ValidIngredientStorageInstructions,
-					Name:                           memberResult.ValidIngredientName,
-					ID:                             memberResult.ValidIngredientID,
-					Description:                    memberResult.ValidIngredientDescription,
-					Slug:                           memberResult.ValidIngredientSlug,
-					ShoppingSuggestions:            memberResult.ValidIngredientShoppingSuggestions,
-					ContainsShellfish:              memberResult.ValidIngredientContainsShellfish,
-					IsLiquid:                       database.BoolFromNullBool(memberResult.ValidIngredientIsLiquid),
-					ContainsPeanut:                 memberResult.ValidIngredientContainsPeanut,
-					ContainsTreeNut:                memberResult.ValidIngredientContainsTreeNut,
-					ContainsEgg:                    memberResult.ValidIngredientContainsEgg,
-					ContainsWheat:                  memberResult.ValidIngredientContainsWheat,
-					ContainsSoy:                    memberResult.ValidIngredientContainsSoy,
-					AnimalDerived:                  memberResult.ValidIngredientAnimalDerived,
-					RestrictToPreparations:         memberResult.ValidIngredientRestrictToPreparations,
-					ContaminatesEquipment:          memberResult.ValidIngredientContaminatesEquipment,
-					ContainsSesame:                 memberResult.ValidIngredientContainsSesame,
-					ContainsFish:                   memberResult.ValidIngredientContainsFish,
-					ContainsGluten:                 memberResult.ValidIngredientContainsGluten,
-					ContainsDairy:                  memberResult.ValidIngredientContainsDairy,
-					ContainsAlcohol:                memberResult.ValidIngredientContainsAlcohol,
-					AnimalFlesh:                    memberResult.ValidIngredientAnimalFlesh,
-					IsStarch:                       memberResult.ValidIngredientIsStarch,
-					IsProtein:                      memberResult.ValidIngredientIsProtein,
-					IsGrain:                        memberResult.ValidIngredientIsGrain,
-					IsFruit:                        memberResult.ValidIngredientIsFruit,
-					IsSalt:                         memberResult.ValidIngredientIsSalt,
-					IsFat:                          memberResult.ValidIngredientIsFat,
-					IsAcid:                         memberResult.ValidIngredientIsAcid,
-					IsHeat:                         memberResult.ValidIngredientIsHeat,
-				},
-			})
+			validIngredientGroup.Members = append(validIngredientGroup.Members, validIngredientGroupMemberFromRow(memberResult))
 		}
 
 		validIngredientGroups = append(validIngredientGroups, validIngredientGroup)
@@ -276,16 +171,7 @@ func (q *repository) GetValidIngredientGroups(ctx context.Context, filter *filte
 			filteredCount = uint64(result.FilteredCount)
 			totalCount = uint64(result.TotalCount)
 		}
-		validIngredientGroup := &mealplanning.ValidIngredientGroup{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:            result.ID,
-			Name:          result.Name,
-			Slug:          result.Slug,
-			Description:   result.Description,
-			Members:       []*mealplanning.ValidIngredientGroupMember{},
-		}
+		validIngredientGroup := validIngredientGroupFromListRow(result)
 
 		var membersResults []*generated.GetValidIngredientGroupMembersRow
 		membersResults, err = q.generatedQuerier.GetValidIngredientGroupMembers(ctx, q.readDB, result.ID)
@@ -294,52 +180,7 @@ func (q *repository) GetValidIngredientGroups(ctx context.Context, filter *filte
 		}
 
 		for _, memberResult := range membersResults {
-			validIngredientGroup.Members = append(validIngredientGroup.Members, &mealplanning.ValidIngredientGroupMember{
-				CreatedAt:      memberResult.CreatedAt,
-				ArchivedAt:     database.TimePointerFromNullTime(memberResult.ArchivedAt),
-				ID:             memberResult.ID,
-				BelongsToGroup: memberResult.BelongsToGroup,
-				ValidIngredient: mealplanning.ValidIngredient{
-					CreatedAt:                      memberResult.ValidIngredientCreatedAt,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(memberResult.ValidIngredientLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(memberResult.ValidIngredientArchivedAt),
-					MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(memberResult.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-					MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(memberResult.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-					IconPath:                       memberResult.ValidIngredientIconPath,
-					Warning:                        memberResult.ValidIngredientWarning,
-					PluralName:                     memberResult.ValidIngredientPluralName,
-					StorageInstructions:            memberResult.ValidIngredientStorageInstructions,
-					Name:                           memberResult.ValidIngredientName,
-					ID:                             memberResult.ValidIngredientID,
-					Description:                    memberResult.ValidIngredientDescription,
-					Slug:                           memberResult.ValidIngredientSlug,
-					ShoppingSuggestions:            memberResult.ValidIngredientShoppingSuggestions,
-					ContainsShellfish:              memberResult.ValidIngredientContainsShellfish,
-					IsLiquid:                       database.BoolFromNullBool(memberResult.ValidIngredientIsLiquid),
-					ContainsPeanut:                 memberResult.ValidIngredientContainsPeanut,
-					ContainsTreeNut:                memberResult.ValidIngredientContainsTreeNut,
-					ContainsEgg:                    memberResult.ValidIngredientContainsEgg,
-					ContainsWheat:                  memberResult.ValidIngredientContainsWheat,
-					ContainsSoy:                    memberResult.ValidIngredientContainsSoy,
-					AnimalDerived:                  memberResult.ValidIngredientAnimalDerived,
-					RestrictToPreparations:         memberResult.ValidIngredientRestrictToPreparations,
-					ContaminatesEquipment:          memberResult.ValidIngredientContaminatesEquipment,
-					ContainsSesame:                 memberResult.ValidIngredientContainsSesame,
-					ContainsFish:                   memberResult.ValidIngredientContainsFish,
-					ContainsGluten:                 memberResult.ValidIngredientContainsGluten,
-					ContainsDairy:                  memberResult.ValidIngredientContainsDairy,
-					ContainsAlcohol:                memberResult.ValidIngredientContainsAlcohol,
-					AnimalFlesh:                    memberResult.ValidIngredientAnimalFlesh,
-					IsStarch:                       memberResult.ValidIngredientIsStarch,
-					IsProtein:                      memberResult.ValidIngredientIsProtein,
-					IsGrain:                        memberResult.ValidIngredientIsGrain,
-					IsFruit:                        memberResult.ValidIngredientIsFruit,
-					IsSalt:                         memberResult.ValidIngredientIsSalt,
-					IsFat:                          memberResult.ValidIngredientIsFat,
-					IsAcid:                         memberResult.ValidIngredientIsAcid,
-					IsHeat:                         memberResult.ValidIngredientIsHeat,
-				},
-			})
+			validIngredientGroup.Members = append(validIngredientGroup.Members, validIngredientGroupMemberFromRow(memberResult))
 		}
 
 		data = append(data, validIngredientGroup)
@@ -478,13 +319,10 @@ func (q *repository) ArchiveValidIngredientGroup(ctx context.Context, validIngre
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientGroupID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, validIngredientGroupID)
 
 	return q.withEvent(ctx, logger, mealplanning.ValidIngredientGroupArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientGroupIDKey: validIngredientGroupID,
@@ -500,4 +338,73 @@ func (q *repository) ArchiveValidIngredientGroup(ctx context.Context, validIngre
 
 		return nil
 	})
+}
+
+// validIngredientGroupFromListRow maps a row from the paginated valid ingredient group reads to its
+// domain type, with an empty (not nil) member list for the caller to fill. The search and list rows
+// carry the same columns, so both convert to generated.GetValidIngredientGroupsRow. The single-group
+// read leaves Members nil instead and keeps its own literal.
+func validIngredientGroupFromListRow(result *generated.GetValidIngredientGroupsRow) *mealplanning.ValidIngredientGroup {
+	return &mealplanning.ValidIngredientGroup{
+		CreatedAt:     result.CreatedAt,
+		LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+		ID:            result.ID,
+		Name:          result.Name,
+		Slug:          result.Slug,
+		Description:   result.Description,
+		Members:       []*mealplanning.ValidIngredientGroupMember{},
+	}
+}
+
+// validIngredientGroupMemberFromRow maps a valid ingredient group member row, with its joined valid
+// ingredient, to its domain type. Every group read loads its members through
+// GetValidIngredientGroupMembers, so this takes that query's row type.
+func validIngredientGroupMemberFromRow(result *generated.GetValidIngredientGroupMembersRow) *mealplanning.ValidIngredientGroupMember {
+	return &mealplanning.ValidIngredientGroupMember{
+		CreatedAt:      result.CreatedAt,
+		ArchivedAt:     database.TimePointerFromNullTime(result.ArchivedAt),
+		ID:             result.ID,
+		BelongsToGroup: result.BelongsToGroup,
+		ValidIngredient: mealplanning.ValidIngredient{
+			CreatedAt:                      result.ValidIngredientCreatedAt,
+			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
+			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
+			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
+			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
+			IconPath:                       result.ValidIngredientIconPath,
+			Warning:                        result.ValidIngredientWarning,
+			PluralName:                     result.ValidIngredientPluralName,
+			StorageInstructions:            result.ValidIngredientStorageInstructions,
+			Name:                           result.ValidIngredientName,
+			ID:                             result.ValidIngredientID,
+			Description:                    result.ValidIngredientDescription,
+			Slug:                           result.ValidIngredientSlug,
+			ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
+			ContainsShellfish:              result.ValidIngredientContainsShellfish,
+			IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
+			ContainsPeanut:                 result.ValidIngredientContainsPeanut,
+			ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
+			ContainsEgg:                    result.ValidIngredientContainsEgg,
+			ContainsWheat:                  result.ValidIngredientContainsWheat,
+			ContainsSoy:                    result.ValidIngredientContainsSoy,
+			AnimalDerived:                  result.ValidIngredientAnimalDerived,
+			RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
+			ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
+			ContainsSesame:                 result.ValidIngredientContainsSesame,
+			ContainsFish:                   result.ValidIngredientContainsFish,
+			ContainsGluten:                 result.ValidIngredientContainsGluten,
+			ContainsDairy:                  result.ValidIngredientContainsDairy,
+			ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
+			AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
+			IsStarch:                       result.ValidIngredientIsStarch,
+			IsProtein:                      result.ValidIngredientIsProtein,
+			IsGrain:                        result.ValidIngredientIsGrain,
+			IsFruit:                        result.ValidIngredientIsFruit,
+			IsSalt:                         result.ValidIngredientIsSalt,
+			IsFat:                          result.ValidIngredientIsFat,
+			IsAcid:                         result.ValidIngredientIsAcid,
+			IsHeat:                         result.ValidIngredientIsHeat,
+		},
+	}
 }

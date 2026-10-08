@@ -38,19 +38,13 @@ func (q *repository) MealPlanExists(ctx context.Context, mealPlanID, accountID s
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{identitykeys.AccountIDKey, accountID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if accountID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	result, err := q.generatedQuerier.CheckMealPlanExistence(ctx, q.readDB, &generated.CheckMealPlanExistenceParams{
 		MealPlanID:       mealPlanID,
@@ -68,19 +62,13 @@ func (q *repository) getMealPlan(ctx context.Context, mealPlanID, accountID stri
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{identitykeys.AccountIDKey, accountID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if accountID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	result, err := q.generatedQuerier.GetMealPlan(ctx, q.readDB, &generated.GetMealPlanParams{
 		ID:               mealPlanID,
@@ -539,19 +527,13 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{identitykeys.AccountIDKey, accountID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if accountID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	// As with UpdateMealPlan: the archive, its audit log entry, and its data change event
 	// share a transaction.

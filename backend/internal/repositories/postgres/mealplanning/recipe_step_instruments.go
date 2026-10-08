@@ -24,25 +24,14 @@ func (q *repository) RecipeStepInstrumentExists(ctx context.Context, recipeID, r
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+		idArg{mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeStepID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
-
-	if recipeStepInstrumentID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
 
 	result, err := q.generatedQuerier.CheckRecipeStepInstrumentExistence(ctx, q.readDB, &generated.CheckRecipeStepInstrumentExistenceParams{
 		RecipeStepID:           recipeStepID,
@@ -61,25 +50,14 @@ func (q *repository) GetRecipeStepInstrument(ctx context.Context, recipeID, reci
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+		idArg{mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeStepID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
-
-	if recipeStepInstrumentID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
 
 	result, err := q.generatedQuerier.GetRecipeStepInstrument(ctx, q.readDB, &generated.GetRecipeStepInstrumentParams{
 		RecipeStepID:           recipeStepID,
@@ -90,47 +68,7 @@ func (q *repository) GetRecipeStepInstrument(ctx context.Context, recipeID, reci
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing recipe step instrument get")
 	}
 
-	scaleFactor := database.Float32FromString(result.ScaleFactor)
-	if scaleFactor <= 0 {
-		scaleFactor = 1.0
-	}
-	recipeStepInstrument := &mealplanning.RecipeStepInstrument{
-		CreatedAt:           result.CreatedAt,
-		Instrument:          nil,
-		LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-		RecipeStepProductID: database.StringPointerFromNullString(result.RecipeStepProductID),
-		ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-		MinQuantity:         uint32(result.MinimumQuantity),
-		MaxQuantity:         database.Uint32PointerFromNullInt32(result.MaximumQuantity),
-		Notes:               result.Notes,
-		Name:                result.Name,
-		BelongsToRecipeStep: result.BelongsToRecipeStep,
-		ID:                  result.ID,
-		Index:               uint16(result.Index),
-		OptionIndex:         uint16(result.OptionIndex),
-		PreferenceRank:      uint8(result.PreferenceRank),
-		Optional:            result.Optional,
-		ScaleFactor:         scaleFactor,
-	}
-
-	if result.ValidInstrumentID.Valid {
-		recipeStepInstrument.Instrument = &mealplanning.ValidInstrument{
-			CreatedAt:                      result.ValidInstrumentCreatedAt.Time,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-			IconPath:                       result.ValidInstrumentIconPath.String,
-			ID:                             result.ValidInstrumentID.String,
-			Name:                           result.ValidInstrumentName.String,
-			PluralName:                     result.ValidInstrumentPluralName.String,
-			Description:                    result.ValidInstrumentDescription.String,
-			Slug:                           result.ValidInstrumentSlug.String,
-			DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists.Bool,
-			IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions.Bool,
-			UsableForStorage:               result.ValidInstrumentUsableForStorage.Bool,
-		}
-	}
-
-	return recipeStepInstrument, nil
+	return recipeStepInstrumentFromRow(result), nil
 }
 
 // GetRecipeStepInstruments fetches a list of recipe step instruments from the database that meet a particular filter.
@@ -138,19 +76,13 @@ func (q *repository) GetRecipeStepInstruments(ctx context.Context, recipeID, rec
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeStepID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -173,47 +105,7 @@ func (q *repository) GetRecipeStepInstruments(ctx context.Context, recipeID, rec
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetRecipeStepInstrumentsRow) *mealplanning.RecipeStepInstrument {
-			scaleFactor := database.Float32FromString(result.ScaleFactor)
-			if scaleFactor <= 0 {
-				scaleFactor = 1.0
-			}
-			recipeStepInstrument := &mealplanning.RecipeStepInstrument{
-				CreatedAt:           result.CreatedAt,
-				Instrument:          nil,
-				LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-				RecipeStepProductID: database.StringPointerFromNullString(result.RecipeStepProductID),
-				ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-				Notes:               result.Notes,
-				Name:                result.Name,
-				BelongsToRecipeStep: result.BelongsToRecipeStep,
-				ID:                  result.ID,
-				MinQuantity:         uint32(result.MinimumQuantity),
-				MaxQuantity:         database.Uint32PointerFromNullInt32(result.MaximumQuantity),
-				Index:               uint16(result.Index),
-				OptionIndex:         uint16(result.OptionIndex),
-				PreferenceRank:      uint8(result.PreferenceRank),
-				Optional:            result.Optional,
-				ScaleFactor:         scaleFactor,
-			}
-			if result.ValidInstrumentID.Valid {
-				recipeStepInstrument.Instrument = &mealplanning.ValidInstrument{
-					CreatedAt:                      result.ValidInstrumentCreatedAt.Time,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-					IconPath:                       result.ValidInstrumentIconPath.String,
-					ID:                             result.ValidInstrumentID.String,
-					Name:                           result.ValidInstrumentName.String,
-					PluralName:                     result.ValidInstrumentPluralName.String,
-					Description:                    result.ValidInstrumentDescription.String,
-					Slug:                           result.ValidInstrumentSlug.String,
-					DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists.Bool,
-					IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions.Bool,
-					UsableForStorage:               result.ValidInstrumentUsableForStorage.Bool,
-				}
-			}
-			return recipeStepInstrument
-		},
+		recipeStepInstrumentFromListRow,
 		func(result *generated.GetRecipeStepInstrumentsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -229,13 +121,10 @@ func (q *repository) getRecipeStepInstrumentsForRecipe(ctx context.Context, reci
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeIDKey, recipeID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	results, err := q.generatedQuerier.GetRecipeStepInstrumentsForRecipe(ctx, q.readDB, recipeID)
 	if err != nil {
@@ -244,47 +133,7 @@ func (q *repository) getRecipeStepInstrumentsForRecipe(ctx context.Context, reci
 
 	recipeStepInstruments := []*mealplanning.RecipeStepInstrument{}
 	for _, result := range results {
-		scaleFactor := database.Float32FromString(result.ScaleFactor)
-		if scaleFactor <= 0 {
-			scaleFactor = 1.0
-		}
-		recipeStepInstrument := &mealplanning.RecipeStepInstrument{
-			CreatedAt:           result.CreatedAt,
-			Instrument:          nil,
-			LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-			RecipeStepProductID: database.StringPointerFromNullString(result.RecipeStepProductID),
-			ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-			Notes:               result.Notes,
-			Name:                result.Name,
-			BelongsToRecipeStep: result.BelongsToRecipeStep,
-			ID:                  result.ID,
-			MinQuantity:         uint32(result.MinimumQuantity),
-			MaxQuantity:         database.Uint32PointerFromNullInt32(result.MaximumQuantity),
-			Index:               uint16(result.Index),
-			OptionIndex:         uint16(result.OptionIndex),
-			PreferenceRank:      uint8(result.PreferenceRank),
-			Optional:            result.Optional,
-			ScaleFactor:         scaleFactor,
-		}
-
-		if result.ValidInstrumentID.Valid {
-			recipeStepInstrument.Instrument = &mealplanning.ValidInstrument{
-				CreatedAt:                      result.ValidInstrumentCreatedAt.Time,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-				IconPath:                       result.ValidInstrumentIconPath.String,
-				ID:                             result.ValidInstrumentID.String,
-				Name:                           result.ValidInstrumentName.String,
-				PluralName:                     result.ValidInstrumentPluralName.String,
-				Description:                    result.ValidInstrumentDescription.String,
-				Slug:                           result.ValidInstrumentSlug.String,
-				DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists.Bool,
-				IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions.Bool,
-				UsableForStorage:               result.ValidInstrumentUsableForStorage.Bool,
-			}
-		}
-
-		recipeStepInstruments = append(recipeStepInstruments, recipeStepInstrument)
+		recipeStepInstruments = append(recipeStepInstruments, recipeStepInstrumentFromRow((*generated.GetRecipeStepInstrumentRow)(result)))
 	}
 
 	return recipeStepInstruments, nil
@@ -424,21 +273,15 @@ func (q *repository) ArchiveRecipeStepInstrument(ctx context.Context, recipeID, 
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeStepID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+		idArg{mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
-	if recipeStepInstrumentID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
-
-	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepInstrumentArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, mealplanning.RecipeStepInstrumentArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:               recipeID,
 		mealplanningkeys.RecipeStepIDKey:           recipeStepID,
 		mealplanningkeys.RecipeStepInstrumentIDKey: recipeStepInstrumentID,
@@ -461,4 +304,98 @@ func (q *repository) ArchiveRecipeStepInstrument(ctx context.Context, recipeID, 
 	}
 
 	return nil
+}
+
+// recipeStepInstrumentFromRow maps a recipe step instrument row, and its instrument when the left
+// join found one, to the domain type; a non-positive stored scale factor reads as 1. The single-
+// instrument and per-recipe reads select the same columns, so their row types convert to
+// generated.GetRecipeStepInstrumentRow.
+func recipeStepInstrumentFromRow(result *generated.GetRecipeStepInstrumentRow) *mealplanning.RecipeStepInstrument {
+	scaleFactor := database.Float32FromString(result.ScaleFactor)
+	if scaleFactor <= 0 {
+		scaleFactor = 1.0
+	}
+	recipeStepInstrument := &mealplanning.RecipeStepInstrument{
+		CreatedAt:           result.CreatedAt,
+		Instrument:          nil,
+		LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
+		RecipeStepProductID: database.StringPointerFromNullString(result.RecipeStepProductID),
+		ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
+		MinQuantity:         uint32(result.MinimumQuantity),
+		MaxQuantity:         database.Uint32PointerFromNullInt32(result.MaximumQuantity),
+		Notes:               result.Notes,
+		Name:                result.Name,
+		BelongsToRecipeStep: result.BelongsToRecipeStep,
+		ID:                  result.ID,
+		Index:               uint16(result.Index),
+		OptionIndex:         uint16(result.OptionIndex),
+		PreferenceRank:      uint8(result.PreferenceRank),
+		Optional:            result.Optional,
+		ScaleFactor:         scaleFactor,
+	}
+
+	if result.ValidInstrumentID.Valid {
+		recipeStepInstrument.Instrument = &mealplanning.ValidInstrument{
+			CreatedAt:                      result.ValidInstrumentCreatedAt.Time,
+			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
+			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
+			IconPath:                       result.ValidInstrumentIconPath.String,
+			ID:                             result.ValidInstrumentID.String,
+			Name:                           result.ValidInstrumentName.String,
+			PluralName:                     result.ValidInstrumentPluralName.String,
+			Description:                    result.ValidInstrumentDescription.String,
+			Slug:                           result.ValidInstrumentSlug.String,
+			DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists.Bool,
+			IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions.Bool,
+			UsableForStorage:               result.ValidInstrumentUsableForStorage.Bool,
+		}
+	}
+
+	return recipeStepInstrument
+}
+
+// recipeStepInstrumentFromListRow is recipeStepInstrumentFromRow for the paginated read, whose row
+// also carries the filtered and total counts.
+func recipeStepInstrumentFromListRow(result *generated.GetRecipeStepInstrumentsRow) *mealplanning.RecipeStepInstrument {
+	scaleFactor := database.Float32FromString(result.ScaleFactor)
+	if scaleFactor <= 0 {
+		scaleFactor = 1.0
+	}
+	recipeStepInstrument := &mealplanning.RecipeStepInstrument{
+		CreatedAt:           result.CreatedAt,
+		Instrument:          nil,
+		LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
+		RecipeStepProductID: database.StringPointerFromNullString(result.RecipeStepProductID),
+		ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
+		MinQuantity:         uint32(result.MinimumQuantity),
+		MaxQuantity:         database.Uint32PointerFromNullInt32(result.MaximumQuantity),
+		Notes:               result.Notes,
+		Name:                result.Name,
+		BelongsToRecipeStep: result.BelongsToRecipeStep,
+		ID:                  result.ID,
+		Index:               uint16(result.Index),
+		OptionIndex:         uint16(result.OptionIndex),
+		PreferenceRank:      uint8(result.PreferenceRank),
+		Optional:            result.Optional,
+		ScaleFactor:         scaleFactor,
+	}
+
+	if result.ValidInstrumentID.Valid {
+		recipeStepInstrument.Instrument = &mealplanning.ValidInstrument{
+			CreatedAt:                      result.ValidInstrumentCreatedAt.Time,
+			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
+			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
+			IconPath:                       result.ValidInstrumentIconPath.String,
+			ID:                             result.ValidInstrumentID.String,
+			Name:                           result.ValidInstrumentName.String,
+			PluralName:                     result.ValidInstrumentPluralName.String,
+			Description:                    result.ValidInstrumentDescription.String,
+			Slug:                           result.ValidInstrumentSlug.String,
+			DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists.Bool,
+			IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions.Bool,
+			UsableForStorage:               result.ValidInstrumentUsableForStorage.Bool,
+		}
+	}
+
+	return recipeStepInstrument
 }

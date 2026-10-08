@@ -24,31 +24,15 @@ func (q *repository) MealPlanOptionVoteExists(ctx context.Context, mealPlanID, m
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanEventIDKey, mealPlanEventID},
+		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
+		idArg{mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanEventID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-
-	if mealPlanOptionID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-
-	if mealPlanOptionVoteID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
 
 	result, err := q.generatedQuerier.CheckMealPlanOptionVoteExistence(ctx, q.readDB, &generated.CheckMealPlanOptionVoteExistenceParams{
 		MealPlanOptionID:     mealPlanOptionID,
@@ -68,25 +52,14 @@ func (q *repository) GetMealPlanOptionVote(ctx context.Context, mealPlanID, meal
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
+		idArg{mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanOptionID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-
-	if mealPlanOptionVoteID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
 
 	result, err := q.generatedQuerier.GetMealPlanOptionVote(ctx, q.readDB, &generated.GetMealPlanOptionVoteParams{
 		MealPlanOptionID:     mealPlanOptionID,
@@ -98,19 +71,7 @@ func (q *repository) GetMealPlanOptionVote(ctx context.Context, mealPlanID, meal
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting meal plan option vote")
 	}
 
-	mealPlanOptionVote := &types.MealPlanOptionVote{
-		CreatedAt:               result.CreatedAt,
-		ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ID:                      result.ID,
-		Notes:                   result.Notes,
-		BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-		ByUser:                  result.ByUser,
-		Rank:                    uint8(result.Rank),
-		Abstain:                 result.Abstain,
-	}
-
-	return mealPlanOptionVote, nil
+	return mealPlanOptionVoteFromRow(result), nil
 }
 
 // GetMealPlanOptionVotesForMealPlanOption fetches a list of meal plan option votes from the database that meet a particular filter.
@@ -118,25 +79,14 @@ func (q *repository) GetMealPlanOptionVotesForMealPlanOption(ctx context.Context
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanEventIDKey, mealPlanEventID},
+		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanEventID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-
-	if mealPlanOptionID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
 	results, err := q.generatedQuerier.GetMealPlanOptionVotesForMealPlanOption(ctx, q.readDB, &generated.GetMealPlanOptionVotesForMealPlanOptionParams{
 		MealPlanID:       mealPlanID,
@@ -149,17 +99,7 @@ func (q *repository) GetMealPlanOptionVotesForMealPlanOption(ctx context.Context
 
 	x = make([]*types.MealPlanOptionVote, len(results))
 	for i, result := range results {
-		x[i] = &types.MealPlanOptionVote{
-			CreatedAt:               result.CreatedAt,
-			ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:                      result.ID,
-			Notes:                   result.Notes,
-			BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-			ByUser:                  result.ByUser,
-			Rank:                    uint8(result.Rank),
-			Abstain:                 result.Abstain,
-		}
+		x[i] = mealPlanOptionVoteFromRow(result)
 	}
 
 	return x, nil
@@ -170,25 +110,14 @@ func (q *repository) GetMealPlanOptionVotes(ctx context.Context, mealPlanID, mea
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanEventIDKey, mealPlanEventID},
+		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanEventID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-
-	if mealPlanOptionID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -341,33 +270,17 @@ func (q *repository) ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, 
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanEventIDKey, mealPlanEventID},
+		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
+		idArg{mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
-	if mealPlanEventID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-
-	if mealPlanOptionID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-
-	if mealPlanOptionVoteID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
-
-	if err := q.withEvent(ctx, logger, types.MealPlanOptionVoteArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, types.MealPlanOptionVoteArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanIDKey:           mealPlanID,
 		mealplanningkeys.MealPlanEventIDKey:      mealPlanEventID,
 		mealplanningkeys.MealPlanOptionIDKey:     mealPlanOptionID,
@@ -391,4 +304,21 @@ func (q *repository) ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, 
 	}
 
 	return nil
+}
+
+// mealPlanOptionVoteFromRow maps a meal plan option vote row to its domain type. The single and
+// per-option reads both select the bare meal_plan_option_votes table, so sqlc hands both back as
+// generated.MealPlanOptionVotes.
+func mealPlanOptionVoteFromRow(result *generated.MealPlanOptionVotes) *types.MealPlanOptionVote {
+	return &types.MealPlanOptionVote{
+		CreatedAt:               result.CreatedAt,
+		ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ID:                      result.ID,
+		Notes:                   result.Notes,
+		BelongsToMealPlanOption: result.BelongsToMealPlanOption,
+		ByUser:                  result.ByUser,
+		Rank:                    uint8(result.Rank),
+		Abstain:                 result.Abstain,
+	}
 }

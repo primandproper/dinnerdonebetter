@@ -52,53 +52,7 @@ func (q *repository) GetValidPreparationInstrument(ctx context.Context, validPre
 		return nil, observability.PrepareError(err, span, "getting valid preparation instrument")
 	}
 
-	x := &mealplanning.ValidPreparationInstrument{
-		CreatedAt:     result.ValidPreparationInstrumentCreatedAt,
-		LastUpdatedAt: database.TimePointerFromNullTime(result.ValidPreparationInstrumentLastUpdatedAt),
-		ArchivedAt:    database.TimePointerFromNullTime(result.ValidPreparationInstrumentArchivedAt),
-		ID:            result.ValidPreparationInstrumentID,
-		Notes:         result.ValidPreparationInstrumentNotes,
-		Instrument: mealplanning.ValidInstrument{
-			CreatedAt:                      result.ValidInstrumentCreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-			IconPath:                       result.ValidInstrumentIconPath,
-			ID:                             result.ValidInstrumentID,
-			Name:                           result.ValidInstrumentName,
-			PluralName:                     result.ValidInstrumentPluralName,
-			Description:                    result.ValidInstrumentDescription,
-			Slug:                           result.ValidInstrumentSlug,
-			DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
-			IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
-			UsableForStorage:               result.ValidInstrumentUsableForStorage,
-		},
-		Preparation: mealplanning.ValidPreparation{
-			CreatedAt:                   result.ValidPreparationCreatedAt,
-			MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-			MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-			MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-			ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-			LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-			IconPath:                    result.ValidPreparationIconPath,
-			PastTense:                   result.ValidPreparationPastTense,
-			ID:                          result.ValidPreparationID,
-			Name:                        result.ValidPreparationName,
-			Description:                 result.ValidPreparationDescription,
-			Slug:                        result.ValidPreparationSlug,
-			RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-			TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-			TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-			ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-			ConsumesVessel:              result.ValidPreparationConsumesVessel,
-			OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-			YieldsNothing:               result.ValidPreparationYieldsNothing,
-		},
-	}
-
-	return x, nil
+	return validPreparationInstrumentFromRow(result), nil
 }
 
 // GetValidPreparationInstruments fetches a list of valid preparation instruments from the database that meet a particular filter.
@@ -127,53 +81,7 @@ func (q *repository) GetValidPreparationInstruments(ctx context.Context, filter 
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetValidPreparationInstrumentsRow) *mealplanning.ValidPreparationInstrument {
-			return &mealplanning.ValidPreparationInstrument{
-				CreatedAt:     result.ValidPreparationInstrumentCreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidPreparationInstrumentLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidPreparationInstrumentArchivedAt),
-				ID:            result.ValidPreparationInstrumentID,
-				Notes:         result.ValidPreparationInstrumentNotes,
-				Instrument: mealplanning.ValidInstrument{
-					CreatedAt:                      result.ValidInstrumentCreatedAt,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-					IconPath:                       result.ValidInstrumentIconPath,
-					ID:                             result.ValidInstrumentID,
-					Name:                           result.ValidInstrumentName,
-					PluralName:                     result.ValidInstrumentPluralName,
-					Description:                    result.ValidInstrumentDescription,
-					Slug:                           result.ValidInstrumentSlug,
-					DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
-					IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
-					UsableForStorage:               result.ValidInstrumentUsableForStorage,
-				},
-				Preparation: mealplanning.ValidPreparation{
-					CreatedAt:                   result.ValidPreparationCreatedAt,
-					MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-					MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-					MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-					MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-					ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-					LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-					IconPath:                    result.ValidPreparationIconPath,
-					PastTense:                   result.ValidPreparationPastTense,
-					ID:                          result.ValidPreparationID,
-					Name:                        result.ValidPreparationName,
-					Description:                 result.ValidPreparationDescription,
-					Slug:                        result.ValidPreparationSlug,
-					RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-					TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-					TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-					ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-					ConsumesVessel:              result.ValidPreparationConsumesVessel,
-					OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-					YieldsNothing:               result.ValidPreparationYieldsNothing,
-				},
-			}
-		},
+		validPreparationInstrumentFromListRow,
 		func(result *generated.GetValidPreparationInstrumentsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -217,51 +125,7 @@ func (q *repository) GetValidPreparationInstrumentsForPreparation(ctx context.Co
 	x = filtering.Drain(
 		results,
 		func(result *generated.GetValidPreparationInstrumentsForPreparationRow) *mealplanning.ValidPreparationInstrument {
-			return &mealplanning.ValidPreparationInstrument{
-				CreatedAt:     result.ValidPreparationInstrumentCreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidPreparationInstrumentLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidPreparationInstrumentArchivedAt),
-				ID:            result.ValidPreparationInstrumentID,
-				Notes:         result.ValidPreparationInstrumentNotes,
-				Instrument: mealplanning.ValidInstrument{
-					CreatedAt:                      result.ValidInstrumentCreatedAt,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-					IconPath:                       result.ValidInstrumentIconPath,
-					ID:                             result.ValidInstrumentID,
-					Name:                           result.ValidInstrumentName,
-					PluralName:                     result.ValidInstrumentPluralName,
-					Description:                    result.ValidInstrumentDescription,
-					Slug:                           result.ValidInstrumentSlug,
-					DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
-					IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
-					UsableForStorage:               result.ValidInstrumentUsableForStorage,
-				},
-				Preparation: mealplanning.ValidPreparation{
-					CreatedAt:                   result.ValidPreparationCreatedAt,
-					MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-					MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-					MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-					MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-					ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-					LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-					IconPath:                    result.ValidPreparationIconPath,
-					PastTense:                   result.ValidPreparationPastTense,
-					ID:                          result.ValidPreparationID,
-					Name:                        result.ValidPreparationName,
-					Description:                 result.ValidPreparationDescription,
-					Slug:                        result.ValidPreparationSlug,
-					RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-					TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-					TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-					ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-					ConsumesVessel:              result.ValidPreparationConsumesVessel,
-					OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-					YieldsNothing:               result.ValidPreparationYieldsNothing,
-				},
-			}
+			return validPreparationInstrumentFromListRow((*generated.GetValidPreparationInstrumentsRow)(result))
 		},
 		func(result *generated.GetValidPreparationInstrumentsForPreparationRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -306,51 +170,7 @@ func (q *repository) GetValidPreparationInstrumentsForInstrument(ctx context.Con
 	x = filtering.Drain(
 		results,
 		func(result *generated.GetValidPreparationInstrumentsForInstrumentRow) *mealplanning.ValidPreparationInstrument {
-			return &mealplanning.ValidPreparationInstrument{
-				CreatedAt:     result.ValidPreparationInstrumentCreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidPreparationInstrumentLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidPreparationInstrumentArchivedAt),
-				ID:            result.ValidPreparationInstrumentID,
-				Notes:         result.ValidPreparationInstrumentNotes,
-				Instrument: mealplanning.ValidInstrument{
-					CreatedAt:                      result.ValidInstrumentCreatedAt,
-					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-					IconPath:                       result.ValidInstrumentIconPath,
-					ID:                             result.ValidInstrumentID,
-					Name:                           result.ValidInstrumentName,
-					PluralName:                     result.ValidInstrumentPluralName,
-					Description:                    result.ValidInstrumentDescription,
-					Slug:                           result.ValidInstrumentSlug,
-					DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
-					IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
-					UsableForStorage:               result.ValidInstrumentUsableForStorage,
-				},
-				Preparation: mealplanning.ValidPreparation{
-					CreatedAt:                   result.ValidPreparationCreatedAt,
-					MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-					MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-					MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-					MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-					MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-					ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-					LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-					IconPath:                    result.ValidPreparationIconPath,
-					PastTense:                   result.ValidPreparationPastTense,
-					ID:                          result.ValidPreparationID,
-					Name:                        result.ValidPreparationName,
-					Description:                 result.ValidPreparationDescription,
-					Slug:                        result.ValidPreparationSlug,
-					RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-					TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-					TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-					ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-					ConsumesVessel:              result.ValidPreparationConsumesVessel,
-					OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-					YieldsNothing:               result.ValidPreparationYieldsNothing,
-				},
-			}
+			return validPreparationInstrumentFromListRow((*generated.GetValidPreparationInstrumentsRow)(result))
 		},
 		func(result *generated.GetValidPreparationInstrumentsForInstrumentRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -380,51 +200,7 @@ func (q *repository) GetValidPreparationInstrumentsByIDs(ctx context.Context, id
 
 	resultMap := make(map[string]*mealplanning.ValidPreparationInstrument, len(results))
 	for _, result := range results {
-		resultMap[result.ValidPreparationInstrumentID] = &mealplanning.ValidPreparationInstrument{
-			CreatedAt:     result.ValidPreparationInstrumentCreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.ValidPreparationInstrumentLastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ValidPreparationInstrumentArchivedAt),
-			ID:            result.ValidPreparationInstrumentID,
-			Notes:         result.ValidPreparationInstrumentNotes,
-			Instrument: mealplanning.ValidInstrument{
-				CreatedAt:                      result.ValidInstrumentCreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-				IconPath:                       result.ValidInstrumentIconPath,
-				ID:                             result.ValidInstrumentID,
-				Name:                           result.ValidInstrumentName,
-				PluralName:                     result.ValidInstrumentPluralName,
-				Description:                    result.ValidInstrumentDescription,
-				Slug:                           result.ValidInstrumentSlug,
-				DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
-				IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
-				UsableForStorage:               result.ValidInstrumentUsableForStorage,
-			},
-			Preparation: mealplanning.ValidPreparation{
-				CreatedAt:                   result.ValidPreparationCreatedAt,
-				MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-				MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
-				MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
-				MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
-				MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
-				MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
-				ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
-				LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
-				IconPath:                    result.ValidPreparationIconPath,
-				PastTense:                   result.ValidPreparationPastTense,
-				ID:                          result.ValidPreparationID,
-				Name:                        result.ValidPreparationName,
-				Description:                 result.ValidPreparationDescription,
-				Slug:                        result.ValidPreparationSlug,
-				RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
-				TemperatureRequired:         result.ValidPreparationTemperatureRequired,
-				TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
-				ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
-				ConsumesVessel:              result.ValidPreparationConsumesVessel,
-				OnlyForVessels:              result.ValidPreparationOnlyForVessels,
-				YieldsNothing:               result.ValidPreparationYieldsNothing,
-			},
-		}
+		resultMap[result.ValidPreparationInstrumentID] = validPreparationInstrumentFromRow((*generated.GetValidPreparationInstrumentRow)(result))
 	}
 
 	return resultMap, nil
@@ -543,4 +319,107 @@ func (q *repository) ArchiveValidPreparationInstrument(ctx context.Context, vali
 
 		return nil
 	})
+}
+
+// validPreparationInstrumentFromRow maps a valid preparation instrument row, joined with its
+// instrument and preparation, to its domain type. Every read that returns valid preparation
+// instruments by ID selects the same columns, so each of those queries' row types converts to
+// generated.GetValidPreparationInstrumentRow and comes through here.
+func validPreparationInstrumentFromRow(result *generated.GetValidPreparationInstrumentRow) *mealplanning.ValidPreparationInstrument {
+	return &mealplanning.ValidPreparationInstrument{
+		CreatedAt:     result.ValidPreparationInstrumentCreatedAt,
+		LastUpdatedAt: database.TimePointerFromNullTime(result.ValidPreparationInstrumentLastUpdatedAt),
+		ArchivedAt:    database.TimePointerFromNullTime(result.ValidPreparationInstrumentArchivedAt),
+		ID:            result.ValidPreparationInstrumentID,
+		Notes:         result.ValidPreparationInstrumentNotes,
+		Instrument: mealplanning.ValidInstrument{
+			CreatedAt:                      result.ValidInstrumentCreatedAt,
+			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
+			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
+			IconPath:                       result.ValidInstrumentIconPath,
+			ID:                             result.ValidInstrumentID,
+			Name:                           result.ValidInstrumentName,
+			PluralName:                     result.ValidInstrumentPluralName,
+			Description:                    result.ValidInstrumentDescription,
+			Slug:                           result.ValidInstrumentSlug,
+			DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
+			IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
+			UsableForStorage:               result.ValidInstrumentUsableForStorage,
+		},
+		Preparation: mealplanning.ValidPreparation{
+			CreatedAt:                   result.ValidPreparationCreatedAt,
+			MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
+			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
+			MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
+			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
+			MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
+			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
+			ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
+			LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
+			IconPath:                    result.ValidPreparationIconPath,
+			PastTense:                   result.ValidPreparationPastTense,
+			ID:                          result.ValidPreparationID,
+			Name:                        result.ValidPreparationName,
+			Description:                 result.ValidPreparationDescription,
+			Slug:                        result.ValidPreparationSlug,
+			RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
+			TemperatureRequired:         result.ValidPreparationTemperatureRequired,
+			TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
+			ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
+			ConsumesVessel:              result.ValidPreparationConsumesVessel,
+			OnlyForVessels:              result.ValidPreparationOnlyForVessels,
+			YieldsNothing:               result.ValidPreparationYieldsNothing,
+		},
+	}
+}
+
+// validPreparationInstrumentFromListRow is validPreparationInstrumentFromRow for the paginated
+// reads, whose rows also carry the filtered and total counts and so convert to
+// generated.GetValidPreparationInstrumentsRow instead.
+func validPreparationInstrumentFromListRow(result *generated.GetValidPreparationInstrumentsRow) *mealplanning.ValidPreparationInstrument {
+	return &mealplanning.ValidPreparationInstrument{
+		CreatedAt:     result.ValidPreparationInstrumentCreatedAt,
+		LastUpdatedAt: database.TimePointerFromNullTime(result.ValidPreparationInstrumentLastUpdatedAt),
+		ArchivedAt:    database.TimePointerFromNullTime(result.ValidPreparationInstrumentArchivedAt),
+		ID:            result.ValidPreparationInstrumentID,
+		Notes:         result.ValidPreparationInstrumentNotes,
+		Instrument: mealplanning.ValidInstrument{
+			CreatedAt:                      result.ValidInstrumentCreatedAt,
+			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
+			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
+			IconPath:                       result.ValidInstrumentIconPath,
+			ID:                             result.ValidInstrumentID,
+			Name:                           result.ValidInstrumentName,
+			PluralName:                     result.ValidInstrumentPluralName,
+			Description:                    result.ValidInstrumentDescription,
+			Slug:                           result.ValidInstrumentSlug,
+			DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists,
+			IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions,
+			UsableForStorage:               result.ValidInstrumentUsableForStorage,
+		},
+		Preparation: mealplanning.ValidPreparation{
+			CreatedAt:                   result.ValidPreparationCreatedAt,
+			MinInstrumentCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
+			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumInstrumentCount),
+			MinIngredientCount:          uint16(result.ValidPreparationMinimumInstrumentCount),
+			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumIngredientCount),
+			MinVesselCount:              uint16(result.ValidPreparationMinimumVesselCount),
+			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.ValidPreparationMaximumVesselCount),
+			ArchivedAt:                  database.TimePointerFromNullTime(result.ValidPreparationArchivedAt),
+			LastUpdatedAt:               database.TimePointerFromNullTime(result.ValidPreparationLastUpdatedAt),
+			IconPath:                    result.ValidPreparationIconPath,
+			PastTense:                   result.ValidPreparationPastTense,
+			ID:                          result.ValidPreparationID,
+			Name:                        result.ValidPreparationName,
+			Description:                 result.ValidPreparationDescription,
+			Slug:                        result.ValidPreparationSlug,
+			RestrictToIngredients:       result.ValidPreparationRestrictToIngredients,
+			TemperatureRequired:         result.ValidPreparationTemperatureRequired,
+			TimeEstimateRequired:        result.ValidPreparationTimeEstimateRequired,
+			ConditionExpressionRequired: result.ValidPreparationConditionExpressionRequired,
+			ConsumesVessel:              result.ValidPreparationConsumesVessel,
+			OnlyForVessels:              result.ValidPreparationOnlyForVessels,
+			YieldsNothing:               result.ValidPreparationYieldsNothing,
+		},
+	}
 }

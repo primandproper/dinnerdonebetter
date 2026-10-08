@@ -25,13 +25,10 @@ func (q *repository) ValidIngredientExists(ctx context.Context, validIngredientI
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientIDKey, validIngredientID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
 	result, err := q.generatedQuerier.CheckValidIngredientExistence(ctx, q.readDB, validIngredientID)
 	if err != nil {
@@ -46,61 +43,17 @@ func (q *repository) GetValidIngredient(ctx context.Context, validIngredientID s
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientIDKey, validIngredientID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
 	result, err := q.generatedQuerier.GetValidIngredient(ctx, q.readDB, validIngredientID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching valid ingredient")
 	}
 
-	validIngredient := &mealplanning.ValidIngredient{
-		CreatedAt:                      result.CreatedAt,
-		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-		MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
-		MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
-		IconPath:                       result.IconPath,
-		Warning:                        result.Warning,
-		PluralName:                     result.PluralName,
-		StorageInstructions:            result.StorageInstructions,
-		Name:                           result.Name,
-		ID:                             result.ID,
-		Description:                    result.Description,
-		Slug:                           result.Slug,
-		ShoppingSuggestions:            result.ShoppingSuggestions,
-		ContainsShellfish:              result.ContainsShellfish,
-		IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
-		ContainsPeanut:                 result.ContainsPeanut,
-		ContainsTreeNut:                result.ContainsTreeNut,
-		ContainsEgg:                    result.ContainsEgg,
-		ContainsWheat:                  result.ContainsWheat,
-		ContainsSoy:                    result.ContainsSoy,
-		AnimalDerived:                  result.AnimalDerived,
-		RestrictToPreparations:         result.RestrictToPreparations,
-		ContaminatesEquipment:          result.ContaminatesEquipment,
-		ContainsSesame:                 result.ContainsSesame,
-		ContainsFish:                   result.ContainsFish,
-		ContainsGluten:                 result.ContainsGluten,
-		ContainsDairy:                  result.ContainsDairy,
-		ContainsAlcohol:                result.ContainsAlcohol,
-		AnimalFlesh:                    result.AnimalFlesh,
-		IsStarch:                       result.IsStarch,
-		IsProtein:                      result.IsProtein,
-		IsGrain:                        result.IsGrain,
-		IsFruit:                        result.IsFruit,
-		IsSalt:                         result.IsSalt,
-		IsFat:                          result.IsFat,
-		IsAcid:                         result.IsAcid,
-		IsHeat:                         result.IsHeat,
-	}
-
-	return validIngredient, nil
+	return validIngredientFromRow(result), nil
 }
 
 // GetRandomValidIngredient fetches a valid ingredient from the database.
@@ -113,48 +66,7 @@ func (q *repository) GetRandomValidIngredient(ctx context.Context) (*mealplannin
 		return nil, observability.PrepareError(err, span, "fetching random valid ingredient")
 	}
 
-	validIngredient := &mealplanning.ValidIngredient{
-		CreatedAt:                      result.CreatedAt,
-		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-		MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
-		MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
-		IconPath:                       result.IconPath,
-		Warning:                        result.Warning,
-		PluralName:                     result.PluralName,
-		StorageInstructions:            result.StorageInstructions,
-		Name:                           result.Name,
-		ID:                             result.ID,
-		Description:                    result.Description,
-		Slug:                           result.Slug,
-		ShoppingSuggestions:            result.ShoppingSuggestions,
-		ContainsShellfish:              result.ContainsShellfish,
-		IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
-		ContainsPeanut:                 result.ContainsPeanut,
-		ContainsTreeNut:                result.ContainsTreeNut,
-		ContainsEgg:                    result.ContainsEgg,
-		ContainsWheat:                  result.ContainsWheat,
-		ContainsSoy:                    result.ContainsSoy,
-		AnimalDerived:                  result.AnimalDerived,
-		RestrictToPreparations:         result.RestrictToPreparations,
-		ContaminatesEquipment:          result.ContaminatesEquipment,
-		ContainsSesame:                 result.ContainsSesame,
-		ContainsFish:                   result.ContainsFish,
-		ContainsGluten:                 result.ContainsGluten,
-		ContainsDairy:                  result.ContainsDairy,
-		ContainsAlcohol:                result.ContainsAlcohol,
-		AnimalFlesh:                    result.AnimalFlesh,
-		IsStarch:                       result.IsStarch,
-		IsProtein:                      result.IsProtein,
-		IsGrain:                        result.IsGrain,
-		IsFruit:                        result.IsFruit,
-		IsSalt:                         result.IsSalt,
-		IsFat:                          result.IsFat,
-		IsAcid:                         result.IsAcid,
-		IsHeat:                         result.IsHeat,
-	}
-
-	return validIngredient, nil
+	return validIngredientFromRow((*generated.GetValidIngredientRow)(result)), nil
 }
 
 // SearchForValidIngredients fetches a valid ingredient from the database.
@@ -190,46 +102,7 @@ func (q *repository) SearchForValidIngredients(ctx context.Context, query string
 
 	var data []*mealplanning.ValidIngredient
 	for _, result := range results {
-		validIngredient := &mealplanning.ValidIngredient{
-			CreatedAt:                      result.CreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
-			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
-			IconPath:                       result.IconPath,
-			Warning:                        result.Warning,
-			PluralName:                     result.PluralName,
-			StorageInstructions:            result.StorageInstructions,
-			Name:                           result.Name,
-			ID:                             result.ID,
-			Description:                    result.Description,
-			Slug:                           result.Slug,
-			ShoppingSuggestions:            result.ShoppingSuggestions,
-			ContainsShellfish:              result.ContainsShellfish,
-			IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
-			ContainsPeanut:                 result.ContainsPeanut,
-			ContainsTreeNut:                result.ContainsTreeNut,
-			ContainsEgg:                    result.ContainsEgg,
-			ContainsWheat:                  result.ContainsWheat,
-			ContainsSoy:                    result.ContainsSoy,
-			AnimalDerived:                  result.AnimalDerived,
-			RestrictToPreparations:         result.RestrictToPreparations,
-			ContaminatesEquipment:          result.ContaminatesEquipment,
-			ContainsSesame:                 result.ContainsSesame,
-			ContainsFish:                   result.ContainsFish,
-			ContainsGluten:                 result.ContainsGluten,
-			ContainsDairy:                  result.ContainsDairy,
-			ContainsAlcohol:                result.ContainsAlcohol,
-			AnimalFlesh:                    result.AnimalFlesh,
-			IsStarch:                       result.IsStarch,
-			IsProtein:                      result.IsProtein,
-			IsGrain:                        result.IsGrain,
-			IsFruit:                        result.IsFruit,
-			IsSalt:                         result.IsSalt,
-			IsFat:                          result.IsFat,
-			IsAcid:                         result.IsAcid,
-			IsHeat:                         result.IsHeat,
-		}
+		validIngredient := validIngredientFromListRow((*generated.GetValidIngredientsRow)(result))
 
 		data = append(data, validIngredient)
 	}
@@ -275,46 +148,7 @@ func (q *repository) SearchForValidIngredientsForPreparation(ctx context.Context
 	var data []*mealplanning.ValidIngredient
 
 	for _, result := range results {
-		validIngredient := &mealplanning.ValidIngredient{
-			CreatedAt:                      result.CreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
-			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
-			IconPath:                       result.IconPath,
-			Warning:                        result.Warning,
-			PluralName:                     result.PluralName,
-			StorageInstructions:            result.StorageInstructions,
-			Name:                           result.Name,
-			ID:                             result.ID,
-			Description:                    result.Description,
-			Slug:                           result.Slug,
-			ShoppingSuggestions:            result.ShoppingSuggestions,
-			ContainsShellfish:              result.ContainsShellfish,
-			IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
-			ContainsPeanut:                 result.ContainsPeanut,
-			ContainsTreeNut:                result.ContainsTreeNut,
-			ContainsEgg:                    result.ContainsEgg,
-			ContainsWheat:                  result.ContainsWheat,
-			ContainsSoy:                    result.ContainsSoy,
-			AnimalDerived:                  result.AnimalDerived,
-			RestrictToPreparations:         result.RestrictToPreparations,
-			ContaminatesEquipment:          result.ContaminatesEquipment,
-			ContainsSesame:                 result.ContainsSesame,
-			ContainsFish:                   result.ContainsFish,
-			ContainsGluten:                 result.ContainsGluten,
-			ContainsDairy:                  result.ContainsDairy,
-			ContainsAlcohol:                result.ContainsAlcohol,
-			AnimalFlesh:                    result.AnimalFlesh,
-			IsStarch:                       result.IsStarch,
-			IsProtein:                      result.IsProtein,
-			IsGrain:                        result.IsGrain,
-			IsFruit:                        result.IsFruit,
-			IsSalt:                         result.IsSalt,
-			IsFat:                          result.IsFat,
-			IsAcid:                         result.IsAcid,
-			IsHeat:                         result.IsHeat,
-		}
+		validIngredient := validIngredientFromRow((*generated.GetValidIngredientRow)(result))
 
 		data = append(data, validIngredient)
 	}
@@ -354,48 +188,7 @@ func (q *repository) GetValidIngredients(ctx context.Context, filter *filtering.
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetValidIngredientsRow) *mealplanning.ValidIngredient {
-			return &mealplanning.ValidIngredient{
-				CreatedAt:                      result.CreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-				MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
-				MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
-				IconPath:                       result.IconPath,
-				Warning:                        result.Warning,
-				PluralName:                     result.PluralName,
-				StorageInstructions:            result.StorageInstructions,
-				Name:                           result.Name,
-				ID:                             result.ID,
-				Description:                    result.Description,
-				Slug:                           result.Slug,
-				ShoppingSuggestions:            result.ShoppingSuggestions,
-				ContainsShellfish:              result.ContainsShellfish,
-				IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
-				ContainsPeanut:                 result.ContainsPeanut,
-				ContainsTreeNut:                result.ContainsTreeNut,
-				ContainsEgg:                    result.ContainsEgg,
-				ContainsWheat:                  result.ContainsWheat,
-				ContainsSoy:                    result.ContainsSoy,
-				AnimalDerived:                  result.AnimalDerived,
-				RestrictToPreparations:         result.RestrictToPreparations,
-				ContaminatesEquipment:          result.ContaminatesEquipment,
-				ContainsSesame:                 result.ContainsSesame,
-				ContainsFish:                   result.ContainsFish,
-				ContainsGluten:                 result.ContainsGluten,
-				ContainsDairy:                  result.ContainsDairy,
-				ContainsAlcohol:                result.ContainsAlcohol,
-				AnimalFlesh:                    result.AnimalFlesh,
-				IsStarch:                       result.IsStarch,
-				IsProtein:                      result.IsProtein,
-				IsGrain:                        result.IsGrain,
-				IsFruit:                        result.IsFruit,
-				IsSalt:                         result.IsSalt,
-				IsFat:                          result.IsFat,
-				IsAcid:                         result.IsAcid,
-				IsHeat:                         result.IsHeat,
-			}
-		},
+		validIngredientFromListRow,
 		func(result *generated.GetValidIngredientsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -424,46 +217,7 @@ func (q *repository) GetValidIngredientsWithIDs(ctx context.Context, ids []strin
 
 	var ingredients []*mealplanning.ValidIngredient
 	for _, result := range results {
-		validIngredient := &mealplanning.ValidIngredient{
-			CreatedAt:                      result.CreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
-			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
-			IconPath:                       result.IconPath,
-			Warning:                        result.Warning,
-			PluralName:                     result.PluralName,
-			StorageInstructions:            result.StorageInstructions,
-			Name:                           result.Name,
-			ID:                             result.ID,
-			Description:                    result.Description,
-			Slug:                           result.Slug,
-			ShoppingSuggestions:            result.ShoppingSuggestions,
-			ContainsShellfish:              result.ContainsShellfish,
-			IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
-			ContainsPeanut:                 result.ContainsPeanut,
-			ContainsTreeNut:                result.ContainsTreeNut,
-			ContainsEgg:                    result.ContainsEgg,
-			ContainsWheat:                  result.ContainsWheat,
-			ContainsSoy:                    result.ContainsSoy,
-			AnimalDerived:                  result.AnimalDerived,
-			RestrictToPreparations:         result.RestrictToPreparations,
-			ContaminatesEquipment:          result.ContaminatesEquipment,
-			ContainsSesame:                 result.ContainsSesame,
-			ContainsFish:                   result.ContainsFish,
-			ContainsGluten:                 result.ContainsGluten,
-			ContainsDairy:                  result.ContainsDairy,
-			ContainsAlcohol:                result.ContainsAlcohol,
-			AnimalFlesh:                    result.AnimalFlesh,
-			IsStarch:                       result.IsStarch,
-			IsProtein:                      result.IsProtein,
-			IsGrain:                        result.IsGrain,
-			IsFruit:                        result.IsFruit,
-			IsSalt:                         result.IsSalt,
-			IsFat:                          result.IsFat,
-			IsAcid:                         result.IsAcid,
-			IsHeat:                         result.IsHeat,
-		}
+		validIngredient := validIngredientFromRow((*generated.GetValidIngredientRow)(result))
 
 		ingredients = append(ingredients, validIngredient)
 	}
@@ -686,13 +440,10 @@ func (q *repository) ArchiveValidIngredient(ctx context.Context, validIngredient
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientIDKey, validIngredientID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
 	return q.withEvent(ctx, logger, mealplanning.ValidIngredientArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientIDKey: validIngredientID,
@@ -708,4 +459,95 @@ func (q *repository) ArchiveValidIngredient(ctx context.Context, validIngredient
 
 		return nil
 	})
+}
+
+// validIngredientFromRow maps a valid ingredient row to its domain type. Every read of valid
+// ingredients whose rows carry no counts selects the same columns, so each of those queries' row types
+// converts to generated.GetValidIngredientRow and comes through here.
+func validIngredientFromRow(result *generated.GetValidIngredientRow) *mealplanning.ValidIngredient {
+	return &mealplanning.ValidIngredient{
+		CreatedAt:                      result.CreatedAt,
+		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+		MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
+		MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
+		IconPath:                       result.IconPath,
+		Warning:                        result.Warning,
+		PluralName:                     result.PluralName,
+		StorageInstructions:            result.StorageInstructions,
+		Name:                           result.Name,
+		ID:                             result.ID,
+		Description:                    result.Description,
+		Slug:                           result.Slug,
+		ShoppingSuggestions:            result.ShoppingSuggestions,
+		ContainsShellfish:              result.ContainsShellfish,
+		IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
+		ContainsPeanut:                 result.ContainsPeanut,
+		ContainsTreeNut:                result.ContainsTreeNut,
+		ContainsEgg:                    result.ContainsEgg,
+		ContainsWheat:                  result.ContainsWheat,
+		ContainsSoy:                    result.ContainsSoy,
+		AnimalDerived:                  result.AnimalDerived,
+		RestrictToPreparations:         result.RestrictToPreparations,
+		ContaminatesEquipment:          result.ContaminatesEquipment,
+		ContainsSesame:                 result.ContainsSesame,
+		ContainsFish:                   result.ContainsFish,
+		ContainsGluten:                 result.ContainsGluten,
+		ContainsDairy:                  result.ContainsDairy,
+		ContainsAlcohol:                result.ContainsAlcohol,
+		AnimalFlesh:                    result.AnimalFlesh,
+		IsStarch:                       result.IsStarch,
+		IsProtein:                      result.IsProtein,
+		IsGrain:                        result.IsGrain,
+		IsFruit:                        result.IsFruit,
+		IsSalt:                         result.IsSalt,
+		IsFat:                          result.IsFat,
+		IsAcid:                         result.IsAcid,
+		IsHeat:                         result.IsHeat,
+	}
+}
+
+// validIngredientFromListRow is validIngredientFromRow for the reads whose rows also carry the
+// filtered and total counts, and so convert to generated.GetValidIngredientsRow instead.
+func validIngredientFromListRow(result *generated.GetValidIngredientsRow) *mealplanning.ValidIngredient {
+	return &mealplanning.ValidIngredient{
+		CreatedAt:                      result.CreatedAt,
+		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+		MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
+		MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
+		IconPath:                       result.IconPath,
+		Warning:                        result.Warning,
+		PluralName:                     result.PluralName,
+		StorageInstructions:            result.StorageInstructions,
+		Name:                           result.Name,
+		ID:                             result.ID,
+		Description:                    result.Description,
+		Slug:                           result.Slug,
+		ShoppingSuggestions:            result.ShoppingSuggestions,
+		ContainsShellfish:              result.ContainsShellfish,
+		IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
+		ContainsPeanut:                 result.ContainsPeanut,
+		ContainsTreeNut:                result.ContainsTreeNut,
+		ContainsEgg:                    result.ContainsEgg,
+		ContainsWheat:                  result.ContainsWheat,
+		ContainsSoy:                    result.ContainsSoy,
+		AnimalDerived:                  result.AnimalDerived,
+		RestrictToPreparations:         result.RestrictToPreparations,
+		ContaminatesEquipment:          result.ContaminatesEquipment,
+		ContainsSesame:                 result.ContainsSesame,
+		ContainsFish:                   result.ContainsFish,
+		ContainsGluten:                 result.ContainsGluten,
+		ContainsDairy:                  result.ContainsDairy,
+		ContainsAlcohol:                result.ContainsAlcohol,
+		AnimalFlesh:                    result.AnimalFlesh,
+		IsStarch:                       result.IsStarch,
+		IsProtein:                      result.IsProtein,
+		IsGrain:                        result.IsGrain,
+		IsFruit:                        result.IsFruit,
+		IsSalt:                         result.IsSalt,
+		IsFat:                          result.IsFat,
+		IsAcid:                         result.IsAcid,
+		IsHeat:                         result.IsHeat,
+	}
 }
