@@ -68,71 +68,7 @@ func (q *repository) GetRecipeStepVessel(ctx context.Context, recipeID, recipeSt
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting recipe step vessel")
 	}
 
-	scaleFactor := database.Float32FromString(result.ScaleFactor)
-	if scaleFactor <= 0 {
-		scaleFactor = 1.0
-	}
-	recipeStepVessel := &mealplanning.RecipeStepVessel{
-		CreatedAt:            result.CreatedAt,
-		MinQuantity:          uint16(result.MinimumQuantity),
-		MaxQuantity:          database.Uint16PointerFromNullInt32(result.MaximumQuantity),
-		LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-		RecipeStepProductID:  database.StringPointerFromNullString(result.RecipeStepProductID),
-		Vessel:               nil,
-		ID:                   result.ID,
-		Notes:                result.Notes,
-		BelongsToRecipeStep:  result.BelongsToRecipeStep,
-		VesselPreposition:    result.VesselPredicate,
-		Name:                 result.Name,
-		Index:                uint16(result.Index),
-		OptionIndex:          uint16(result.OptionIndex),
-		UnavailableAfterStep: result.UnavailableAfterStep,
-		ScaleFactor:          scaleFactor,
-	}
-
-	if result.ValidVesselID.Valid {
-		recipeStepVessel.Vessel = &mealplanning.ValidVessel{
-			CreatedAt:                      result.ValidVesselCreatedAt.Time,
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidVesselArchivedAt),
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidVesselLastUpdatedAt),
-			CapacityUnit:                   nil,
-			IconPath:                       result.ValidVesselIconPath.String,
-			PluralName:                     result.ValidVesselPluralName.String,
-			Description:                    result.ValidVesselDescription.String,
-			Name:                           result.ValidVesselName.String,
-			Slug:                           result.ValidVesselSlug.String,
-			Shape:                          string(result.ValidVesselShape.VesselShape),
-			ID:                             result.ValidVesselID.String,
-			WidthInMillimeters:             database.Float32FromNullString(result.ValidVesselWidthInMillimeters),
-			LengthInMillimeters:            database.Float32FromNullString(result.ValidVesselLengthInMillimeters),
-			HeightInMillimeters:            database.Float32FromNullString(result.ValidVesselHeightInMillimeters),
-			Capacity:                       database.Float32FromNullString(result.ValidVesselCapacity),
-			IncludeInGeneratedInstructions: result.ValidVesselIncludeInGeneratedInstructions.Bool,
-			DisplayInSummaryLists:          result.ValidVesselDisplayInSummaryLists.Bool,
-			UsableForStorage:               result.ValidVesselUsableForStorage.Bool,
-		}
-
-		if result.ValidMeasurementUnitID.Valid {
-			recipeStepVessel.Vessel.CapacityUnit = &mealplanning.ValidMeasurementUnit{
-				CreatedAt:     result.ValidMeasurementUnitCreatedAt.Time,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
-				Name:          result.ValidMeasurementUnitName.String,
-				IconPath:      result.ValidMeasurementUnitIconPath.String,
-				ID:            result.ValidMeasurementUnitID.String,
-				Description:   result.ValidMeasurementUnitDescription.String,
-				PluralName:    result.ValidMeasurementUnitPluralName.String,
-				Slug:          result.ValidMeasurementUnitSlug.String,
-				Volumetric:    result.ValidMeasurementUnitVolumetric.Bool,
-				Universal:     result.ValidMeasurementUnitUniversal.Bool,
-				Metric:        result.ValidMeasurementUnitMetric.Bool,
-				Imperial:      result.ValidMeasurementUnitImperial.Bool,
-			}
-		}
-	}
-
-	return recipeStepVessel, nil
+	return recipeStepVesselFromRow(result), nil
 }
 
 // GetRecipeStepVessels fetches a list of recipe step vessels from the database that meet a particular filter.
@@ -261,69 +197,7 @@ func (q *repository) getRecipeStepVesselsForRecipe(ctx context.Context, recipeID
 
 	recipeStepVessels := []*mealplanning.RecipeStepVessel{}
 	for _, result := range results {
-		scaleFactor := database.Float32FromString(result.ScaleFactor)
-		if scaleFactor <= 0 {
-			scaleFactor = 1.0
-		}
-		recipeStepVessel := &mealplanning.RecipeStepVessel{
-			CreatedAt:            result.CreatedAt,
-			MinQuantity:          uint16(result.MinimumQuantity),
-			MaxQuantity:          database.Uint16PointerFromNullInt32(result.MaximumQuantity),
-			LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-			RecipeStepProductID:  database.StringPointerFromNullString(result.RecipeStepProductID),
-			Vessel:               nil,
-			ID:                   result.ID,
-			Notes:                result.Notes,
-			BelongsToRecipeStep:  result.BelongsToRecipeStep,
-			VesselPreposition:    result.VesselPredicate,
-			Name:                 result.Name,
-			Index:                uint16(result.Index),
-			OptionIndex:          uint16(result.OptionIndex),
-			UnavailableAfterStep: result.UnavailableAfterStep,
-			ScaleFactor:          scaleFactor,
-		}
-
-		if result.ValidVesselID.Valid {
-			recipeStepVessel.Vessel = &mealplanning.ValidVessel{
-				CreatedAt:                      result.ValidVesselCreatedAt.Time,
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ValidVesselArchivedAt),
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidVesselLastUpdatedAt),
-				CapacityUnit:                   nil,
-				IconPath:                       result.ValidVesselIconPath.String,
-				PluralName:                     result.ValidVesselPluralName.String,
-				Description:                    result.ValidVesselDescription.String,
-				Name:                           result.ValidVesselName.String,
-				Slug:                           result.ValidVesselSlug.String,
-				Shape:                          string(result.ValidVesselShape.VesselShape),
-				ID:                             result.ValidVesselID.String,
-				WidthInMillimeters:             database.Float32FromNullString(result.ValidVesselWidthInMillimeters),
-				LengthInMillimeters:            database.Float32FromNullString(result.ValidVesselLengthInMillimeters),
-				HeightInMillimeters:            database.Float32FromNullString(result.ValidVesselHeightInMillimeters),
-				Capacity:                       database.Float32FromNullString(result.ValidVesselCapacity),
-				IncludeInGeneratedInstructions: result.ValidVesselIncludeInGeneratedInstructions.Bool,
-				DisplayInSummaryLists:          result.ValidVesselDisplayInSummaryLists.Bool,
-				UsableForStorage:               result.ValidVesselUsableForStorage.Bool,
-			}
-
-			if result.ValidMeasurementUnitID.Valid {
-				recipeStepVessel.Vessel.CapacityUnit = &mealplanning.ValidMeasurementUnit{
-					CreatedAt:     result.ValidMeasurementUnitCreatedAt.Time,
-					LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
-					ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
-					Name:          result.ValidMeasurementUnitName.String,
-					IconPath:      result.ValidMeasurementUnitIconPath.String,
-					ID:            result.ValidMeasurementUnitID.String,
-					Description:   result.ValidMeasurementUnitDescription.String,
-					PluralName:    result.ValidMeasurementUnitPluralName.String,
-					Slug:          result.ValidMeasurementUnitSlug.String,
-					Volumetric:    result.ValidMeasurementUnitVolumetric.Bool,
-					Universal:     result.ValidMeasurementUnitUniversal.Bool,
-					Metric:        result.ValidMeasurementUnitMetric.Bool,
-					Imperial:      result.ValidMeasurementUnitImperial.Bool,
-				}
-			}
-		}
+		recipeStepVessel := recipeStepVesselFromRow((*generated.GetRecipeStepVesselRow)(result))
 
 		recipeStepVessels = append(recipeStepVessels, recipeStepVessel)
 	}
@@ -495,4 +369,77 @@ func (q *repository) ArchiveRecipeStepVessel(ctx context.Context, recipeID, reci
 	}
 
 	return nil
+}
+
+// recipeStepVesselFromRow maps a recipe step vessel row, with its optional vessel and that
+// vessel's optional capacity unit, to its domain type. GetRecipeStepVessel and
+// GetRecipeStepVesselsForRecipe select the same columns, so the latter's row type converts to
+// generated.GetRecipeStepVesselRow. The paginated read's row also carries counts and keeps its own
+// mapping.
+func recipeStepVesselFromRow(result *generated.GetRecipeStepVesselRow) *mealplanning.RecipeStepVessel {
+	scaleFactor := database.Float32FromString(result.ScaleFactor)
+	if scaleFactor <= 0 {
+		scaleFactor = 1.0
+	}
+	recipeStepVessel := &mealplanning.RecipeStepVessel{
+		CreatedAt:            result.CreatedAt,
+		MinQuantity:          uint16(result.MinimumQuantity),
+		MaxQuantity:          database.Uint16PointerFromNullInt32(result.MaximumQuantity),
+		LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+		RecipeStepProductID:  database.StringPointerFromNullString(result.RecipeStepProductID),
+		Vessel:               nil,
+		ID:                   result.ID,
+		Notes:                result.Notes,
+		BelongsToRecipeStep:  result.BelongsToRecipeStep,
+		VesselPreposition:    result.VesselPredicate,
+		Name:                 result.Name,
+		Index:                uint16(result.Index),
+		OptionIndex:          uint16(result.OptionIndex),
+		UnavailableAfterStep: result.UnavailableAfterStep,
+		ScaleFactor:          scaleFactor,
+	}
+
+	if result.ValidVesselID.Valid {
+		recipeStepVessel.Vessel = &mealplanning.ValidVessel{
+			CreatedAt:                      result.ValidVesselCreatedAt.Time,
+			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidVesselArchivedAt),
+			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidVesselLastUpdatedAt),
+			CapacityUnit:                   nil,
+			IconPath:                       result.ValidVesselIconPath.String,
+			PluralName:                     result.ValidVesselPluralName.String,
+			Description:                    result.ValidVesselDescription.String,
+			Name:                           result.ValidVesselName.String,
+			Slug:                           result.ValidVesselSlug.String,
+			Shape:                          string(result.ValidVesselShape.VesselShape),
+			ID:                             result.ValidVesselID.String,
+			WidthInMillimeters:             database.Float32FromNullString(result.ValidVesselWidthInMillimeters),
+			LengthInMillimeters:            database.Float32FromNullString(result.ValidVesselLengthInMillimeters),
+			HeightInMillimeters:            database.Float32FromNullString(result.ValidVesselHeightInMillimeters),
+			Capacity:                       database.Float32FromNullString(result.ValidVesselCapacity),
+			IncludeInGeneratedInstructions: result.ValidVesselIncludeInGeneratedInstructions.Bool,
+			DisplayInSummaryLists:          result.ValidVesselDisplayInSummaryLists.Bool,
+			UsableForStorage:               result.ValidVesselUsableForStorage.Bool,
+		}
+
+		if result.ValidMeasurementUnitID.Valid {
+			recipeStepVessel.Vessel.CapacityUnit = &mealplanning.ValidMeasurementUnit{
+				CreatedAt:     result.ValidMeasurementUnitCreatedAt.Time,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
+				Name:          result.ValidMeasurementUnitName.String,
+				IconPath:      result.ValidMeasurementUnitIconPath.String,
+				ID:            result.ValidMeasurementUnitID.String,
+				Description:   result.ValidMeasurementUnitDescription.String,
+				PluralName:    result.ValidMeasurementUnitPluralName.String,
+				Slug:          result.ValidMeasurementUnitSlug.String,
+				Volumetric:    result.ValidMeasurementUnitVolumetric.Bool,
+				Universal:     result.ValidMeasurementUnitUniversal.Bool,
+				Metric:        result.ValidMeasurementUnitMetric.Bool,
+				Imperial:      result.ValidMeasurementUnitImperial.Bool,
+			}
+		}
+	}
+
+	return recipeStepVessel
 }

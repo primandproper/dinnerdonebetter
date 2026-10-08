@@ -68,88 +68,10 @@ func (q *repository) GetRecipeStepIngredient(ctx context.Context, recipeID, reci
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting recipe step ingredient")
 	}
 
-	scaleFactor := database.Float32FromString(result.ScaleFactor)
-	if scaleFactor <= 0 {
-		scaleFactor = 1.0
-	}
-	recipeStepIngredient := &mealplanning.RecipeStepIngredient{
-		CreatedAt:                 result.CreatedAt,
-		RecipeStepProductID:       database.StringPointerFromNullString(result.RecipeStepProductID),
-		ArchivedAt:                database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:             database.TimePointerFromNullTime(result.LastUpdatedAt),
-		VesselIndex:               database.Uint16PointerFromNullInt32(result.VesselIndex),
-		ProductPercentageToUse:    database.Float32PointerFromNullString(result.ProductPercentageToUse),
-		RecipeStepProductRecipeID: database.StringPointerFromNullString(result.RecipeStepProductRecipeID),
-		QuantityNotes:             result.QuantityNotes,
-		ID:                        result.ID,
-		BelongsToRecipeStep:       result.BelongsToRecipeStep,
-		IngredientNotes:           result.IngredientNotes,
-		Name:                      result.Name,
-		ScaleFactor:               scaleFactor,
-		MeasurementUnit: mealplanning.ValidMeasurementUnit{
-			CreatedAt:     result.ValidMeasurementUnitCreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
-			Name:          result.ValidMeasurementUnitName,
-			IconPath:      result.ValidMeasurementUnitIconPath,
-			ID:            result.ValidMeasurementUnitID,
-			Description:   result.ValidMeasurementUnitDescription,
-			PluralName:    result.ValidMeasurementUnitPluralName,
-			Slug:          result.ValidMeasurementUnitSlug,
-			Volumetric:    database.BoolFromNullBool(result.ValidMeasurementUnitVolumetric),
-			Universal:     result.ValidMeasurementUnitUniversal,
-			Metric:        result.ValidMeasurementUnitMetric,
-			Imperial:      result.ValidMeasurementUnitImperial,
-		},
-		MinQuantity: database.Float32FromString(result.MinimumQuantityValue),
-		MaxQuantity: database.Float32PointerFromNullString(result.MaximumQuantityValue),
-		Index:       uint16(result.Index),
-		OptionIndex: uint16(result.OptionIndex),
-		Optional:    result.Optional,
-		ToTaste:     result.ToTaste,
-	}
+	recipeStepIngredient := recipeStepIngredientFromRow(result)
 
 	if result.ValidIngredientID.Valid && result.ValidIngredientID.String != "" {
-		recipeStepIngredient.Ingredient = &mealplanning.ValidIngredient{
-			CreatedAt:                      result.ValidIngredientCreatedAt.Time,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
-			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-			IconPath:                       result.ValidIngredientIconPath.String,
-			Warning:                        result.ValidIngredientWarning.String,
-			PluralName:                     result.ValidIngredientPluralName.String,
-			StorageInstructions:            result.ValidIngredientStorageInstructions.String,
-			Name:                           result.ValidIngredientName.String,
-			ID:                             result.ValidIngredientID.String,
-			Description:                    result.ValidIngredientDescription.String,
-			Slug:                           result.ValidIngredientSlug.String,
-			ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions.String,
-			ContainsShellfish:              result.ValidIngredientContainsShellfish.Bool,
-			IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
-			ContainsPeanut:                 result.ValidIngredientContainsPeanut.Bool,
-			ContainsTreeNut:                result.ValidIngredientContainsTreeNut.Bool,
-			ContainsEgg:                    result.ValidIngredientContainsEgg.Bool,
-			ContainsWheat:                  result.ValidIngredientContainsWheat.Bool,
-			ContainsSoy:                    result.ValidIngredientContainsSoy.Bool,
-			AnimalDerived:                  result.ValidIngredientAnimalDerived.Bool,
-			RestrictToPreparations:         result.ValidIngredientRestrictToPreparations.Bool,
-			ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment.Bool,
-			ContainsSesame:                 result.ValidIngredientContainsSesame.Bool,
-			ContainsFish:                   result.ValidIngredientContainsFish.Bool,
-			ContainsGluten:                 result.ValidIngredientContainsGluten.Bool,
-			ContainsDairy:                  result.ValidIngredientContainsDairy.Bool,
-			ContainsAlcohol:                result.ValidIngredientContainsAlcohol.Bool,
-			AnimalFlesh:                    result.ValidIngredientAnimalFlesh.Bool,
-			IsStarch:                       result.ValidIngredientIsStarch.Bool,
-			IsProtein:                      result.ValidIngredientIsProtein.Bool,
-			IsGrain:                        result.ValidIngredientIsGrain.Bool,
-			IsFruit:                        result.ValidIngredientIsFruit.Bool,
-			IsSalt:                         result.ValidIngredientIsSalt.Bool,
-			IsFat:                          result.ValidIngredientIsFat.Bool,
-			IsAcid:                         result.ValidIngredientIsAcid.Bool,
-			IsHeat:                         result.ValidIngredientIsHeat.Bool,
-		}
+		recipeStepIngredient.Ingredient = recipeStepIngredientIngredientFromRow(result)
 	}
 
 	return recipeStepIngredient, nil
@@ -172,88 +94,10 @@ func (q *repository) getRecipeStepIngredientsForRecipe(ctx context.Context, reci
 
 	recipeStepIngredients := []*mealplanning.RecipeStepIngredient{}
 	for _, result := range results {
-		scaleFactor := database.Float32FromString(result.ScaleFactor)
-		if scaleFactor <= 0 {
-			scaleFactor = 1.0
-		}
-		recipeStepIngredient := &mealplanning.RecipeStepIngredient{
-			CreatedAt:                 result.CreatedAt,
-			RecipeStepProductID:       database.StringPointerFromNullString(result.RecipeStepProductID),
-			ArchivedAt:                database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:             database.TimePointerFromNullTime(result.LastUpdatedAt),
-			VesselIndex:               database.Uint16PointerFromNullInt32(result.VesselIndex),
-			ProductPercentageToUse:    database.Float32PointerFromNullString(result.ProductPercentageToUse),
-			RecipeStepProductRecipeID: database.StringPointerFromNullString(result.RecipeStepProductRecipeID),
-			QuantityNotes:             result.QuantityNotes,
-			ID:                        result.ID,
-			BelongsToRecipeStep:       result.BelongsToRecipeStep,
-			IngredientNotes:           result.IngredientNotes,
-			Name:                      result.Name,
-			ScaleFactor:               scaleFactor,
-			MeasurementUnit: mealplanning.ValidMeasurementUnit{
-				CreatedAt:     result.ValidMeasurementUnitCreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
-				Name:          result.ValidMeasurementUnitName,
-				IconPath:      result.ValidMeasurementUnitIconPath,
-				ID:            result.ValidMeasurementUnitID,
-				Description:   result.ValidMeasurementUnitDescription,
-				PluralName:    result.ValidMeasurementUnitPluralName,
-				Slug:          result.ValidMeasurementUnitSlug,
-				Volumetric:    database.BoolFromNullBool(result.ValidMeasurementUnitVolumetric),
-				Universal:     result.ValidMeasurementUnitUniversal,
-				Metric:        result.ValidMeasurementUnitMetric,
-				Imperial:      result.ValidMeasurementUnitImperial,
-			},
-			MinQuantity: database.Float32FromString(result.MinimumQuantityValue),
-			MaxQuantity: database.Float32PointerFromNullString(result.MaximumQuantityValue),
-			Index:       uint16(result.Index),
-			OptionIndex: uint16(result.OptionIndex),
-			Optional:    result.Optional,
-			ToTaste:     result.ToTaste,
-		}
+		recipeStepIngredient := recipeStepIngredientFromRow((*generated.GetRecipeStepIngredientRow)(result))
 
 		if result.ValidIngredientID.Valid {
-			recipeStepIngredient.Ingredient = &mealplanning.ValidIngredient{
-				CreatedAt:                      result.ValidIngredientCreatedAt.Time,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
-				MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-				MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-				IconPath:                       result.ValidIngredientIconPath.String,
-				Warning:                        result.ValidIngredientWarning.String,
-				PluralName:                     result.ValidIngredientPluralName.String,
-				StorageInstructions:            result.ValidIngredientStorageInstructions.String,
-				Name:                           result.ValidIngredientName.String,
-				ID:                             result.ValidIngredientID.String,
-				Description:                    result.ValidIngredientDescription.String,
-				Slug:                           result.ValidIngredientSlug.String,
-				ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions.String,
-				ContainsShellfish:              result.ValidIngredientContainsShellfish.Bool,
-				IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
-				ContainsPeanut:                 result.ValidIngredientContainsPeanut.Bool,
-				ContainsTreeNut:                result.ValidIngredientContainsTreeNut.Bool,
-				ContainsEgg:                    result.ValidIngredientContainsEgg.Bool,
-				ContainsWheat:                  result.ValidIngredientContainsWheat.Bool,
-				ContainsSoy:                    result.ValidIngredientContainsSoy.Bool,
-				AnimalDerived:                  result.ValidIngredientAnimalDerived.Bool,
-				RestrictToPreparations:         result.ValidIngredientRestrictToPreparations.Bool,
-				ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment.Bool,
-				ContainsSesame:                 result.ValidIngredientContainsSesame.Bool,
-				ContainsFish:                   result.ValidIngredientContainsFish.Bool,
-				ContainsGluten:                 result.ValidIngredientContainsGluten.Bool,
-				ContainsDairy:                  result.ValidIngredientContainsDairy.Bool,
-				ContainsAlcohol:                result.ValidIngredientContainsAlcohol.Bool,
-				AnimalFlesh:                    result.ValidIngredientAnimalFlesh.Bool,
-				IsStarch:                       result.ValidIngredientIsStarch.Bool,
-				IsProtein:                      result.ValidIngredientIsProtein.Bool,
-				IsGrain:                        result.ValidIngredientIsGrain.Bool,
-				IsFruit:                        result.ValidIngredientIsFruit.Bool,
-				IsSalt:                         result.ValidIngredientIsSalt.Bool,
-				IsFat:                          result.ValidIngredientIsFat.Bool,
-				IsAcid:                         result.ValidIngredientIsAcid.Bool,
-				IsHeat:                         result.ValidIngredientIsHeat.Bool,
-			}
+			recipeStepIngredient.Ingredient = recipeStepIngredientIngredientFromRow((*generated.GetRecipeStepIngredientRow)(result))
 		}
 
 		recipeStepIngredients = append(recipeStepIngredients, recipeStepIngredient)
@@ -582,4 +426,101 @@ func (q *repository) ArchiveRecipeStepIngredient(ctx context.Context, recipeID, 
 	}
 
 	return nil
+}
+
+// recipeStepIngredientFromRow maps a recipe step ingredient row and its measurement unit to the
+// domain type; the optional ingredient is attached by the caller, because GetRecipeStepIngredient
+// and getRecipeStepIngredientsForRecipe test for its presence differently. Both queries select the
+// same columns, so the latter's row type converts to generated.GetRecipeStepIngredientRow. The
+// paginated read's row also carries counts and keeps its own mapping.
+func recipeStepIngredientFromRow(result *generated.GetRecipeStepIngredientRow) *mealplanning.RecipeStepIngredient {
+	scaleFactor := database.Float32FromString(result.ScaleFactor)
+	if scaleFactor <= 0 {
+		scaleFactor = 1.0
+	}
+	recipeStepIngredient := &mealplanning.RecipeStepIngredient{
+		CreatedAt:                 result.CreatedAt,
+		RecipeStepProductID:       database.StringPointerFromNullString(result.RecipeStepProductID),
+		ArchivedAt:                database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:             database.TimePointerFromNullTime(result.LastUpdatedAt),
+		VesselIndex:               database.Uint16PointerFromNullInt32(result.VesselIndex),
+		ProductPercentageToUse:    database.Float32PointerFromNullString(result.ProductPercentageToUse),
+		RecipeStepProductRecipeID: database.StringPointerFromNullString(result.RecipeStepProductRecipeID),
+		QuantityNotes:             result.QuantityNotes,
+		ID:                        result.ID,
+		BelongsToRecipeStep:       result.BelongsToRecipeStep,
+		IngredientNotes:           result.IngredientNotes,
+		Name:                      result.Name,
+		ScaleFactor:               scaleFactor,
+		MeasurementUnit: mealplanning.ValidMeasurementUnit{
+			CreatedAt:     result.ValidMeasurementUnitCreatedAt,
+			LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
+			ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
+			Name:          result.ValidMeasurementUnitName,
+			IconPath:      result.ValidMeasurementUnitIconPath,
+			ID:            result.ValidMeasurementUnitID,
+			Description:   result.ValidMeasurementUnitDescription,
+			PluralName:    result.ValidMeasurementUnitPluralName,
+			Slug:          result.ValidMeasurementUnitSlug,
+			Volumetric:    database.BoolFromNullBool(result.ValidMeasurementUnitVolumetric),
+			Universal:     result.ValidMeasurementUnitUniversal,
+			Metric:        result.ValidMeasurementUnitMetric,
+			Imperial:      result.ValidMeasurementUnitImperial,
+		},
+		MinQuantity: database.Float32FromString(result.MinimumQuantityValue),
+		MaxQuantity: database.Float32PointerFromNullString(result.MaximumQuantityValue),
+		Index:       uint16(result.Index),
+		OptionIndex: uint16(result.OptionIndex),
+		Optional:    result.Optional,
+		ToTaste:     result.ToTaste,
+	}
+
+	return recipeStepIngredient
+}
+
+// recipeStepIngredientIngredientFromRow maps the joined valid ingredient columns of a recipe step
+// ingredient row. Callers only use it once they have established the ingredient is present, since
+// every column is nullable on the join. Like recipeStepIngredientFromRow, it takes
+// generated.GetRecipeStepIngredientRow, which the recipe-wide read's row converts to.
+func recipeStepIngredientIngredientFromRow(result *generated.GetRecipeStepIngredientRow) *mealplanning.ValidIngredient {
+	return &mealplanning.ValidIngredient{
+		CreatedAt:                      result.ValidIngredientCreatedAt.Time,
+		LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
+		ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
+		MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
+		MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
+		IconPath:                       result.ValidIngredientIconPath.String,
+		Warning:                        result.ValidIngredientWarning.String,
+		PluralName:                     result.ValidIngredientPluralName.String,
+		StorageInstructions:            result.ValidIngredientStorageInstructions.String,
+		Name:                           result.ValidIngredientName.String,
+		ID:                             result.ValidIngredientID.String,
+		Description:                    result.ValidIngredientDescription.String,
+		Slug:                           result.ValidIngredientSlug.String,
+		ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions.String,
+		ContainsShellfish:              result.ValidIngredientContainsShellfish.Bool,
+		IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
+		ContainsPeanut:                 result.ValidIngredientContainsPeanut.Bool,
+		ContainsTreeNut:                result.ValidIngredientContainsTreeNut.Bool,
+		ContainsEgg:                    result.ValidIngredientContainsEgg.Bool,
+		ContainsWheat:                  result.ValidIngredientContainsWheat.Bool,
+		ContainsSoy:                    result.ValidIngredientContainsSoy.Bool,
+		AnimalDerived:                  result.ValidIngredientAnimalDerived.Bool,
+		RestrictToPreparations:         result.ValidIngredientRestrictToPreparations.Bool,
+		ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment.Bool,
+		ContainsSesame:                 result.ValidIngredientContainsSesame.Bool,
+		ContainsFish:                   result.ValidIngredientContainsFish.Bool,
+		ContainsGluten:                 result.ValidIngredientContainsGluten.Bool,
+		ContainsDairy:                  result.ValidIngredientContainsDairy.Bool,
+		ContainsAlcohol:                result.ValidIngredientContainsAlcohol.Bool,
+		AnimalFlesh:                    result.ValidIngredientAnimalFlesh.Bool,
+		IsStarch:                       result.ValidIngredientIsStarch.Bool,
+		IsProtein:                      result.ValidIngredientIsProtein.Bool,
+		IsGrain:                        result.ValidIngredientIsGrain.Bool,
+		IsFruit:                        result.ValidIngredientIsFruit.Bool,
+		IsSalt:                         result.ValidIngredientIsSalt.Bool,
+		IsFat:                          result.ValidIngredientIsFat.Bool,
+		IsAcid:                         result.ValidIngredientIsAcid.Bool,
+		IsHeat:                         result.ValidIngredientIsHeat.Bool,
+	}
 }

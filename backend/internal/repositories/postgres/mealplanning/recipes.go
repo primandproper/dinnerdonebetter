@@ -429,28 +429,7 @@ func (q *repository) GetRecipes(ctx context.Context, status string, filter *filt
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetRecipesRow) *mealplanning.Recipe {
-			return &mealplanning.Recipe{
-				CreatedAt:            result.CreatedAt,
-				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				PluralPortionName:    result.PluralPortionName,
-				Description:          result.Description,
-				Name:                 result.Name,
-				PortionName:          result.PortionName,
-				ID:                   result.ID,
-				CreatedByUser:        result.CreatedByUser,
-				Source:               result.Source,
-				SourceISBN:           result.SourceIsbn,
-				Slug:                 result.Slug,
-				YieldsComponentType:  string(result.YieldsComponentType),
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				Status:               string(result.Status),
-				EligibleForMeals:     result.EligibleForMeals,
-			}
-		},
+		recipeFromListRow,
 		func(result *generated.GetRecipesRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -494,26 +473,7 @@ func (q *repository) GetRecipesCreatedByUser(ctx context.Context, userID string,
 	x = filtering.Drain(
 		results,
 		func(result *generated.GetRecipesCreatedByUserRow) *mealplanning.Recipe {
-			return &mealplanning.Recipe{
-				CreatedAt:            result.CreatedAt,
-				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				PluralPortionName:    result.PluralPortionName,
-				Description:          result.Description,
-				Name:                 result.Name,
-				PortionName:          result.PortionName,
-				ID:                   result.ID,
-				CreatedByUser:        result.CreatedByUser,
-				Source:               result.Source,
-				SourceISBN:           result.SourceIsbn,
-				Slug:                 result.Slug,
-				YieldsComponentType:  string(result.YieldsComponentType),
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				Status:               string(result.Status),
-				EligibleForMeals:     result.EligibleForMeals,
-			}
+			return recipeFromListRow((*generated.GetRecipesRow)(result))
 		},
 		func(result *generated.GetRecipesCreatedByUserRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -696,26 +656,7 @@ func (q *repository) SearchForRecipes(ctx context.Context, recipeNameQuery strin
 	x = filtering.Drain(
 		results,
 		func(result *generated.RecipeSearchRow) *mealplanning.Recipe {
-			return &mealplanning.Recipe{
-				CreatedAt:            result.CreatedAt,
-				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				PluralPortionName:    result.PluralPortionName,
-				Description:          result.Description,
-				Name:                 result.Name,
-				PortionName:          result.PortionName,
-				ID:                   result.ID,
-				CreatedByUser:        result.CreatedByUser,
-				Source:               result.Source,
-				SourceISBN:           result.SourceIsbn,
-				Slug:                 result.Slug,
-				YieldsComponentType:  string(result.YieldsComponentType),
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				Status:               string(result.Status),
-				EligibleForMeals:     result.EligibleForMeals,
-			}
+			return recipeFromListRow((*generated.GetRecipesRow)(result))
 		},
 		func(result *generated.RecipeSearchRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -755,26 +696,7 @@ func (q *repository) SearchForMealEligibleRecipes(ctx context.Context, recipeNam
 	x = filtering.Drain(
 		results,
 		func(result *generated.SearchForMealEligibleRecipesRow) *mealplanning.Recipe {
-			return &mealplanning.Recipe{
-				CreatedAt:            result.CreatedAt,
-				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				PluralPortionName:    result.PluralPortionName,
-				Description:          result.Description,
-				Name:                 result.Name,
-				PortionName:          result.PortionName,
-				ID:                   result.ID,
-				CreatedByUser:        result.CreatedByUser,
-				Source:               result.Source,
-				SourceISBN:           result.SourceIsbn,
-				Slug:                 result.Slug,
-				YieldsComponentType:  string(result.YieldsComponentType),
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				Status:               string(result.Status),
-				EligibleForMeals:     result.EligibleForMeals,
-			}
+			return recipeFromListRow((*generated.GetRecipesRow)(result))
 		},
 		func(result *generated.SearchForMealEligibleRecipesRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -815,26 +737,7 @@ func (q *repository) SearchForRecipesWithInstrumentOwnership(ctx context.Context
 	x = filtering.Drain(
 		results,
 		func(result *generated.SearchForRecipesWithInstrumentOwnershipRow) *mealplanning.Recipe {
-			return &mealplanning.Recipe{
-				CreatedAt:            result.CreatedAt,
-				InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				PluralPortionName:    result.PluralPortionName,
-				Description:          result.Description,
-				Name:                 result.Name,
-				PortionName:          result.PortionName,
-				ID:                   result.ID,
-				CreatedByUser:        result.CreatedByUser,
-				Source:               result.Source,
-				SourceISBN:           result.SourceIsbn,
-				Slug:                 result.Slug,
-				YieldsComponentType:  string(result.YieldsComponentType),
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				Status:               string(result.Status),
-				EligibleForMeals:     result.EligibleForMeals,
-			}
+			return recipeFromListRow((*generated.GetRecipesRow)(result))
 		},
 		func(result *generated.SearchForRecipesWithInstrumentOwnershipRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -1276,4 +1179,31 @@ func (q *repository) AddRecipeImage(ctx context.Context, recipeID, uploadedMedia
 	}
 
 	return nil
+}
+
+// recipeFromListRow maps a recipe row from one of the paginated recipe reads to its domain type.
+// Every list and search read selects the same recipe columns plus the filtered and total counts,
+// so each of those queries' row types converts to generated.GetRecipesRow and comes through here.
+// GetRecipeByID's row also carries the joined step columns and keeps its own literal.
+func recipeFromListRow(result *generated.GetRecipesRow) *mealplanning.Recipe {
+	return &mealplanning.Recipe{
+		CreatedAt:            result.CreatedAt,
+		InspiredByRecipeID:   database.StringPointerFromNullString(result.InspiredByRecipeID),
+		LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+		PluralPortionName:    result.PluralPortionName,
+		Description:          result.Description,
+		Name:                 result.Name,
+		PortionName:          result.PortionName,
+		ID:                   result.ID,
+		CreatedByUser:        result.CreatedByUser,
+		Source:               result.Source,
+		SourceISBN:           result.SourceIsbn,
+		Slug:                 result.Slug,
+		YieldsComponentType:  string(result.YieldsComponentType),
+		MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
+		MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
+		Status:               string(result.Status),
+		EligibleForMeals:     result.EligibleForMeals,
+	}
 }
