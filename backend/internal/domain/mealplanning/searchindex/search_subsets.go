@@ -1,4 +1,4 @@
-package indexing
+package searchindex
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"

@@ -144,26 +144,6 @@ WHERE %s
 						pgGen.CursorLimitClause(recipeStepsTableName, querygen.Ascending),
 					)),
 				},
-				{
-					Annotation: QueryAnnotation{
-						Name: "GetRecipeStepByRecipeID",
-						Type: OneType,
-					},
-					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
-	%s
-FROM %s
-	JOIN %s ON %s.%s=%s.%s
-	JOIN %s ON %s.%s=%s.%s
-WHERE %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s);`,
-						strings.Join(fullSelectColumns, ",\n\t"),
-						recipeStepsTableName,
-						recipesTableName, recipeStepsTableName, belongsToRecipeColumn, recipesTableName, idColumn,
-						validPreparationsTableName, recipeStepsTableName, preparationIDColumn, validPreparationsTableName, idColumn,
-						recipeStepsTableName, archivedAtColumn,
-						recipeStepsTableName, idColumn, idColumn,
-					)),
-				},
 			},
 		)
 	default:

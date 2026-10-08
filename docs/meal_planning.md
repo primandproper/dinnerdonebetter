@@ -52,6 +52,32 @@ The meal planning system consists of several key components:
 
 ### 3. Finalization
 
+#### The tally
+
+What finalizing decides is one pure function, `mealplanning.TallyMealPlan`, over the plan the
+repository read, the account's members, and the time. Both ways a plan finalizes — a member
+asking (`FinalizeMealPlan` on the manager) and the saga's first step — run it through
+`mealplanning.FinalizeMealPlan`, which reads the electorate and the plan, tallies, and hands the
+result to the repository's `RecordMealPlanTally` to write down. The repository decides nothing.
+
+- The electorate is every member of the plan's account, read through identity's roster
+  (`identity.AccountRoster`) rather than by the repository.
+- Before the voting deadline, an event is decided only once every member has voted on it, and
+  events are decided in order: the first event still waiting on a ballot holds every later one
+  open too. After the deadline, every open event is decided on whatever ballots it has.
+- An event that is already decided, or that offers no options, is left alone; one nobody voted on
+  chooses nothing.
+- The plan is finalized when the deadline has passed or nothing was left waiting. Tallying a plan
+  that is already finalized is refused with `mealplanning.ErrAlreadyFinalized`
+  (`FailedPrecondition` over gRPC).
+- Ties are broken at random among the options with the most Schulze wins, and the chosen option is
+  marked tiebroken. The tiebreak is a parameter of the tally so tests can make it deterministic.
+
+A plan is created finalized when no event offers more than one option
+(`mealplanning.InitialMealPlanStatus`, applied by the manager), and awaiting votes otherwise.
+
+#### The pipeline
+
 Finalization is a durable saga — one named, linear sequence of steps with per-step state,
 retries, and compensations, run on platform-go's `saga` package. It replaced three independently
 scheduled jobs coordinated by two boolean columns.
@@ -86,7 +112,18 @@ Lifecycle events (`saga.started`, `saga.step_completed`, `saga.compensating`, `s
 go through the outbox on the `saga.lifecycle` topic, in the transaction that records the
 transition they describe.
 
-### 4. Execution
+### 4. Who May Touch a Meal Plan
+
+A meal plan belongs to an account, and everything beneath it — events, options, votes, recipe
+option selections, tasks, grocery list items — is reachable only by that account's members. The
+manager methods for those take the caller's active account as `ownerID` and check it before they
+touch anything: the plan (`MealPlanExists`), and where a request names something beneath the plan
+by its own ID, that it is the plan's (the event an option is created under, the task whose status
+changes) or the account's (an option named by ID alone). A caller outside the account gets
+`sql.ErrNoRows`, which reaches a gRPC client as `NotFound`. The gRPC handlers read the caller from
+the session and pass it down; they do not check access themselves.
+
+### 5. Execution
 
 1. Users can view their assigned tasks and grocery lists
 2. Grocery lists can be modified by any account member (mark items as acquired, edit quantities, etc.)

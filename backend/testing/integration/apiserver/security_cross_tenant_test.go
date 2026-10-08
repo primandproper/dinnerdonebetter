@@ -97,6 +97,115 @@ func TestCrossTenant_RecipeRating_Denied(T *testing.T) {
 	})
 }
 
+// TestCrossTenant_RecipeWrites_Denied asserts that a recipe, which anyone may read, may only be
+// changed by its author. The manager takes the caller as the owner of every write to a recipe or
+// what it is made of: UpdateRecipe binds it in the statement, and the writes beneath it ask the
+// database whether the caller wrote the recipe. Either way a non-author is told the recipe is not
+// there.
+func TestCrossTenant_RecipeWrites_Denied(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		// The admin client authors the recipe.
+		_, _, createdRecipe := createRecipeForTest(t, nil)
+		require.NotEmpty(t, createdRecipe.Steps)
+		step := createdRecipe.Steps[0]
+		require.NotEmpty(t, step.Ingredients)
+
+		_, clientB := createUserAndClientForTest(t)
+
+		// cross-user: B may not update the recipe.
+		updateInput := mpconverters.ConvertRecipeToRecipeUpdateRequestInput(mpfakes.BuildFakeRecipe())
+		_, err := clientB.UpdateRecipe(ctx, &mealplanninggrpc.UpdateRecipeRequest{
+			RecipeId: createdRecipe.ID,
+			Input:    mpgrpcconverters.ConvertRecipeUpdateRequestInputToGRPCRecipeUpdateRequestInput(updateInput),
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// cross-user: B may not archive one of its steps.
+		_, err = clientB.ArchiveRecipeStep(ctx, &mealplanninggrpc.ArchiveRecipeStepRequest{
+			RecipeId:     createdRecipe.ID,
+			RecipeStepId: step.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// cross-user: B may not archive an ingredient of one of its steps.
+		_, err = clientB.ArchiveRecipeStepIngredient(ctx, &mealplanninggrpc.ArchiveRecipeStepIngredientRequest{
+			RecipeId:               createdRecipe.ID,
+			RecipeStepId:           step.ID,
+			RecipeStepIngredientId: step.Ingredients[0].ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// security property + positive control: the recipe is unchanged, and its author can
+		// still read every part B reached for.
+		readRes, err := adminClient.GetRecipe(ctx, &mealplanninggrpc.GetRecipeRequest{RecipeId: createdRecipe.ID})
+		require.NoError(t, err)
+		assert.Equal(t, createdRecipe.Name, readRes.Result.Name, "B's update must not have reached the recipe")
+
+		stepRes, err := adminClient.GetRecipeStep(ctx, &mealplanninggrpc.GetRecipeStepRequest{RecipeId: createdRecipe.ID, RecipeStepId: step.ID})
+		require.NoError(t, err)
+		require.NotNil(t, stepRes.Result)
+
+		ingredientRes, err := adminClient.GetRecipeStepIngredient(ctx, &mealplanninggrpc.GetRecipeStepIngredientRequest{
+			RecipeId:               createdRecipe.ID,
+			RecipeStepId:           step.ID,
+			RecipeStepIngredientId: step.Ingredients[0].ID,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, ingredientRes.Result)
+	})
+}
+
+// TestCrossTenant_MealPlanOptionUnderForeignEvent_Denied asserts that an option is created only
+// under an event of the plan the request names. Naming one's own plan used to be enough to add an
+// option to any account's event, because the access check read the plan and the write used the
+// event; the manager now requires the event to be the plan's.
+func TestCrossTenant_MealPlanOptionUnderForeignEvent_Denied(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, clientA := createUserAndClientForTest(t)
+		mealPlanA := createMealPlanForTest(t, clientA, nil)
+		require.NotEmpty(t, mealPlanA.Events)
+		eventA := mealPlanA.Events[0]
+
+		_, clientB := createUserAndClientForTest(t)
+		mealPlanB := createMealPlanForTest(t, clientB, nil)
+
+		exampleOption := mpfakes.BuildFakeMealPlanOption()
+		exampleOption.Meal.ID = createMealForTest(t, clientB, nil).ID
+		exampleOption.AssignedCook = nil
+		optionInput := mpconverters.ConvertMealPlanOptionToMealPlanOptionCreationRequestInput(exampleOption)
+
+		// cross-tenant: B's own plan, A's event.
+		_, err := clientB.CreateMealPlanOption(ctx, &mealplanninggrpc.CreateMealPlanOptionRequest{
+			MealPlanId:      mealPlanB.ID,
+			MealPlanEventId: eventA.ID,
+			Input:           mpgrpcconverters.ConvertMealPlanOptionCreationRequestInputToGRPCMealPlanOptionCreationRequestInput(optionInput),
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// security property: A's event offers what it offered before.
+		optionsRes, err := clientA.GetMealPlanOptions(ctx, &mealplanninggrpc.GetMealPlanOptionsRequest{
+			MealPlanId:      mealPlanA.ID,
+			MealPlanEventId: eventA.ID,
+		})
+		require.NoError(t, err)
+		assert.Len(t, optionsRes.Results, len(eventA.Options))
+	})
+}
+
 // TestCrossTenant_MealLists_NotLeaked asserts that meal lists are user-scoped: user B's GetMealLists
 // never returns user A's meal lists. GetMealLists filters by the session user's ID (belongs_to_user),
 // so this is a "no leak" property rather than a hard denial. Meal list items are returned nested inside
@@ -143,8 +252,8 @@ func TestCrossTenant_MealLists_NotLeaked(T *testing.T) {
 
 // TestCrossTenant_MealPlanRecipeOptionSelections_Denied asserts that the recipe-option-selection
 // handlers cannot be used against another account's meal plan option. The requests carry only a
-// MealPlanOptionId, so the service resolves the option through its event and meal plan to an
-// account (verifyMealPlanOptionAccess) and returns codes.NotFound when it does not belong to the
+// MealPlanOptionId, so the manager resolves the option through its event and meal plan to an
+// account (requireMealPlanOptionAccess) and answers codes.NotFound when it does not belong to the
 // caller's active account.
 func TestCrossTenant_MealPlanRecipeOptionSelections_Denied(T *testing.T) {
 	T.Parallel()

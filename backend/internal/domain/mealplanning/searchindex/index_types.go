@@ -1,4 +1,4 @@
-package indexing
+package searchindex
 
 // The index names, which double as the outbox topics their change events are published on.
 const (

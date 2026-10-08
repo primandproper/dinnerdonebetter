@@ -2,12 +2,14 @@ package mealplanning
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipevalidator"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/primitives-go/v2/fake"
@@ -216,10 +218,24 @@ func TestQuerier_Integration_Recipes(t *testing.T) {
 	exampleRecipe := buildRecipeForTestCreation(t, ctx, user.ID, dbc)
 	createdRecipes = append(createdRecipes, createRecipeForTest(t, ctx, exampleRecipe, dbc, true))
 
+	// ownership
+	owned, err := dbc.RecipeIsOwnedBy(ctx, createdRecipes[0].ID, user.ID)
+	require.NoError(t, err)
+	assert.True(t, owned)
+
+	stranger := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	owned, err = dbc.RecipeIsOwnedBy(ctx, createdRecipes[0].ID, stranger.ID)
+	require.NoError(t, err)
+	assert.False(t, owned)
+
 	// update
 	updatedRecipe := buildRecipeForTestCreation(t, ctx, user.ID, dbc)
 	updatedRecipe.ID = createdRecipes[0].ID
-	require.NoError(t, dbc.UpdateRecipe(ctx, updatedRecipe))
+
+	// The statement binds the caller, not the row's own author: somebody else's update matches
+	// no row, however faithfully the recipe it carries names the real author.
+	require.ErrorIs(t, dbc.UpdateRecipe(ctx, updatedRecipe, stranger.ID), sql.ErrNoRows)
+	require.NoError(t, dbc.UpdateRecipe(ctx, updatedRecipe, user.ID))
 
 	// create more
 	for i := range exampleQuantity {
@@ -378,7 +394,53 @@ func TestQuerier_UpdateRecipe(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		assert.Error(t, c.UpdateRecipe(ctx, nil))
+		assert.Error(t, c.UpdateRecipe(ctx, nil, fake.BuildFakeID()))
+	})
+
+	T.Run("with empty owner", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		c := buildInertClientForTest(t)
+
+		assert.Error(t, c.UpdateRecipe(ctx, fakes.BuildFakeRecipe(), ""))
+	})
+}
+
+// populateRecipeInputForTest fills in the fields a recipe's bridge rows imply, as the manager
+// does before it hands a recipe to CreateRecipe. The repository writes what it is given, so a
+// test that builds its input from bridge IDs alone has to do the manager's part itself.
+func populateRecipeInputForTest(t *testing.T, ctx context.Context, dbc *repository, input *mealplanning.RecipeDatabaseCreationInput) {
+	t.Helper()
+
+	vipMap, err := dbc.GetValidIngredientPreparationsByIDs(ctx, input.GetAllValidIngredientPreparationIDs())
+	require.NoError(t, err)
+	vimuMap, err := dbc.GetValidIngredientMeasurementUnitsByIDs(ctx, input.GetAllValidIngredientMeasurementUnitIDs())
+	require.NoError(t, err)
+	vpiMap, err := dbc.GetValidPreparationInstrumentsByIDs(ctx, input.GetAllValidPreparationInstrumentIDs())
+	require.NoError(t, err)
+	vpvMap, err := dbc.GetValidPreparationVesselsByIDs(ctx, input.GetAllValidPreparationVesselIDs())
+	require.NoError(t, err)
+
+	require.NoError(t, recipevalidator.NewRecipeValidator(vipMap, vimuMap, vpiMap, vpvMap).ValidateAndPopulate(input))
+}
+
+func TestQuerier_RecipeIsOwnedBy(T *testing.T) {
+	T.Parallel()
+
+	T.Run("with empty IDs", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		c := buildInertClientForTest(t)
+
+		owned, err := c.RecipeIsOwnedBy(ctx, "", fake.BuildFakeID())
+		assert.False(t, owned)
+		require.Error(t, err)
+
+		owned, err = c.RecipeIsOwnedBy(ctx, fake.BuildFakeID(), "")
+		assert.False(t, owned)
+		require.Error(t, err)
 	})
 }
 
@@ -863,6 +925,7 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 			},
 		}
 
+		populateRecipeInputForTest(t, ctx, dbc, firstRecipeInput)
 		firstRecipe, err := dbc.CreateRecipe(ctx, firstRecipeInput)
 		require.NoError(t, err)
 		require.NotNil(t, firstRecipe)
@@ -971,6 +1034,7 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 			},
 		}
 
+		populateRecipeInputForTest(t, ctx, dbc, secondRecipeInput)
 		secondRecipe, err := dbc.CreateRecipe(ctx, secondRecipeInput)
 		require.NoError(t, err)
 		require.NotNil(t, secondRecipe)
@@ -1098,6 +1162,7 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 			},
 		}
 
+		populateRecipeInputForTest(t, ctx, dbc, recipeAInput)
 		recipeA, err := dbc.CreateRecipe(ctx, recipeAInput)
 		require.NoError(t, err)
 		require.NotNil(t, recipeA)
@@ -1185,6 +1250,7 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 			},
 		}
 
+		populateRecipeInputForTest(t, ctx, dbc, recipeBInput)
 		recipeB, err := dbc.CreateRecipe(ctx, recipeBInput)
 		require.NoError(t, err)
 		require.NotNil(t, recipeB)
@@ -1328,6 +1394,7 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 			},
 		}
 
+		populateRecipeInputForTest(t, ctx, dbc, recipeCInput)
 		recipeC, err := dbc.CreateRecipe(ctx, recipeCInput)
 		require.NoError(t, err)
 		require.NotNil(t, recipeC)
@@ -1434,6 +1501,7 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 			},
 		}
 
+		populateRecipeInputForTest(t, ctx, dbc, recipeBInput)
 		recipeB, err := dbc.CreateRecipe(ctx, recipeBInput)
 		require.NoError(t, err)
 		require.NotNil(t, recipeB)
@@ -1540,6 +1608,7 @@ func TestQuerier_GetRecipe_AssociatedRecipes(T *testing.T) {
 			},
 		}
 
+		populateRecipeInputForTest(t, ctx, dbc, recipeAInput)
 		recipeA, err := dbc.CreateRecipe(ctx, recipeAInput)
 		require.NoError(t, err)
 		require.NotNil(t, recipeA)

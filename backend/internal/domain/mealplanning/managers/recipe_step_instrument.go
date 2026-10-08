@@ -41,7 +41,7 @@ func (m *mealPlanningManager) ListRecipeStepInstruments(ctx context.Context, rec
 	return results, nil
 }
 
-func (m *mealPlanningManager) CreateRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepInstrumentCreationRequestInput) (*types.RecipeStepInstrument, error) {
+func (m *mealPlanningManager) CreateRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepInstrumentCreationRequestInput) (*types.RecipeStepInstrument, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -58,6 +58,10 @@ func (m *mealPlanningManager) CreateRecipeStepInstrument(ctx context.Context, re
 
 	if input.Index == nil {
 		return nil, fmt.Errorf("index is required when creating a recipe step instrument outside of initial recipe creation")
+	}
+
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking recipe ownership")
 	}
 
 	convertedInput := converters.ConvertRecipeStepInstrumentCreationRequestInputToRecipeStepInstrumentDatabaseCreationInput(input, 0)
@@ -102,7 +106,7 @@ func (m *mealPlanningManager) ReadRecipeStepInstrument(ctx context.Context, reci
 	return x, nil
 }
 
-func (m *mealPlanningManager) UpdateRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID string, input *types.RecipeStepInstrumentUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID, ownerID string, input *types.RecipeStepInstrumentUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -119,6 +123,10 @@ func (m *mealPlanningManager) UpdateRecipeStepInstrument(ctx context.Context, re
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
 
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
+
 	existingRecipeStepInstrument, err := m.db.GetRecipeStepInstrument(ctx, recipeID, recipeStepID, recipeStepInstrumentID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "retrieving existing recipe step instrument")
@@ -132,7 +140,7 @@ func (m *mealPlanningManager) UpdateRecipeStepInstrument(ctx context.Context, re
 	return nil
 }
 
-func (m *mealPlanningManager) ArchiveRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID string) error {
+func (m *mealPlanningManager) ArchiveRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -144,6 +152,10 @@ func (m *mealPlanningManager) ArchiveRecipeStepInstrument(ctx context.Context, r
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepInstrumentIDKey, recipeStepInstrumentID)
+
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	if err := m.db.ArchiveRecipeStepInstrument(ctx, recipeID, recipeStepID, recipeStepInstrumentID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step instrument")

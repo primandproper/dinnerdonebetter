@@ -417,21 +417,6 @@ func TestQuerier_GetRecipeStep(T *testing.T) {
 	})
 }
 
-func TestQuerier_getRecipeStepByID(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with invalid recipe step MealPlanTaskID", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		actual, err := c.getRecipeStepByID(ctx, c.writeDB, "")
-		require.Error(t, err)
-		assert.Nil(t, actual)
-	})
-}
-
 func TestQuerier_GetRecipeSteps(T *testing.T) {
 	T.Parallel()
 

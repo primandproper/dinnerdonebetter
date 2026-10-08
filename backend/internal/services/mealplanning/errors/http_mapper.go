@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
 	httperrors "github.com/primandproper/primitives-go/v2/errors/http"
 )
@@ -24,7 +23,7 @@ func (mealPlanningHTTPMapper) Map(err error) (code httperrors.ErrorCode, msg str
 		errors.Is(err, mealplanning.ErrDuplicateMealInList),
 		errors.Is(err, mealplanning.ErrDuplicateMealPlanOption):
 		return httperrors.ErrValidatingRequestInput, "duplicate entry", true
-	case errors.Is(err, mealplanningrepo.ErrAlreadyFinalized):
+	case errors.Is(err, mealplanning.ErrAlreadyFinalized):
 		return httperrors.ErrValidatingRequestInput, "already finalized", true
 	default:
 		return "", "", false

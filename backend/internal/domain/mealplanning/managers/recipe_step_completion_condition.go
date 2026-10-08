@@ -40,7 +40,7 @@ func (m *mealPlanningManager) ListRecipeStepCompletionConditions(ctx context.Con
 	return results, nil
 }
 
-func (m *mealPlanningManager) CreateRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) (*types.RecipeStepCompletionCondition, error) {
+func (m *mealPlanningManager) CreateRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) (*types.RecipeStepCompletionCondition, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -59,6 +59,10 @@ func (m *mealPlanningManager) CreateRecipeStepCompletionCondition(ctx context.Co
 	convertedInput.BelongsToRecipeStep = recipeStepID
 	logger = logger.WithValue(mealplanningkeys.RecipeStepCompletionConditionIDKey, convertedInput.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepCompletionConditionIDKey, convertedInput.ID)
+
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	created, err := m.db.CreateRecipeStepCompletionCondition(ctx, recipeID, convertedInput)
 	if err != nil {
@@ -89,7 +93,7 @@ func (m *mealPlanningManager) ReadRecipeStepCompletionCondition(ctx context.Cont
 	return x, nil
 }
 
-func (m *mealPlanningManager) UpdateRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID string, input *types.RecipeStepCompletionConditionUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID, ownerID string, input *types.RecipeStepCompletionConditionUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -106,6 +110,10 @@ func (m *mealPlanningManager) UpdateRecipeStepCompletionCondition(ctx context.Co
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepCompletionConditionIDKey, recipeStepCompletionConditionID)
 
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
+
 	existingRecipeStepCompletionCondition, err := m.db.GetRecipeStepCompletionCondition(ctx, recipeID, recipeStepID, recipeStepCompletionConditionID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "retrieving existing recipe step completion condition")
@@ -119,7 +127,7 @@ func (m *mealPlanningManager) UpdateRecipeStepCompletionCondition(ctx context.Co
 	return nil
 }
 
-func (m *mealPlanningManager) ArchiveRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID string) error {
+func (m *mealPlanningManager) ArchiveRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -131,6 +139,10 @@ func (m *mealPlanningManager) ArchiveRecipeStepCompletionCondition(ctx context.C
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepCompletionConditionIDKey, recipeStepCompletionConditionID)
+
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	if err := m.db.ArchiveRecipeStepCompletionCondition(ctx, recipeID, recipeStepID, recipeStepCompletionConditionID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step completion condition")

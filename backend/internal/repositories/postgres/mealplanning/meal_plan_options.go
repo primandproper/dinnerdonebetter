@@ -3,10 +3,7 @@ package mealplanning
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"math/rand/v2"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -17,8 +14,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
-
-	"resenje.org/schulze"
 )
 
 var (
@@ -513,170 +508,4 @@ func (q *repository) ArchiveMealPlanOption(ctx context.Context, mealPlanID, meal
 	}
 
 	return nil
-}
-
-func (q *repository) determineWinner(winners []schulze.Result[string]) string {
-	var (
-		highestScore int
-		scoreWinners []string
-	)
-
-	for _, winner := range winners {
-		if winner.Wins == highestScore {
-			scoreWinners = append(scoreWinners, winner.Choice)
-		} else if winner.Wins > highestScore {
-			highestScore = winner.Wins
-			scoreWinners = []string{winner.Choice}
-		}
-	}
-
-	/* #nosec: G404 */
-	return scoreWinners[rand.N(len(scoreWinners))]
-}
-
-func (q *repository) decideOptionWinner(ctx context.Context, options []*mealplanning.MealPlanOption) (_ string, _, _ bool) {
-	_, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	candidateMap := map[string]struct{}{}
-	votesByUser := map[string]schulze.Ballot[string]{}
-
-	logger := q.logger.WithValue("options.count", len(options))
-
-	for _, option := range options {
-		for _, v := range option.Votes {
-			if votesByUser[v.ByUser] == nil {
-				votesByUser[v.ByUser] = schulze.Ballot[string]{}
-			}
-
-			if !v.Abstain {
-				votesByUser[v.ByUser][v.BelongsToMealPlanOption] = int(v.Rank)
-			}
-
-			candidateMap[v.BelongsToMealPlanOption] = struct{}{}
-		}
-	}
-
-	candidates := []string{}
-	for c := range candidateMap {
-		candidates = append(candidates, c)
-	}
-
-	e := schulze.NewVoting(candidates)
-	for _, vote := range votesByUser {
-		if _, err := e.Vote(vote); err != nil {
-			// this actually can never happen because we use uints for ranks, lol
-			observability.AcknowledgeError(err, logger, span, "an invalid vote was received")
-		}
-	}
-
-	winners, _, tie := e.Compute()
-	if tie {
-		return q.determineWinner(winners), true, true
-	}
-
-	if len(winners) > 0 {
-		return winners[0].Choice, false, true
-	}
-
-	return "", false, false
-}
-
-// FinalizeMealPlanOption archives a meal plan option vote from the database by its ID.
-func (q *repository) FinalizeMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, accountID string) (changed bool, err error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanEventID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-
-	if mealPlanOptionID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-
-	if accountID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
-
-	mealPlan, err := q.GetMealPlan(ctx, mealPlanID, accountID)
-	if err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "fetching meal plan")
-	}
-
-	var (
-		mealPlanEvent  *mealplanning.MealPlanEvent
-		mealPlanOption *mealplanning.MealPlanOption
-	)
-	for _, event := range mealPlan.Events {
-		if event.ID == mealPlanEventID {
-			mealPlanEvent = event
-			for _, option := range event.Options {
-				if option.ID == mealPlanOptionID {
-					mealPlanOption = option
-					break
-				}
-			}
-		}
-	}
-
-	if mealPlanEvent == nil {
-		return false, fmt.Errorf("meal plan event %s for meal plan %s not found", mealPlanEventID, mealPlanID)
-	}
-
-	// who is expected to vote
-	members, err := identity.MembersOfAccount(ctx, q.roster, q.readDB, mealPlan.BelongsToAccount)
-	if err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "fetching account members")
-	}
-
-	// go through all the votes for this meal plan option and determine if they're all there
-	for _, memberID := range members {
-		memberVoteFound := false
-		for _, vote := range mealPlanOption.Votes {
-			if vote.ByUser == memberID {
-				memberVoteFound = true
-				break
-			}
-		}
-
-		if !memberVoteFound {
-			return false, nil
-		}
-	}
-
-	winner, tiebroken, chosen := q.decideOptionWinner(ctx, mealPlanEvent.Options)
-	if chosen {
-		if err = q.withEvent(ctx, logger, mealplanning.MealPlanOptionFinalizedCreatedServiceEventType, accountID, map[string]any{
-			mealplanningkeys.MealPlanIDKey:       mealPlanID,
-			mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
-			mealplanningkeys.MealPlanOptionIDKey: winner,
-		}, func(tx database.Tx) error {
-			return q.generatedQuerier.FinalizeMealPlanOption(ctx, tx, &generated.FinalizeMealPlanOptionParams{
-				MealPlanEventID: database.NullStringFromString(mealPlanEventID),
-				ID:              winner,
-				Tiebroken:       tiebroken,
-			})
-		}); err != nil {
-			return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
-		}
-
-		logger.Debug("finalized meal plan option")
-	}
-
-	return chosen, nil
 }

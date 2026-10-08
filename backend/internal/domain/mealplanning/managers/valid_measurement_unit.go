@@ -6,7 +6,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -39,7 +39,7 @@ func (m *mealPlanningManager) SearchValidMeasurementUnits(ctx context.Context, q
 		results, err = m.db.SearchForValidMeasurementUnits(ctx, query, filter)
 	} else {
 		results, err = searchpagination.Hydrated(ctx, m.validMeasurementUnitSearchIndex, query, filter,
-			func(subset *eatingindexing.ValidMeasurementUnitSearchSubset) string { return subset.ID },
+			func(subset *searchindex.ValidMeasurementUnitSearchSubset) string { return subset.ID },
 			m.db.GetValidMeasurementUnitsWithIDs,
 		)
 	}

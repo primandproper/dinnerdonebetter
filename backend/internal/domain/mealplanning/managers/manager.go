@@ -6,12 +6,11 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
+	"github.com/primandproper/primitives-go/v2/clock"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
-	"github.com/primandproper/primitives-go/v2/messagequeue"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -47,48 +46,46 @@ type (
 		FinalizeMealPlan(ctx context.Context, mealPlanID, ownerID string) (bool, error)
 
 		// Meal plan events
-		ListMealPlanEvents(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanEvent], error)
-		CreateMealPlanEvent(ctx context.Context, mealPlanID string, input *types.MealPlanEventCreationRequestInput) (*types.MealPlanEvent, error)
-		ReadMealPlanEvent(ctx context.Context, mealPlanID, mealPlanEventID string) (*types.MealPlanEvent, error)
-		UpdateMealPlanEvent(ctx context.Context, mealPlanID, mealPlanEventID string, input *types.MealPlanEventUpdateRequestInput) error
-		SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPlanEventIDA, mealPlanEventIDB string) error
-		ArchiveMealPlanEvent(ctx context.Context, mealPlanID, mealPlanEventID string) error
+		ListMealPlanEvents(ctx context.Context, mealPlanID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanEvent], error)
+		CreateMealPlanEvent(ctx context.Context, mealPlanID, ownerID string, input *types.MealPlanEventCreationRequestInput) (*types.MealPlanEvent, error)
+		ReadMealPlanEvent(ctx context.Context, mealPlanID, mealPlanEventID, ownerID string) (*types.MealPlanEvent, error)
+		UpdateMealPlanEvent(ctx context.Context, mealPlanID, mealPlanEventID, ownerID string, input *types.MealPlanEventUpdateRequestInput) error
+		SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPlanEventIDA, mealPlanEventIDB, ownerID string) error
+		ArchiveMealPlanEvent(ctx context.Context, mealPlanID, mealPlanEventID, ownerID string) error
 
 		// Meal plan options
-		ListMealPlanOptions(ctx context.Context, mealPlanID, mealPlanEventID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOption], error)
-		CreateMealPlanOption(ctx context.Context, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error)
-		CreateMealPlanOptionWithEventID(ctx context.Context, mealPlanEventID string, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error)
-		ReadMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (*types.MealPlanOption, error)
-		MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error)
-		UpdateMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string, input *types.MealPlanOptionUpdateRequestInput) error
-		ArchiveMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) error
+		ListMealPlanOptions(ctx context.Context, mealPlanID, mealPlanEventID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOption], error)
+		CreateMealPlanOptionWithEventID(ctx context.Context, mealPlanID, mealPlanEventID, ownerID string, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error)
+		ReadMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID string) (*types.MealPlanOption, error)
+		UpdateMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID string, input *types.MealPlanOptionUpdateRequestInput) error
+		ArchiveMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID string) error
 
 		// Meal plan option votes
-		ListMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOptionVote], error)
-		CreateMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, creatorID string, input *types.MealPlanOptionVoteCreationRequestInput) ([]*types.MealPlanOptionVote, error)
-		ReadMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string) (*types.MealPlanOptionVote, error)
-		UpdateMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string, input *types.MealPlanOptionVoteUpdateRequestInput) error
-		ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string) error
+		ListMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOptionVote], error)
+		CreateMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, ownerID, creatorID string, input *types.MealPlanOptionVoteCreationRequestInput) ([]*types.MealPlanOptionVote, error)
+		ReadMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID, ownerID string) (*types.MealPlanOptionVote, error)
+		UpdateMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID, ownerID string, input *types.MealPlanOptionVoteUpdateRequestInput) error
+		ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID, ownerID string) error
 
 		// Meal plan tasks
-		ListMealPlanTasksByMealPlan(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanTask], error)
-		ReadMealPlanTask(ctx context.Context, mealPlanID, mealPlanTaskID string) (*types.MealPlanTask, error)
-		CreateMealPlanTask(ctx context.Context, input *types.MealPlanTaskCreationRequestInput) (*types.MealPlanTask, error)
-		MealPlanTaskStatusChange(ctx context.Context, input *types.MealPlanTaskStatusChangeRequestInput) error
+		ListMealPlanTasksByMealPlan(ctx context.Context, mealPlanID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanTask], error)
+		ReadMealPlanTask(ctx context.Context, mealPlanID, mealPlanTaskID, ownerID string) (*types.MealPlanTask, error)
+		CreateMealPlanTask(ctx context.Context, mealPlanID, ownerID string, input *types.MealPlanTaskCreationRequestInput) (*types.MealPlanTask, error)
+		MealPlanTaskStatusChange(ctx context.Context, mealPlanID, ownerID string, input *types.MealPlanTaskStatusChangeRequestInput) error
 
 		// Meal plan grocery list items
-		ListMealPlanGroceryListItemsByMealPlan(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanGroceryListItem], error)
+		ListMealPlanGroceryListItemsByMealPlan(ctx context.Context, mealPlanID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanGroceryListItem], error)
 		CreateMealPlanGroceryListItem(ctx context.Context, input *types.MealPlanGroceryListItemCreationRequestInput) (*types.MealPlanGroceryListItem, error)
-		ReadMealPlanGroceryListItem(ctx context.Context, mealPlanID, mealPlanGroceryListItemID string) (*types.MealPlanGroceryListItem, error)
-		UpdateMealPlanGroceryListItem(ctx context.Context, mealPlanID, mealPlanGroceryListItemID string, input *types.MealPlanGroceryListItemUpdateRequestInput) error
-		ArchiveMealPlanGroceryListItem(ctx context.Context, mealPlanID, mealPlanGroceryListItemID string) error
+		ReadMealPlanGroceryListItem(ctx context.Context, mealPlanID, mealPlanGroceryListItemID, ownerID string) (*types.MealPlanGroceryListItem, error)
+		UpdateMealPlanGroceryListItem(ctx context.Context, mealPlanID, mealPlanGroceryListItemID, ownerID string, input *types.MealPlanGroceryListItemUpdateRequestInput) error
+		ArchiveMealPlanGroceryListItem(ctx context.Context, mealPlanID, mealPlanGroceryListItemID, ownerID string) error
 
 		// Meal plan recipe option selections
-		GetMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string) (*types.MealPlanRecipeOptionSelection, error)
-		GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx context.Context, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanRecipeOptionSelection], error)
-		CreateMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID string, input *types.MealPlanRecipeOptionSelectionCreationRequestInput) (*types.MealPlanRecipeOptionSelection, error)
-		UpdateMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string, input *types.MealPlanRecipeOptionSelectionUpdateRequestInput) error
-		ArchiveMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string) error
+		GetMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID, ownerID string, ingredientIndex uint16, selectionType string) (*types.MealPlanRecipeOptionSelection, error)
+		GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx context.Context, mealPlanOptionID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanRecipeOptionSelection], error)
+		CreateMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, ownerID string, input *types.MealPlanRecipeOptionSelectionCreationRequestInput) (*types.MealPlanRecipeOptionSelection, error)
+		UpdateMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID, ownerID string, ingredientIndex uint16, selectionType string, input *types.MealPlanRecipeOptionSelectionUpdateRequestInput) error
+		ArchiveMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID, ownerID string, ingredientIndex uint16, selectionType string) error
 
 		// User ingredient preferences
 		ReadUserIngredientPreference(ctx context.Context, ownerID, ingredientPreferenceID string) (*types.UserIngredientPreference, error)
@@ -122,15 +119,15 @@ type (
 		SearchRecipes(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error)
 		SearchForMealEligibleRecipes(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error)
 		SearchRecipesWithInstrumentOwnership(ctx context.Context, accountID, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error)
-		UpdateRecipe(ctx context.Context, recipeID string, input *types.RecipeUpdateRequestInput) error
+		UpdateRecipe(ctx context.Context, recipeID, ownerID string, input *types.RecipeUpdateRequestInput) error
 		UpdateRecipeStatus(ctx context.Context, recipeID, newStatus string) error
 		ArchiveRecipe(ctx context.Context, recipeID, ownerID string) error
-		AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, uploadedByUser string) error
+		AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, ownerID string) error
 		RecipeEstimatedPrepSteps(ctx context.Context, recipeID string) ([]*types.MealPlanTaskDatabaseCreationEstimate, error)
 		MealMermaid(ctx context.Context, meal *types.Meal) (string, error)
 		RecipeMermaid(ctx context.Context, recipeID string) (string, error)
 		CloneRecipe(ctx context.Context, recipeID, newOwnerID string) (*types.Recipe, error)
-		RecipeImageUpload(ctx context.Context) error
+		AuthorizeRecipeImageUpload(ctx context.Context, recipeID, ownerID string) error
 
 		// Recipe lists
 		ListRecipeLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error)
@@ -144,54 +141,54 @@ type (
 
 		// Recipe steps
 		ListRecipeSteps(ctx context.Context, recipeID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStep], error)
-		CreateRecipeStep(ctx context.Context, recipeID string, input *types.RecipeStepCreationRequestInput) (*types.RecipeStep, error)
+		CreateRecipeStep(ctx context.Context, recipeID, ownerID string, input *types.RecipeStepCreationRequestInput) (*types.RecipeStep, error)
 		ReadRecipeStep(ctx context.Context, recipeID, recipeStepID string) (*types.RecipeStep, error)
-		UpdateRecipeStep(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepUpdateRequestInput) error
-		ArchiveRecipeStep(ctx context.Context, recipeID, recipeStepID string) error
-		AddRecipeStepImage(ctx context.Context, recipeStepID, uploadedMediaID, uploadedByUser string) error
-		RecipeStepImageUpload(ctx context.Context) error
+		UpdateRecipeStep(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepUpdateRequestInput) error
+		ArchiveRecipeStep(ctx context.Context, recipeID, recipeStepID, ownerID string) error
+		AddRecipeStepImage(ctx context.Context, recipeID, recipeStepID, uploadedMediaID, ownerID string) error
+		AuthorizeRecipeStepImageUpload(ctx context.Context, recipeID, recipeStepID, ownerID string) error
 
 		// Recipe step products
 		ListRecipeStepProducts(ctx context.Context, recipeID, recipeStepID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepProduct], error)
-		CreateRecipeStepProduct(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepProductCreationRequestInput) (*types.RecipeStepProduct, error)
+		CreateRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepProductCreationRequestInput) (*types.RecipeStepProduct, error)
 		ReadRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string) (*types.RecipeStepProduct, error)
-		UpdateRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string, input *types.RecipeStepProductUpdateRequestInput) error
-		ArchiveRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string) error
+		UpdateRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID, ownerID string, input *types.RecipeStepProductUpdateRequestInput) error
+		ArchiveRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID, ownerID string) error
 
 		// Recipe step instruments
 		ListRecipeStepInstruments(ctx context.Context, recipeID, recipeStepID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepInstrument], error)
-		CreateRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepInstrumentCreationRequestInput) (*types.RecipeStepInstrument, error)
+		CreateRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepInstrumentCreationRequestInput) (*types.RecipeStepInstrument, error)
 		ReadRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID string) (*types.RecipeStepInstrument, error)
-		UpdateRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID string, input *types.RecipeStepInstrumentUpdateRequestInput) error
-		ArchiveRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID string) error
+		UpdateRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID, ownerID string, input *types.RecipeStepInstrumentUpdateRequestInput) error
+		ArchiveRecipeStepInstrument(ctx context.Context, recipeID, recipeStepID, recipeStepInstrumentID, ownerID string) error
 
 		// Recipe step ingredients
 		ListRecipeStepIngredients(ctx context.Context, recipeID, recipeStepID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepIngredient], error)
-		CreateRecipeStepIngredient(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepIngredientCreationRequestInput) (*types.RecipeStepIngredient, error)
+		CreateRecipeStepIngredient(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepIngredientCreationRequestInput) (*types.RecipeStepIngredient, error)
 		ReadRecipeStepIngredient(ctx context.Context, recipeID, recipeStepID, recipeStepIngredientID string) (*types.RecipeStepIngredient, error)
-		UpdateRecipeStepIngredient(ctx context.Context, recipeID, recipeStepID, recipeStepIngredientID string, input *types.RecipeStepIngredientUpdateRequestInput) error
-		ArchiveRecipeStepIngredient(ctx context.Context, recipeID, recipeStepID, recipeStepIngredientID string) error
+		UpdateRecipeStepIngredient(ctx context.Context, recipeID, recipeStepID, recipeStepIngredientID, ownerID string, input *types.RecipeStepIngredientUpdateRequestInput) error
+		ArchiveRecipeStepIngredient(ctx context.Context, recipeID, recipeStepID, recipeStepIngredientID, ownerID string) error
 
 		// Recipe prep tasks
 		ListRecipePrepTask(ctx context.Context, recipeID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipePrepTask], error)
-		CreateRecipePrepTask(ctx context.Context, recipeID string, input *types.RecipePrepTaskCreationRequestInput) (*types.RecipePrepTask, error)
+		CreateRecipePrepTask(ctx context.Context, recipeID, ownerID string, input *types.RecipePrepTaskCreationRequestInput) (*types.RecipePrepTask, error)
 		ReadRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID string) (*types.RecipePrepTask, error)
-		UpdateRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID string, input *types.RecipePrepTaskUpdateRequestInput) error
-		ArchiveRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID string) error
+		UpdateRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID, ownerID string, input *types.RecipePrepTaskUpdateRequestInput) error
+		ArchiveRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID, ownerID string) error
 
 		// Recipe step completion conditions
 		ListRecipeStepCompletionConditions(ctx context.Context, recipeID, recipeStepID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepCompletionCondition], error)
-		CreateRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) (*types.RecipeStepCompletionCondition, error)
+		CreateRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) (*types.RecipeStepCompletionCondition, error)
 		ReadRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID string) (*types.RecipeStepCompletionCondition, error)
-		UpdateRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID string, input *types.RecipeStepCompletionConditionUpdateRequestInput) error
-		ArchiveRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID string) error
+		UpdateRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID, ownerID string, input *types.RecipeStepCompletionConditionUpdateRequestInput) error
+		ArchiveRecipeStepCompletionCondition(ctx context.Context, recipeID, recipeStepID, recipeStepCompletionConditionID, ownerID string) error
 
 		// Recipe step vessels
 		ListRecipeStepVessels(ctx context.Context, recipeID, recipeStepID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepVessel], error)
-		CreateRecipeStepVessel(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepVesselCreationRequestInput) (*types.RecipeStepVessel, error)
+		CreateRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepVesselCreationRequestInput) (*types.RecipeStepVessel, error)
 		ReadRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID string) (*types.RecipeStepVessel, error)
-		UpdateRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID string, input *types.RecipeStepVesselUpdateRequestInput) error
-		ArchiveRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID string) error
+		UpdateRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID, ownerID string, input *types.RecipeStepVesselUpdateRequestInput) error
+		ArchiveRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID, ownerID string) error
 
 		// Recipe ratings
 		ListRecipeRatings(ctx context.Context, recipeID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeRating], error)
@@ -342,17 +339,19 @@ type (
 	mealPlanningManager struct {
 		tracer                           tracing.Tracer
 		logger                           logging.Logger
+		clock                            clock.Clock
 		db                               types.Repository
+		electorate                       types.MealPlanElectorate
 		recipeAnalyzer                   recipeanalysis.RecipeAnalyzer
 		finalizationStarter              mealPlanFinalizationStarter
-		mealsSearchIndex                 textsearch.IndexSearcher[eatingindexing.MealSearchSubset]
-		recipeSearchIndex                textsearch.IndexSearcher[eatingindexing.RecipeSearchSubset]
-		validIngredientStatesSearchIndex textsearch.IndexSearcher[eatingindexing.ValidIngredientStateSearchSubset]
-		validInstrumentSearchIndex       textsearch.IndexSearcher[eatingindexing.ValidInstrumentSearchSubset]
-		validMeasurementUnitSearchIndex  textsearch.IndexSearcher[eatingindexing.ValidMeasurementUnitSearchSubset]
-		validIngredientSearchIndex       textsearch.IndexSearcher[eatingindexing.ValidIngredientSearchSubset]
-		validPreparationsSearchIndex     textsearch.IndexSearcher[eatingindexing.ValidPreparationSearchSubset]
-		validVesselsSearchIndex          textsearch.IndexSearcher[eatingindexing.ValidVesselSearchSubset]
+		mealsSearchIndex                 textsearch.IndexSearcher[searchindex.MealSearchSubset]
+		recipeSearchIndex                textsearch.IndexSearcher[searchindex.RecipeSearchSubset]
+		validIngredientStatesSearchIndex textsearch.IndexSearcher[searchindex.ValidIngredientStateSearchSubset]
+		validInstrumentSearchIndex       textsearch.IndexSearcher[searchindex.ValidInstrumentSearchSubset]
+		validMeasurementUnitSearchIndex  textsearch.IndexSearcher[searchindex.ValidMeasurementUnitSearchSubset]
+		validIngredientSearchIndex       textsearch.IndexSearcher[searchindex.ValidIngredientSearchSubset]
+		validPreparationsSearchIndex     textsearch.IndexSearcher[searchindex.ValidPreparationSearchSubset]
+		validVesselsSearchIndex          textsearch.IndexSearcher[searchindex.ValidVesselSearchSubset]
 	}
 )
 
@@ -375,55 +374,57 @@ func NewMealPlanningManager(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	db types.Repository,
-	cfg *queuescfg.Config,
-	publisherProvider messagequeue.PublisherProvider,
+	electorate types.MealPlanElectorate,
+	wallClock clock.Clock,
 	recipeAnalyzer recipeanalysis.RecipeAnalyzer,
 	searchConfig *textsearchcfg.Config,
 	metricsProvider metrics.Provider,
 	finalizationStarter mealPlanFinalizationStarter,
 ) (MealPlanningManager, error) {
-	mealsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.MealSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeMeals, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
+	mealsSearchIndex, err := textsearchcfg.NewIndex[searchindex.MealSearchSubset](ctx, searchConfig, searchindex.IndexTypeMeals, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, observability.PrepareError(err, nil, "initializing meals search index")
 	}
 
-	recipeSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.RecipeSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeRecipes, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
+	recipeSearchIndex, err := textsearchcfg.NewIndex[searchindex.RecipeSearchSubset](ctx, searchConfig, searchindex.IndexTypeRecipes, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
-		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeRecipes, err)
+		return nil, fmt.Errorf("failed to provide search index for %s index: %w", searchindex.IndexTypeRecipes, err)
 	}
 
-	validIngredientStatesSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidIngredientStateSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidIngredientStates, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
+	validIngredientStatesSearchIndex, err := textsearchcfg.NewIndex[searchindex.ValidIngredientStateSearchSubset](ctx, searchConfig, searchindex.IndexTypeValidIngredientStates, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
-		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidIngredientStates, err)
+		return nil, fmt.Errorf("failed to provide search index for %s index: %w", searchindex.IndexTypeValidIngredientStates, err)
 	}
 
-	validInstrumentSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidInstrumentSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidInstruments, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
+	validInstrumentSearchIndex, err := textsearchcfg.NewIndex[searchindex.ValidInstrumentSearchSubset](ctx, searchConfig, searchindex.IndexTypeValidInstruments, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
-		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidInstruments, err)
+		return nil, fmt.Errorf("failed to provide search index for %s index: %w", searchindex.IndexTypeValidInstruments, err)
 	}
 
-	validMeasurementUnitSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidMeasurementUnitSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidMeasurementUnits, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
+	validMeasurementUnitSearchIndex, err := textsearchcfg.NewIndex[searchindex.ValidMeasurementUnitSearchSubset](ctx, searchConfig, searchindex.IndexTypeValidMeasurementUnits, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
-		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidMeasurementUnits, err)
+		return nil, fmt.Errorf("failed to provide search index for %s index: %w", searchindex.IndexTypeValidMeasurementUnits, err)
 	}
 
-	validIngredientSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidIngredientSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidIngredients, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
+	validIngredientSearchIndex, err := textsearchcfg.NewIndex[searchindex.ValidIngredientSearchSubset](ctx, searchConfig, searchindex.IndexTypeValidIngredients, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
-		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidIngredients, err)
+		return nil, fmt.Errorf("failed to provide search index for %s index: %w", searchindex.IndexTypeValidIngredients, err)
 	}
 
-	validPreparationsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidPreparationSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidPreparations, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
+	validPreparationsSearchIndex, err := textsearchcfg.NewIndex[searchindex.ValidPreparationSearchSubset](ctx, searchConfig, searchindex.IndexTypeValidPreparations, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
-		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidPreparations, err)
+		return nil, fmt.Errorf("failed to provide search index for %s index: %w", searchindex.IndexTypeValidPreparations, err)
 	}
 
-	validVesselsSearchIndex, err := textsearchcfg.NewIndex[eatingindexing.ValidVesselSearchSubset](ctx, searchConfig, eatingindexing.IndexTypeValidVessels, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
+	validVesselsSearchIndex, err := textsearchcfg.NewIndex[searchindex.ValidVesselSearchSubset](ctx, searchConfig, searchindex.IndexTypeValidVessels, textsearchcfg.WithLogger(logger), textsearchcfg.WithTracerProvider(tracerProvider), textsearchcfg.WithMetricsProvider(metricsProvider))
 	if err != nil {
-		return nil, fmt.Errorf("failed to provide search index for %s index: %w", eatingindexing.IndexTypeValidVessels, err)
+		return nil, fmt.Errorf("failed to provide search index for %s index: %w", searchindex.IndexTypeValidVessels, err)
 	}
 
 	m := &mealPlanningManager{
+		clock:                            wallClock,
 		db:                               db,
+		electorate:                       electorate,
 		tracer:                           tracing.NewNamedTracer(tracerProvider, mealPlannerName),
 		logger:                           logging.NewNamedLogger(logger, mealPlannerName),
 		recipeAnalyzer:                   recipeAnalyzer,

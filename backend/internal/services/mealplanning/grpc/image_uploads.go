@@ -402,15 +402,15 @@ func (s *serviceImpl) UploadRecipeImage(stream grpc.ClientStreamingServer[mealpl
 	logger := s.logger.WithSpan(span)
 
 	return uploadMedia(ctx, s, stream, logger, span,
-		func(first *mealplanningsvc.UploadRecipeMediaRequest, _ string) (*mediaTarget, error) {
+		func(first *mealplanningsvc.UploadRecipeMediaRequest, userID string) (*mediaTarget, error) {
 			recipeID := first.GetRecipeId()
 			if recipeID == "" {
 				return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("recipe_id is required"), logger, span, codes.InvalidArgument, "recipe_id is required")
 			}
 
-			userID, err := s.verifyRecipeOwnership(ctx, recipeID, logger, span)
-			if err != nil {
-				return nil, err
+			// The manager decides who may attach to a recipe; a recipe that is not the caller's is not found.
+			if err := s.mealPlanningManager.AuthorizeRecipeImageUpload(ctx, recipeID, userID); err != nil {
+				return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "authorizing a recipe image upload")
 			}
 
 			return &mediaTarget{
@@ -501,7 +501,7 @@ func (s *serviceImpl) UploadRecipeStepImage(stream grpc.ClientStreamingServer[me
 	logger := s.logger.WithSpan(span)
 
 	return uploadMedia(ctx, s, stream, logger, span,
-		func(first *mealplanningsvc.UploadRecipeStepImageRequest, _ string) (*mediaTarget, error) {
+		func(first *mealplanningsvc.UploadRecipeStepImageRequest, userID string) (*mediaTarget, error) {
 			recipeID, recipeStepID := first.GetRecipeId(), first.GetRecipeStepId()
 			switch {
 			case recipeID == "":
@@ -510,21 +510,17 @@ func (s *serviceImpl) UploadRecipeStepImage(stream grpc.ClientStreamingServer[me
 				return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("recipe_step_id is required"), logger, span, codes.InvalidArgument, "recipe_step_id is required")
 			}
 
-			userID, err := s.verifyRecipeOwnership(ctx, recipeID, logger, span)
-			if err != nil {
-				return nil, err
-			}
-
-			// The step is read through its recipe, so a step of somebody else's recipe is not found.
-			if _, err = s.mealPlanningManager.ReadRecipeStep(ctx, recipeID, recipeStepID); err != nil {
-				return nil, errorsgrpc.PrepareAndLogGRPCStatus(fmt.Errorf("recipe step not found: %w", err), logger, span, codes.NotFound, "recipe step not found")
+			// The manager decides who may attach to a step; a recipe that is not the caller's, or a
+			// step that is not the recipe's, is not found.
+			if err := s.mealPlanningManager.AuthorizeRecipeStepImageUpload(ctx, recipeID, recipeStepID, userID); err != nil {
+				return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "authorizing a recipe step image upload")
 			}
 
 			return &mediaTarget{
 				subject: mediaregistry.Subject{Type: recipeStepSubjectType, ID: recipeStepID},
 				prefix:  path.Join("recipes", recipeID, "steps", recipeStepID),
 				attach: func(ctx context.Context, objectID string) error {
-					return s.mealPlanningManager.AddRecipeStepImage(ctx, recipeStepID, objectID, userID)
+					return s.mealPlanningManager.AddRecipeStepImage(ctx, recipeID, recipeStepID, objectID, userID)
 				},
 			}, nil
 		},

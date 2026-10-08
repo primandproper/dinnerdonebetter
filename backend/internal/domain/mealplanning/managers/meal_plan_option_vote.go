@@ -13,7 +13,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
-func (m *mealPlanningManager) ListMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOptionVote], error) {
+func (m *mealPlanningManager) ListMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOptionVote], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -30,6 +30,10 @@ func (m *mealPlanningManager) ListMealPlanOptionVotes(ctx context.Context, mealP
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
+	if err := m.requireMealPlanAccess(ctx, mealPlanID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan ownership")
+	}
+
 	results, err := m.db.GetMealPlanOptionVotes(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID, filter)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plan option votes")
@@ -38,7 +42,7 @@ func (m *mealPlanningManager) ListMealPlanOptionVotes(ctx context.Context, mealP
 	return results, nil
 }
 
-func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, creatorID string, input *types.MealPlanOptionVoteCreationRequestInput) ([]*types.MealPlanOptionVote, error) {
+func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mealPlanID, mealPlanEventID, ownerID, creatorID string, input *types.MealPlanOptionVoteCreationRequestInput) ([]*types.MealPlanOptionVote, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -61,6 +65,10 @@ func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mea
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 	tracing.AttachToSpan(span, "vote_count", len(input.Votes))
 
+	if err := m.requireMealPlanAccess(ctx, mealPlanID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan ownership")
+	}
+
 	eligible, err := m.db.MealPlanEventIsEligibleForVoting(ctx, mealPlanID, mealPlanEventID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "checking meal plan event voting eligibility")
@@ -70,8 +78,8 @@ func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mea
 	}
 
 	// Every vote must target an option that actually belongs to the targeted event. Resolving the
-	// option through the (mealPlanID, mealPlanEventID) pair — which the service layer has already
-	// verified belongs to the caller's active account — rejects cross-account option IDs.
+	// option through the (mealPlanID, mealPlanEventID) pair — which the check above has confined
+	// to the caller's account — rejects cross-account option IDs.
 	checkedOptions := map[string]struct{}{}
 	for _, vote := range input.Votes {
 		if _, alreadyChecked := checkedOptions[vote.BelongsToMealPlanOption]; alreadyChecked {
@@ -101,7 +109,7 @@ func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mea
 	return created, nil
 }
 
-func (m *mealPlanningManager) ReadMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string) (*types.MealPlanOptionVote, error) {
+func (m *mealPlanningManager) ReadMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID, ownerID string) (*types.MealPlanOptionVote, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -116,6 +124,10 @@ func (m *mealPlanningManager) ReadMealPlanOptionVote(ctx context.Context, mealPl
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
 
+	if err := m.requireMealPlanAccess(ctx, mealPlanID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan ownership")
+	}
+
 	mealPlanOptionVote, err := m.db.GetMealPlanOptionVote(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plan option vote")
@@ -124,7 +136,7 @@ func (m *mealPlanningManager) ReadMealPlanOptionVote(ctx context.Context, mealPl
 	return mealPlanOptionVote, nil
 }
 
-func (m *mealPlanningManager) UpdateMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string, input *types.MealPlanOptionVoteUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID, ownerID string, input *types.MealPlanOptionVoteUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -147,6 +159,10 @@ func (m *mealPlanningManager) UpdateMealPlanOptionVote(ctx context.Context, meal
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
 
+	if err := m.requireMealPlanAccess(ctx, mealPlanID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking meal plan ownership")
+	}
+
 	existingMealPlanOptionVote, err := m.db.GetMealPlanOptionVote(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching meal plan option vote to update")
@@ -160,7 +176,7 @@ func (m *mealPlanningManager) UpdateMealPlanOptionVote(ctx context.Context, meal
 	return nil
 }
 
-func (m *mealPlanningManager) ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID string) error {
+func (m *mealPlanningManager) ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -174,6 +190,10 @@ func (m *mealPlanningManager) ArchiveMealPlanOptionVote(ctx context.Context, mea
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionVoteIDKey, mealPlanOptionVoteID)
+
+	if err := m.requireMealPlanOptionInPlanAccess(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking meal plan ownership")
+	}
 
 	if err := m.db.ArchiveMealPlanOptionVote(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID, mealPlanOptionVoteID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan option vote")

@@ -40,7 +40,7 @@ func (m *mealPlanningManager) ListRecipeStepProducts(ctx context.Context, recipe
 	return results, nil
 }
 
-func (m *mealPlanningManager) CreateRecipeStepProduct(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepProductCreationRequestInput) (*types.RecipeStepProduct, error) {
+func (m *mealPlanningManager) CreateRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepProductCreationRequestInput) (*types.RecipeStepProduct, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -59,6 +59,10 @@ func (m *mealPlanningManager) CreateRecipeStepProduct(ctx context.Context, recip
 	convertedInput.BelongsToRecipeStep = recipeStepID
 	logger = logger.WithValue(mealplanningkeys.RecipeStepProductIDKey, convertedInput.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, convertedInput.ID)
+
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	created, err := m.db.CreateRecipeStepProduct(ctx, recipeID, convertedInput)
 	if err != nil {
@@ -89,7 +93,7 @@ func (m *mealPlanningManager) ReadRecipeStepProduct(ctx context.Context, recipeI
 	return x, nil
 }
 
-func (m *mealPlanningManager) UpdateRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string, input *types.RecipeStepProductUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID, ownerID string, input *types.RecipeStepProductUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -106,6 +110,10 @@ func (m *mealPlanningManager) UpdateRecipeStepProduct(ctx context.Context, recip
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
 
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
+
 	existingRecipeStepProduct, err := m.db.GetRecipeStepProduct(ctx, recipeID, recipeStepID, recipeStepProductID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "retrieving existing recipe step product")
@@ -119,7 +127,7 @@ func (m *mealPlanningManager) UpdateRecipeStepProduct(ctx context.Context, recip
 	return nil
 }
 
-func (m *mealPlanningManager) ArchiveRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID string) error {
+func (m *mealPlanningManager) ArchiveRecipeStepProduct(ctx context.Context, recipeID, recipeStepID, recipeStepProductID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -131,6 +139,10 @@ func (m *mealPlanningManager) ArchiveRecipeStepProduct(ctx context.Context, reci
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
+
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	if err := m.db.ArchiveRecipeStepProduct(ctx, recipeID, recipeStepID, recipeStepProductID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step product")

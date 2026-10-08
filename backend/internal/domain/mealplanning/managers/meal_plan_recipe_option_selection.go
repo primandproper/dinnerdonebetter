@@ -21,7 +21,7 @@ const (
 	ingredientIndexKey = "ingredient_index"
 )
 
-func (m *mealPlanningManager) GetMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string) (*types.MealPlanRecipeOptionSelection, error) {
+func (m *mealPlanningManager) GetMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID, ownerID string, ingredientIndex uint16, selectionType string) (*types.MealPlanRecipeOptionSelection, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -36,6 +36,10 @@ func (m *mealPlanningManager) GetMealPlanRecipeOptionSelection(ctx context.Conte
 	tracing.AttachToSpan(span, ingredientIndexKey, ingredientIndex)
 	tracing.AttachToSpan(span, selectionTypeKey, selectionType)
 
+	if err := m.requireMealPlanOptionAccess(ctx, mealPlanOptionID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan option ownership")
+	}
+
 	result, err := m.db.GetMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plan recipe option selection")
@@ -44,7 +48,7 @@ func (m *mealPlanningManager) GetMealPlanRecipeOptionSelection(ctx context.Conte
 	return result, nil
 }
 
-func (m *mealPlanningManager) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx context.Context, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanRecipeOptionSelection], error) {
+func (m *mealPlanningManager) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx context.Context, mealPlanOptionID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanRecipeOptionSelection], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -58,6 +62,10 @@ func (m *mealPlanningManager) GetMealPlanRecipeOptionSelectionsForMealPlanOption
 		tracing.AttachToSpan(span, key, value)
 	}
 
+	if err := m.requireMealPlanOptionAccess(ctx, mealPlanOptionID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan option ownership")
+	}
+
 	results, err := m.db.GetSelectionsForMealPlanOption(ctx, mealPlanOptionID, filter)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plan recipe option selections")
@@ -66,7 +74,7 @@ func (m *mealPlanningManager) GetMealPlanRecipeOptionSelectionsForMealPlanOption
 	return results, nil
 }
 
-func (m *mealPlanningManager) CreateMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID string, input *types.MealPlanRecipeOptionSelectionCreationRequestInput) (*types.MealPlanRecipeOptionSelection, error) {
+func (m *mealPlanningManager) CreateMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, ownerID string, input *types.MealPlanRecipeOptionSelectionCreationRequestInput) (*types.MealPlanRecipeOptionSelection, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -83,6 +91,10 @@ func (m *mealPlanningManager) CreateMealPlanRecipeOptionSelection(ctx context.Co
 	logger := m.logger.WithSpan(span).WithValue("meal_plan_recipe_option_selection_id", converted.ID)
 	tracing.AttachToSpan(span, "meal_plan_recipe_option_selection_id", converted.ID)
 
+	if err := m.requireMealPlanOptionAccess(ctx, mealPlanOptionID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan option ownership")
+	}
+
 	created, err := m.db.CreateMealPlanRecipeOptionSelection(ctx, converted)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "creating meal plan recipe option selection")
@@ -91,7 +103,7 @@ func (m *mealPlanningManager) CreateMealPlanRecipeOptionSelection(ctx context.Co
 	return created, nil
 }
 
-func (m *mealPlanningManager) UpdateMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string, input *types.MealPlanRecipeOptionSelectionUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID, ownerID string, ingredientIndex uint16, selectionType string, input *types.MealPlanRecipeOptionSelectionUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -110,6 +122,10 @@ func (m *mealPlanningManager) UpdateMealPlanRecipeOptionSelection(ctx context.Co
 	tracing.AttachToSpan(span, ingredientIndexKey, ingredientIndex)
 	tracing.AttachToSpan(span, selectionTypeKey, selectionType)
 
+	if err := m.requireMealPlanOptionAccess(ctx, mealPlanOptionID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking meal plan option ownership")
+	}
+
 	existingSelection, err := m.db.GetMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching meal plan recipe option selection to update")
@@ -125,7 +141,7 @@ func (m *mealPlanningManager) UpdateMealPlanRecipeOptionSelection(ctx context.Co
 	return nil
 }
 
-func (m *mealPlanningManager) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string) error {
+func (m *mealPlanningManager) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID, ownerID string, ingredientIndex uint16, selectionType string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -139,6 +155,10 @@ func (m *mealPlanningManager) ArchiveMealPlanRecipeOptionSelection(ctx context.C
 	tracing.AttachToSpan(span, recipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, ingredientIndexKey, ingredientIndex)
 	tracing.AttachToSpan(span, selectionTypeKey, selectionType)
+
+	if err := m.requireMealPlanOptionAccess(ctx, mealPlanOptionID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking meal plan option ownership")
+	}
 
 	if err := m.db.ArchiveMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan recipe option selection")
