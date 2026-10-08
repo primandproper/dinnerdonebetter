@@ -13,10 +13,10 @@ import (
 type Config struct {
 	Capitalism capitalismcfg.Config `envPrefix:"CAPITALISM_" json:"capitalism,omitzero"`
 
-	// MobileProvider selects the processor mounted at the mobile store webhook endpoint, from
+	// MobileProvider selects the payment manager behind the mobile store webhook endpoint, from
 	// the same vocabulary Capitalism.Provider uses for the web one: `revenuecat` builds the
-	// real thing, `noop` builds the stub, and anything else — an unset value included — is an
-	// error.
+	// real thing, `noop` builds capitalism's noop manager, and anything else — an unset value
+	// included — is an error.
 	//
 	// It is a second selector rather than a second capitalismcfg.Config because capitalism's
 	// config names one provider and this service takes webhooks from two. Running one adapter

@@ -26,7 +26,6 @@ import (
 	webhooksbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
-	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
@@ -47,7 +46,6 @@ import (
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
-	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
 	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
@@ -168,10 +166,8 @@ func BuildInjector(
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
 	// managers
-	paymentsmanager.RegisterPaymentsDataManager(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
-	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 
 	// services
 	authhttpsvc.RegisterAuthHTTPService(i)
