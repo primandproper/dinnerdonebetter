@@ -23,12 +23,3 @@ const (
 	ReadAnySignInsPermission = signingrpc.PermissionReadAnySignIns
 	EndAnySignInsPermission  = signingrpc.PermissionEndAnySignIns
 )
-
-var (
-	// AuthPermissions contains all authentication-related permissions.
-	AuthPermissions = []Permission{
-		ImpersonateUserPermission,
-		ReadAnySignInsPermission,
-		EndAnySignInsPermission,
-	}
-)

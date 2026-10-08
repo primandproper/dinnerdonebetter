@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"math"
 	"time"
 
@@ -19,12 +18,6 @@ const (
 	// ValidIngredientGroupArchivedServiceEventType indicates a valid ingredient group was archived.
 	ValidIngredientGroupArchivedServiceEventType = "valid_ingredient_group_archived"
 )
-
-func init() {
-	gob.Register(new(ValidIngredientGroup))
-	gob.Register(new(ValidIngredientGroupCreationRequestInput))
-	gob.Register(new(ValidIngredientGroupUpdateRequestInput))
-}
 
 type (
 	// ValidIngredientGroup represents a valid ingredient group.

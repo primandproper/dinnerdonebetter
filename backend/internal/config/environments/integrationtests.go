@@ -10,7 +10,6 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
-	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
@@ -247,9 +246,6 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 						Encryption: &encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 					},
 				},
-			},
-			Users: identitycfg.Config{
-				Uploads: uploadsConfig,
 			},
 			UploadedMedia: uploadedmediacfg.Config{
 				Uploads: uploadsConfig,

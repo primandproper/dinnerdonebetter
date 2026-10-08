@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"strings"
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
@@ -260,32 +259,6 @@ type (
 	}
 )
 
-// EncodeToFile renders your config to a file given your favorite encoder.
-func (cfg *APIServiceConfig) EncodeToFile(path string, marshaller func(v any) ([]byte, error)) error {
-	if cfg == nil {
-		return errors.New("nil config")
-	}
-
-	byteSlice, err := marshaller(*cfg)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(path, byteSlice, 0o600)
-}
-
-func (cfg *APIServiceConfig) Commit() string {
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for i := range info.Settings {
-			if info.Settings[i].Key == "vcs.revision" {
-				return info.Settings[i].Value
-			}
-		}
-	}
-
-	return ""
-}
-
 var _ validation.ValidatableWithContext = (*APIServiceConfig)(nil)
 
 // ValidateWithContext validates a APIServiceConfig struct.
@@ -534,24 +507,6 @@ func LoadConfigFromPath[T configurations](configurationFilepath string) (*T, err
 	cfg, err := platformconfig.LoadFromJSONFile[T](context.Background(), configurationFilepath, envVarOptions()...)
 	if err != nil {
 		return nil, fmt.Errorf("loading config from path: %w", err)
-	}
-
-	return cfg, nil
-}
-
-// LoadConfigFromDotEnvFile loads a configuration entirely from a .env file, with no JSON config file baseline.
-// Because there is no JSON baseline to fall back on, the resulting config is validated to ensure
-// the caller provided enough values to produce a usable configuration.
-// godotenv.Load does not override env vars already set in the process, so actual process env vars
-// still take precedence over values in the file.
-func LoadConfigFromDotEnvFile[T configurations](ctx context.Context, dotEnvFilepath string) (*T, error) {
-	cfg, err := platformconfig.LoadFromDotEnvFile[T](dotEnvFilepath, envVarOptions()...)
-	if err != nil {
-		return nil, fmt.Errorf("loading config from .env file: %w", err)
-	}
-
-	if err = platformconfig.Validate(ctx, cfg); err != nil {
-		return nil, fmt.Errorf("validating config loaded from .env file: %w", err)
 	}
 
 	return cfg, nil

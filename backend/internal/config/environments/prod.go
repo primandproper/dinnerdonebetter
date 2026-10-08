@@ -10,7 +10,6 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
-	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
@@ -365,13 +364,6 @@ func BuildProdConfig() *config.APIServiceConfig {
 						Storage:    &gcpUserDataStorage,
 						Encryption: &encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 					},
-				},
-			},
-			Users: identitycfg.Config{
-				PublicMediaURLPrefix: "https://" + prodMediaBucket + "/avatars",
-				Uploads: uploadscfg.Config{
-					Storage: gcpMediaStorage,
-					Debug:   false,
 				},
 			},
 			UploadedMedia: uploadedmediacfg.Config{

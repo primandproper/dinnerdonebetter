@@ -3,10 +3,8 @@ package testing
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"hash/fnv"
-	"log"
 	"testing"
 	"time"
 
@@ -42,16 +40,6 @@ func MustHashStringToNumber(s string) uint64 {
 	return h.Sum64()
 }
 
-func HashStringToNumberForTest(t *testing.T, s string) uint64 {
-	t.Helper()
-	h := fnv.New64a()
-
-	_, err := h.Write([]byte(s))
-	require.NoError(t, err)
-
-	return h.Sum64()
-}
-
 func reverseString(input string) string {
 	runes := []rune(input)
 
@@ -82,8 +70,6 @@ const (
 	// stdlib driver is registered by this package's blank import.
 	driverName = "pgx"
 )
-
-// userFromGetUserByIDRow converts a GetUserByIDRow to User. Used by CreateUserForTest.
 
 // startupDeadline bounds how long a container has to become ready. It is applied
 // to each sub-strategy individually as well as to the wait as a whole — see
@@ -443,32 +429,5 @@ func TestCursorBasedPagination[T any](t *testing.T, ctx context.Context, config 
 			err := config.CleanupItem(ctx, item)
 			assert.NoError(t, err, "failed to cleanup %s %s", config.ItemName, config.GetID(item))
 		}
-	}
-}
-
-// NewSQLMockDatabaseClient wraps a *sql.DB — typically one produced by sqlmock — in a
-// database.Client so repositories under test can exercise Reader, Writer, and
-// WithTransaction against it. Transactions run through database.RunInTransaction, so
-// begin/commit/rollback behave exactly as they do in production and a mock's
-// ExpectBegin/ExpectRollback expectations still apply.
-func NewSQLMockDatabaseClient(db *sql.DB) database.Client {
-	return &mockdatabase.ClientMock{
-		ReaderFunc:      func() database.SQLQueryExecutor { return db },
-		WriterFunc:      func() database.SQLQueryExecutor { return db },
-		CurrentTimeFunc: time.Now,
-		CloseFunc:       db.Close,
-		WithTransactionFunc: func(ctx context.Context, fn func(tx database.Tx) error) error {
-			return database.RunInTransaction(ctx, db, rollbackTestTransaction, fn)
-		},
-	}
-}
-
-// rollbackTestTransaction mirrors the production rollback hook for tests. A transaction
-// that has already been committed or rolled back reports sql.ErrTxDone, which is not a
-// failure worth surfacing; anything else is logged so a mock's unmet ExpectRollback does
-// not vanish silently.
-func rollbackTestTransaction(_ context.Context, tx database.SQLQueryExecutorAndTransactionManager) {
-	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-		log.Printf("rolling back test transaction: %v", err)
 	}
 }

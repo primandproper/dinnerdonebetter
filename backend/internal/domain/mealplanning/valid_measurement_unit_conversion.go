@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -19,12 +18,6 @@ const (
 	// ValidMeasurementUnitConversionArchivedServiceEventType indicates a valid measurement conversion was archived.
 	ValidMeasurementUnitConversionArchivedServiceEventType = "valid_measurement_unit_conversion_archived"
 )
-
-func init() {
-	gob.Register(new(ValidMeasurementUnitConversion))
-	gob.Register(new(ValidMeasurementUnitConversionCreationRequestInput))
-	gob.Register(new(ValidMeasurementUnitConversionUpdateRequestInput))
-}
 
 type (
 	// MeasurementUnitConversionMismatch represents an ingredient that has multiple valid measurement units

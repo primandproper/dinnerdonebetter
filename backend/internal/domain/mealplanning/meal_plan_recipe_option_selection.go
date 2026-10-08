@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -25,13 +24,6 @@ const (
 	// MealPlanRecipeOptionSelectionArchivedServiceEventType indicates a meal plan recipe option selection was archived.
 	MealPlanRecipeOptionSelectionArchivedServiceEventType = "meal_plan_recipe_option_selection_archived"
 )
-
-func init() {
-	gob.Register(new(MealPlanRecipeOptionSelection))
-	gob.Register(new(MealPlanRecipeOptionSelectionDatabaseCreationInput))
-	gob.Register(new(MealPlanRecipeOptionSelectionCreationRequestInput))
-	gob.Register(new(MealPlanRecipeOptionSelectionUpdateRequestInput))
-}
 
 type (
 	// MealPlanRecipeOptionSelection represents a user's selection for a recipe option group.
