@@ -22,9 +22,11 @@ type (
 		Payments      paymentscfg.Config      `envPrefix:"PAYMENTS_"       json:"payments,omitzero"`
 		Users         identitycfg.Config      `envPrefix:"USERS_"          json:"users,omitzero"`
 		UploadedMedia uploadedmediacfg.Config `envPrefix:"UPLOADED_MEDIA_" json:"uploadedMedia,omitzero"`
-		MealPlanning  mealplanningcfg.Config  `envPrefix:"MEAL_PLANNING_"  json:"mealPlanning,omitzero"`
-		Auth          authentication.Config   `envPrefix:"AUTH_"           json:"auth,omitzero"`
-		DataPrivacy   dataprivacycfg.Config   `envPrefix:"DATA_PRIVACY_"   json:"dataPrivacy,omitzero"`
+		// Domain: mealplanning — swapping the domain replaces this field, its validator
+		// below, and the type it names.
+		MealPlanning mealplanningcfg.Config `envPrefix:"MEAL_PLANNING_" json:"mealPlanning,omitzero"`
+		Auth         authentication.Config  `envPrefix:"AUTH_"          json:"auth,omitzero"`
+		DataPrivacy  dataprivacycfg.Config  `envPrefix:"DATA_PRIVACY_"  json:"dataPrivacy,omitzero"`
 	}
 )
 

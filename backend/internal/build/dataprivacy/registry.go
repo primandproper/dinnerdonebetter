@@ -230,6 +230,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// error to, an account hop, a user record whose absence is a different failure from an
 	// empty section.
 	collectors := map[string]platformdataprivacy.Collector{
+		// Domain: mealplanning
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
 	}

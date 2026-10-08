@@ -4,7 +4,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v15/workqueue"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
@@ -15,7 +14,8 @@ import (
 //
 // Everything platform builds reads its block from the injector already: service.Register put each
 // one there beside the registration that consumes it. What is left is what platform has no block
-// for.
+// for. A domain's own block — the meal planning jobs' — is read by the domain's registration
+// rather than extracted here.
 func RegisterConfigs(i do.Injector) {
 	do.Provide[*queuescfg.Config](i, func(i do.Injector) (*queuescfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Queues, nil
@@ -30,12 +30,5 @@ func RegisterConfigs(i do.Injector) {
 	// defaults to what it is handed, and a value copy would discard them.
 	do.Provide[*notificationscfg.Config](i, func(i do.Injector) (*notificationscfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).PushNotifications, nil
-	})
-	// The one work queue this process runs. It is provided as the bare *workqueue.Config the
-	// platform's constructor takes, because there is exactly one — a second would need a name
-	// to tell them apart in the container, which is the point at which this stops being a
-	// single unnamed provider.
-	do.Provide[*workqueue.Config](i, func(i do.Injector) (*workqueue.Config, error) {
-		return &do.MustInvoke[*config.ScheduledJobsConfig](i).MealPlanning.MealPlanTaskNotificationQueue, nil
 	})
 }

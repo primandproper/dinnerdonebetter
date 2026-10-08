@@ -5,27 +5,43 @@ comments on.
 It lives in the build layer because it is the one place that may know both
 halves. platform-go's comment store cannot see what a comment is about — the
 rows live in tables it has never been shown — so it takes the vocabulary as a
-parameter. The domains that own those rows do not know about comments either,
+parameter. The domains that own those rows do not know about the store either,
 and should not: comments is generic machinery, and a target type belongs to
-whoever is being commented on. The injector already holds both, so the catalog is
-assembled here rather than by making one side import the other.
+whoever is being commented on. So each domain contributes its own entry — the
+types it accepts comments on, and the existence check behind each where it can
+answer one — and this package merges them.
 */
 package comments
 
 import (
-	"context"
-	"database/sql"
-	"errors"
+	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	mealplanningmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
+	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 
 	platformcomments "github.com/primandproper/platform-go/v15/comments"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/samber/do/v2"
 )
+
+// contribution is one domain's entry in the catalog: its targets with no existence checks,
+// and, for a process that writes comments, the same targets with the checks it can make.
+//
+// checked is nil for a domain that checks nothing, and its unchecked targets are used for
+// both.
+type contribution struct {
+	targets func() platformcomments.Targets
+	checked func(i do.Injector) platformcomments.Targets
+}
+
+// contributions is every domain's entry, and the one list both catalogs are built from.
+func contributions() []contribution {
+	return []contribution{
+		{targets: issuereports.CommentTargets},
+		// Domain: mealplanning
+		{targets: mealplanningregistration.CommentTargets, checked: mealplanningregistration.CheckedCommentTargets},
+	}
+}
 
 // Catalog is what this application accepts comments on, with no existence checks.
 //
@@ -34,94 +50,65 @@ import (
 // change handler. The catalog gates writes rather than reads, so a hookless one
 // is exactly right there, and it still refuses a misspelled type should a write
 // path arrive later.
-func Catalog() platformcomments.Targets {
-	return platformcomments.Targets{
-		mealplanning.CommentTargetTypeRecipes:      {Description: "A recipe."},
-		mealplanning.CommentTargetTypeMeals:        {Description: "A meal."},
-		mealplanning.CommentTargetTypeMealPlans:    {Description: "A meal plan."},
-		issuereports.CommentTargetTypeIssueReports: {Description: "An issue report."},
+func Catalog() (platformcomments.Targets, error) {
+	catalog := platformcomments.Targets{}
+
+	for _, c := range contributions() {
+		if err := merge(catalog, c.targets()); err != nil {
+			return nil, err
+		}
 	}
+
+	return catalog, nil
 }
 
 // CatalogWithChecks is Catalog with an existence check on every type whose owning
-// domain can answer "is this there" from the scope and the ID alone.
-//
-// Two types are left unchecked. The check platform runs is handed the comment's
-// scope and nothing else, and reading a meal plan takes an owner as well as an
-// ID, so the scope the hook receives is not one that read can use; the meal
-// planning service reads its target as the caller before it delegates, which is a
-// stronger check than this one would be rather than a missing one.
-//
-// Issue reports were unchecked for the same reason — they were filed per account
-// and comments globally — and that reason is gone: every report is filed under
-// the global scope now (see internal/domain/issuereports.Scope), so the hook's
-// scope is the report's and a check is possible. It has not been added yet.
+// domain can answer "is this there" from the scope and the ID alone, resolved from i.
 //
 // A check narrows the window in which a comment can be written about something
 // that is not there; it does not close it. A target deleted between the check and
 // the insert is still a comment about nothing.
-func CatalogWithChecks(
-	mealPlanning mealplanningmanagers.MealPlanningManager,
-) platformcomments.Targets {
-	catalog := Catalog()
+func CatalogWithChecks(i do.Injector) (platformcomments.Targets, error) {
+	catalog := platformcomments.Targets{}
 
-	catalog[mealplanning.CommentTargetTypeRecipes] = withCheck(
-		catalog[mealplanning.CommentTargetTypeRecipes],
-		func(ctx context.Context, targetID string) error {
-			_, err := mealPlanning.ReadRecipe(ctx, targetID)
-
-			return err
-		},
-	)
-
-	catalog[mealplanning.CommentTargetTypeMeals] = withCheck(
-		catalog[mealplanning.CommentTargetTypeMeals],
-		func(ctx context.Context, targetID string) error {
-			_, err := mealPlanning.ReadMeal(ctx, targetID)
-
-			return err
-		},
-	)
-
-	return catalog
-}
-
-// withCheck turns a domain read into the existence hook platform's catalog takes.
-//
-// A read that failed because the row is not there is "absent"; any other failure
-// is an error, and the two are kept apart deliberately. Platform's hook says an
-// error is not absent, because a hook that decided an unreachable table meant a
-// missing target would refuse writes the caller should have been told to retry.
-func withCheck(definition platformcomments.TargetDefinition, read func(ctx context.Context, targetID string) error) platformcomments.TargetDefinition {
-	definition.Exists = func(ctx context.Context, _ tenancy.Scope, targetID string) (bool, error) {
-		if err := read(ctx, targetID); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return false, nil
-			}
-
-			return false, err
+	for _, c := range contributions() {
+		targets := c.targets
+		if c.checked != nil {
+			targets = func() platformcomments.Targets { return c.checked(i) }
 		}
 
-		return true, nil
+		if err := merge(catalog, targets()); err != nil {
+			return nil, err
+		}
 	}
 
-	return definition
+	return catalog, nil
+}
+
+// merge adds targets to catalog, refusing a type two domains both claim: a comment about one
+// is a comment about something, and which something cannot be settled by list order.
+func merge(catalog, targets platformcomments.Targets) error {
+	for targetType, definition := range targets {
+		if _, taken := catalog[targetType]; taken {
+			return fmt.Errorf("comment target type %q is contributed twice", targetType)
+		}
+
+		catalog[targetType] = definition
+	}
+
+	return nil
 }
 
 // RegisterTargets registers the catalog carrying existence checks, for a process
 // that writes comments.
 func RegisterTargets(i do.Injector) {
-	do.Provide[platformcomments.Targets](i, func(i do.Injector) (platformcomments.Targets, error) {
-		return CatalogWithChecks(
-			do.MustInvoke[mealplanningmanagers.MealPlanningManager](i),
-		), nil
-	})
+	do.Provide[platformcomments.Targets](i, CatalogWithChecks)
 }
 
 // RegisterReadOnlyTargets registers the catalog without existence checks, for a
 // process that reads and erases comments but never writes one.
 func RegisterReadOnlyTargets(i do.Injector) {
 	do.Provide[platformcomments.Targets](i, func(do.Injector) (platformcomments.Targets, error) {
-		return Catalog(), nil
+		return Catalog()
 	})
 }

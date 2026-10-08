@@ -41,6 +41,7 @@ type Client interface {
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mediaregistrygrpc.MediaRegistryServiceClient
+	// Domain: mealplanning
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
 	oauth2clientsgrpc.OAuth2ClientsServiceClient
@@ -88,6 +89,7 @@ type client struct {
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mediaregistrygrpc.MediaRegistryServiceClient
+	// Domain: mealplanning
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
 	oauth2clientsgrpc.OAuth2ClientsServiceClient
@@ -117,6 +119,7 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 		InternalOperationsClient:   internalopsgrpc.NewInternalOperationsClient(conn),
 		IssueReportsServiceClient:  issuereportsgrpc.NewIssueReportsServiceClient(conn),
 		MediaRegistryServiceClient: mediaregistrygrpc.NewMediaRegistryServiceClient(conn),
+		// Domain: mealplanning
 		MealPlanningServiceClient:  mealplanninggrpc.NewMealPlanningServiceClient(conn),
 		NotificationsServiceClient: notificationsgrpc.NewNotificationsServiceClient(conn),
 		OAuth2ClientsServiceClient: oauth2clientsgrpc.NewOAuth2ClientsServiceClient(conn),

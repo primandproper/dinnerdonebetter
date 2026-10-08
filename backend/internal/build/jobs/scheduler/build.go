@@ -3,7 +3,6 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
@@ -11,19 +10,16 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/queuedmail"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
 	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
-	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
@@ -34,9 +30,6 @@ import (
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
-	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
-	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
 	"github.com/primandproper/platform-go/v15/service"
 	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
@@ -154,30 +147,30 @@ func BuildInjector(
 
 	// Domain: mealplanning
 	//
-	// recordingspine.Register is also where the recording spine is assembled — the outbox
+	// The domain's repository, its text index clients, the components its saga steps run, and
+	// its jobs' workers and queue. The recording spine is assembled in there too — the outbox
 	// writer, the webhook emitter, and the recorder over them — for the reason
-	// config.SchedulerConfig.OutboxRelay gives.
-	recordingspine.Register(i)
-	mealplanningrepo.RegisterMealPlanningRepository(i)
-	grocerylistpreparation.RegisterGroceryListCreator(i)
-	recipeanalysis.RegisterRecipeAnalyzer(i)
+	// config.SchedulerConfig.OutboxRelay gives. Its jobs and runners arrive through
+	// RegisterJobs and Runners.
+	mealplanningregistration.RegisterForScheduler(i)
 
-	// the periodic jobs themselves
-	mealplanfinalization.RegisterStarter(i)
+	// the periodic jobs of this application's own
 	queuetest.RegisterQueueTest(i)
 
 	do.Provide[*queuetest.JobParams](i, func(i do.Injector) (*queuetest.JobParams, error) {
 		return &queuetest.JobParams{Queues: *do.MustInvoke[*queuescfg.Config](i)}, nil
 	})
 
-	// The prep task reminder queue and the worker that fills and drains it. The queue owns a
-	// goroutine, and is joined to the service's lifecycle by cmd/ddb — see NotificationQueue.
-	mealplantasknotifications.RegisterQueue(i)
-	mealplantasknotifications.RegisterWorker(i)
-
 	// The Reindexers this process drives on a schedule. They come from the same Registry as
 	// the Syncers the consumer runs, because the two are halves of keeping one index right.
-	searchindexes.Register(ctx, i, identityindexing.RegisterIndexes, mealplanningindexing.RegisterIndexes)
+	// Each domain registers the index clients its registrar resolves; identity's are here,
+	// and the domain's arrived with its registration above.
+	identityindexing.RegisterSearchers(i)
+	searchindexes.Register(ctx, i,
+		identityindexing.RegisterIndexes,
+		// Domain: mealplanning
+		mealplanningregistration.RegisterIndexes,
+	)
 
 	// The saga definitions, and the publisher and runners over them. The worker that advances
 	// every definition in the process is platform's, from the Saga block, along with its store
@@ -201,44 +194,27 @@ func BuildInjector(
 	return i, nil
 }
 
-// NotificationQueue adapts the prep task reminder queue to the service.Runner its lifecycle is
-// joined through.
+// Runners is every application component the scheduler joins to its service's lifecycle
+// through service.WithRunners, resolved from i.
 //
-// The queue is not a loop — the scheduled job drives it — but it batches enqueues on a goroutine
-// of its own, and Close is what writes the last batch out. service.WithRunners is the one seam a
-// service.Service offers an application's own components, and an application runner is closed
-// first: before the scheduler whose job enqueues into it has drained. A reminder pass still
-// running at that moment has its remaining enqueues refused, which costs nothing durable — the
-// job finds every task still owed a reminder from the database on each pass, so a refused one is
-// picked up by the next — but it is the wrong order, and the right one is a final-flush slot,
-// after the loops and before the database, which service gives its own operations queue and
-// does not offer an application. See platform-go#1148.
-type NotificationQueue struct {
-	queue *mealplantasknotifications.TaskQueue
-	stop  chan struct{}
-	once  sync.Once
-}
+// service.WithRunners is the one seam a service.Service offers an application's own components,
+// and an application runner is closed first, before the loops. That is the wrong order for a
+// queue a scheduled job enqueues into — see mealplantasknotifications.QueueRunner for what it
+// costs and platform-go#1148 for the slot that would fix it — but it is the seam there is.
+func Runners(i do.Injector) ([]service.Runner, error) {
+	var runners []service.Runner
 
-var _ service.Runner = (*NotificationQueue)(nil)
+	for _, contribute := range []func(do.Injector) ([]service.Runner, error){
+		// Domain: mealplanning
+		mealplanningregistration.Runners,
+	} {
+		contributed, err := contribute(i)
+		if err != nil {
+			return nil, err
+		}
 
-// NewNotificationQueue resolves the reminder queue from i and wraps it.
-func NewNotificationQueue(i do.Injector) (*NotificationQueue, error) {
-	queue, err := do.Invoke[*mealplantasknotifications.TaskQueue](i)
-	if err != nil {
-		return nil, err
+		runners = append(runners, contributed...)
 	}
 
-	return &NotificationQueue{queue: queue, stop: make(chan struct{})}, nil
-}
-
-// Run blocks until Close.
-func (q *NotificationQueue) Run() {
-	<-q.stop
-}
-
-// Close writes out the queue's last batch and stops its goroutine.
-func (q *NotificationQueue) Close(ctx context.Context) error {
-	q.once.Do(func() { close(q.stop) })
-
-	return q.queue.Close(ctx)
+	return runners, nil
 }

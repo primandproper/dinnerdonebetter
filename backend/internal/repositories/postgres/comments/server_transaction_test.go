@@ -103,6 +103,9 @@ func buildFixture(t *testing.T, decorate func(platformaudit.Recorder) platformau
 		auditRecorder = decorate(auditRecorder)
 	}
 
+	catalog, err := commentsbuild.Catalog()
+	require.NoError(t, err)
+
 	// The actual recording spine against the actual tables, because an outbox row that rolls
 	// back is the half of the claim a fake emitter could not demonstrate.
 	store, err := ProvideCommentsRepository(
@@ -111,7 +114,7 @@ func buildFixture(t *testing.T, decorate func(platformaudit.Recorder) platformau
 		metricsnoop.NewMetricsProvider(),
 		db,
 		pgtesting.NewRecorderForTest(t, ctx, db, auditRecorder),
-		commentsbuild.Catalog(),
+		catalog,
 	)
 	require.NoError(t, err)
 

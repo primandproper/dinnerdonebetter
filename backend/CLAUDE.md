@@ -80,8 +80,8 @@ See `docs/adding_a_new_domain.md` for the full checklist (note: doc still refere
 5. Manager (`internal/domain/<domain>/manager/`)
 6. gRPC proto (`proto/<domain>/`, run `make proto` from repo root)
 7. gRPC service (`internal/services/<domain>/grpc/`)
-8. Permissions (`internal/authorization/`, aggregate in `extras.go`)
-9. DI registration (`internal/build/services/api/grpc/build.go` + `extras.go`)
+8. Permissions (`internal/authorization/`; the surface's table is one entry in `internal/build/services/api/grpc/surfaces.go`)
+9. DI registration: a registration package like `internal/domain/mealplanning/registration`, named from the builders under `internal/build/` at every `// Domain: mealplanning` marker — the marker census is the complete edit list
 
 ## Configuration
 

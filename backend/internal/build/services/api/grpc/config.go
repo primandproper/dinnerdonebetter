@@ -108,6 +108,7 @@ func RegisterConfigs(i do.Injector) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)
 		return &svc.Users, nil
 	})
+	// Domain: mealplanning
 	do.Provide[*mealplanningcfg.Config](i, func(i do.Injector) (*mealplanningcfg.Config, error) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)
 		return &svc.MealPlanning, nil

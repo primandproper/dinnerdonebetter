@@ -380,6 +380,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 					Debug:   false,
 				},
 			},
+			// Domain: mealplanning
 			MealPlanning: mealplanningcfg.Config{
 				UseSearchService: true,
 			},
