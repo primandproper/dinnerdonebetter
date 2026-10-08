@@ -28,16 +28,22 @@ var domainRoots = []string{
 }
 
 // censusRoots are the directories the census holds to the marker: the composition root, its
-// config, the one binary, and the client library. Every file under them that imports a domain
-// package must say so.
-//
-// The three generic consumers that hold the domain structurally — the data change handler,
-// the index event rules, and the MCP server — are not in it yet; #1469 gives them a registry
-// seam each and widens this list to them.
+// config, the binaries and the dev-only processes, the client library, and the generic
+// consumers that merge each domain's entry into one list — the data change handler, the index
+// event rules, the MCP server, and the analytics allowlist. Every file under them that imports
+// a domain package must say so.
 var censusRoots = []string{
 	"internal/build",
 	"internal/config",
+	"internal/domain/analytics",
+	"internal/functions",
+	"internal/indexevents",
+	"internal/localdev",
+	"internal/mcpserver",
+	"internal/mcptools",
+	"internal/searchindexes",
 	"cmd/ddb",
+	"cmd/tools",
 	"pkg/client",
 }
 

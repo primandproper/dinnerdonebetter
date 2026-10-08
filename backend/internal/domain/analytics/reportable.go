@@ -47,6 +47,7 @@ package analytics
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -83,8 +84,9 @@ type Report struct {
 // reading turns one event's payload into its report.
 type reading func(payload json.RawMessage) (*Report, error)
 
-// reportable is the allowlist, each event paired with the reading of its payload.
-var reportable = map[webhooks.EventType]reading{
+// platformEvents is the allowlist's platform half: each of platform's events worth reporting,
+// paired with the reading of its payload type.
+var platformEvents = map[webhooks.EventType]reading{
 	identity.EventUserRegistered:    userEvent,
 	identity.EventUserArchived:      userEvent,
 	identity.EventAccountCreated:    accountEvent,
@@ -94,15 +96,41 @@ var reportable = map[webhooks.EventType]reading{
 	// naming the invitation — which userEvent carries as a property.
 	identity.EventInvitationAccepted: invitationAccepted,
 
-	webhooks.EventType(mealplanning.RecipeCreatedServiceEventType):             ownMessage,
-	webhooks.EventType(mealplanning.RecipeClonedServiceEventType):              ownMessage,
-	webhooks.EventType(mealplanning.RecipeRatingCreatedServiceEventType):       ownMessage,
-	webhooks.EventType(mealplanning.MealCreatedServiceEventType):               ownMessage,
-	webhooks.EventType(mealplanning.MealPlanCreatedServiceEventType):           ownMessage,
-	webhooks.EventType(mealplanning.MealPlanOptionVoteCreatedServiceEventType): ownMessage,
-	webhooks.EventType(mealplanning.MealPlanFinalizedServiceEventType):         ownMessage,
-
 	billing.EventSubscriptionCreated: subscriptionEvent,
+}
+
+// ownEvents is the allowlist's application half: each domain's own events worth reporting,
+// contributed by the domain. Every one travels as a datachanges.Message and is read as one.
+func ownEvents() [][]string {
+	return [][]string{
+		// Domain: mealplanning
+		mealplanning.AnalyticsEventTypes(),
+	}
+}
+
+// reportable is the allowlist, each event paired with the reading of its payload.
+var reportable = allowlist()
+
+// allowlist merges the two halves. A domain's event that platform also names would be read two
+// ways, so the merge refuses one rather than letting map order decide; the event names are
+// constants on both sides, so that is a build-time collision caught at package init.
+func allowlist() map[webhooks.EventType]reading {
+	merged := make(map[webhooks.EventType]reading, len(platformEvents))
+	for eventType, read := range platformEvents {
+		merged[eventType] = read
+	}
+
+	for _, domain := range ownEvents() {
+		for _, eventType := range domain {
+			if _, taken := merged[webhooks.EventType(eventType)]; taken {
+				panic(fmt.Sprintf("analytics: event type %q is allowlisted twice", eventType))
+			}
+
+			merged[webhooks.EventType(eventType)] = ownMessage
+		}
+	}
+
+	return merged
 }
 
 // Reportable reports whether eventType is one the analytics platform is told about.

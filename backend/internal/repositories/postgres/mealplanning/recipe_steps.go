@@ -6,7 +6,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
 	"github.com/primandproper/platform-go/v15/mediaregistry"
@@ -510,7 +510,7 @@ func (q *repository) CreateRecipeStep(ctx context.Context, input *mealplanning.R
 			return createErr
 		}
 
-		return q.emitIndex(ctx, tx, indexevents.RecipeStepCreatedIndexTrigger, map[string]any{
+		return q.emitIndex(ctx, tx, searchindex.RecipeStepCreatedIndexTrigger, map[string]any{
 			mealplanningkeys.RecipeIDKey: input.BelongsToRecipe,
 		})
 	}); err != nil {

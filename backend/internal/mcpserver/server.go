@@ -13,7 +13,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 
 	issuereports "github.com/primandproper/platform-go/v15/issuereports"
 	waitlists "github.com/primandproper/platform-go/v15/waitlists"
@@ -251,126 +251,34 @@ func throttleLoginForm(throttle routing.Middleware) routing.Middleware {
 	}
 }
 
+// mcpToolManager holds the tools over platform's stores: the ones every deployment of this
+// server has, whatever domain it serves. A domain's own tools arrive as toolsets, and the server
+// names none of them.
 type mcpToolManager struct {
 	// reader is the read executor every platform store call now takes. The MCP
 	// tools are all reads, so one executor settled here is enough: none of them
 	// has a caller transaction to join.
-	reader           database.SQLQueryExecutor
-	mealplanningRepo mealplanning.Repository
-	webhooks         platformwebhooks.Store
-	waitlists        waitlists.Store
-	issueReports     issuereports.Store
+	reader       database.SQLQueryExecutor
+	webhooks     platformwebhooks.Store
+	waitlists    waitlists.Store
+	issueReports issuereports.Store
+	toolsets     []mcptools.Toolset
 }
 
 // userFromRequest resolves the authenticated user's account from the MCP request's auth token.
-//
-// The account is read off the token rather than looked up again: it was resolved
-// once at /authorize and travels in the access token's Subject claims, so a tool
-// call costs the one store read the bearer middleware already made.
 func (h *mcpToolManager) userFromRequest(req *mcp.CallToolRequest) (accountID string, err error) {
-	if req.Extra == nil || req.Extra.TokenInfo == nil {
-		return "", fmt.Errorf("not authenticated")
-	}
-
-	accountID, ok := req.Extra.TokenInfo.Extra[claimAccountID].(string)
-	if !ok || accountID == "" {
-		return "", fmt.Errorf("no account on token")
-	}
-
-	return accountID, nil
+	return mcptools.AccountFromRequest(req)
 }
 
 func (h *mcpToolManager) setupServer() *mcp.Server {
 	mcpServer := mcp.NewServer(&mcp.Implementation{Name: fmt.Sprintf("%s-mcp", branding.CompanyNameSlug), Version: "v1.0.0"}, nil)
 
-	// Valid Ingredients (read-only)
-	mcp.AddTool(mcpServer, getValidIngredientTool, h.GetValidIngredient())
-	mcp.AddTool(mcpServer, searchForValidIngredientsTool, h.SearchForValidIngredients())
-
-	// Valid Preparations (read-only)
-	mcp.AddTool(mcpServer, getValidPreparationTool, h.GetValidPreparation())
-	mcp.AddTool(mcpServer, searchForValidPreparationsTool, h.SearchForValidPreparations())
-
-	// Valid Measurement Units (read-only)
-	mcp.AddTool(mcpServer, getValidMeasurementUnitTool, h.GetValidMeasurementUnit())
-	mcp.AddTool(mcpServer, searchForValidMeasurementUnitsTool, h.SearchForValidMeasurementUnits())
-
-	// Valid Ingredient Preparations (read-only)
-	mcp.AddTool(mcpServer, getValidIngredientPreparationTool, h.GetValidIngredientPreparation())
-	mcp.AddTool(mcpServer, getValidIngredientPreparationsTool, h.GetValidIngredientPreparations())
-
-	// Valid Prep Task Configs (read-only)
-	mcp.AddTool(mcpServer, getValidPrepTaskConfigTool, h.GetValidPrepTaskConfig())
-	mcp.AddTool(mcpServer, getValidPrepTaskConfigsTool, h.GetValidPrepTaskConfigs())
-	mcp.AddTool(mcpServer, getValidPrepTaskConfigsByIngredientTool, h.GetValidPrepTaskConfigsByIngredient())
-	mcp.AddTool(mcpServer, getValidPrepTaskConfigsByPreparationTool, h.GetValidPrepTaskConfigsByPreparation())
-	mcp.AddTool(mcpServer, getValidPrepTaskConfigsByIngredientAndPreparationTool, h.GetValidPrepTaskConfigsByIngredientAndPreparation())
-
-	// Valid Ingredient Measurement Units (read-only)
-	mcp.AddTool(mcpServer, getValidIngredientMeasurementUnitTool, h.GetValidIngredientMeasurementUnit())
-	mcp.AddTool(mcpServer, getValidIngredientMeasurementUnitsTool, h.GetValidIngredientMeasurementUnits())
-
-	// Valid Vessels (read-only)
-	mcp.AddTool(mcpServer, getValidVesselTool, h.GetValidVessel())
-	mcp.AddTool(mcpServer, searchForValidVesselsTool, h.SearchForValidVessels())
-
-	// Valid Measurement Unit Conversions (read-only)
-	mcp.AddTool(mcpServer, getValidMeasurementUnitConversionTool, h.GetValidMeasurementUnitConversion())
-	mcp.AddTool(mcpServer, getValidMeasurementUnitConversionsForUnitTool, h.GetValidMeasurementUnitConversionsForUnit())
-	mcp.AddTool(mcpServer, getValidMeasurementUnitConversionsForIngredientsTool, h.GetValidMeasurementUnitConversionsForIngredients())
-
-	// Valid Ingredient States (read-only)
-	mcp.AddTool(mcpServer, getValidIngredientStateTool, h.GetValidIngredientState())
-	mcp.AddTool(mcpServer, searchForValidIngredientStatesTool, h.SearchForValidIngredientStates())
-
-	// Valid Ingredient State Ingredients (read-only)
-	mcp.AddTool(mcpServer, getValidIngredientStateIngredientTool, h.GetValidIngredientStateIngredient())
-	mcp.AddTool(mcpServer, getValidIngredientStateIngredientsTool, h.GetValidIngredientStateIngredients())
-
-	// Valid Instruments (read-only)
-	mcp.AddTool(mcpServer, getValidInstrumentTool, h.GetValidInstrument())
-	mcp.AddTool(mcpServer, searchForValidInstrumentsTool, h.SearchForValidInstruments())
-
-	// Valid Preparation Instruments (read-only)
-	mcp.AddTool(mcpServer, getValidPreparationInstrumentTool, h.GetValidPreparationInstrument())
-	mcp.AddTool(mcpServer, getValidPreparationInstrumentsTool, h.GetValidPreparationInstruments())
-
-	// Valid Preparation Vessels (read-only)
-	mcp.AddTool(mcpServer, getValidPreparationVesselTool, h.GetValidPreparationVessel())
-	mcp.AddTool(mcpServer, getValidPreparationVesselsTool, h.GetValidPreparationVessels())
-
-	// Recipe Step Instruments (read-only)
-	mcp.AddTool(mcpServer, getRecipeStepInstrumentTool, h.GetRecipeStepInstrument())
-	mcp.AddTool(mcpServer, getRecipeStepInstrumentsTool, h.GetRecipeStepInstruments())
-
-	// Recipe Step Products (read-only)
-	mcp.AddTool(mcpServer, getRecipeStepProductTool, h.GetRecipeStepProduct())
-	mcp.AddTool(mcpServer, getRecipeStepProductsTool, h.GetRecipeStepProducts())
-
-	// Recipe Step Ingredients (read-only)
-	mcp.AddTool(mcpServer, getRecipeStepIngredientTool, h.GetRecipeStepIngredient())
-	mcp.AddTool(mcpServer, getRecipeStepIngredientsTool, h.GetRecipeStepIngredients())
-
-	// Recipe Prep Tasks (read-only)
-	mcp.AddTool(mcpServer, getRecipePrepTaskTool, h.GetRecipePrepTask())
-	mcp.AddTool(mcpServer, getRecipePrepTasksTool, h.GetRecipePrepTasks())
-
-	// Recipe Step Vessels (read-only)
-	mcp.AddTool(mcpServer, getRecipeStepVesselTool, h.GetRecipeStepVessel())
-	mcp.AddTool(mcpServer, getRecipeStepVesselsTool, h.GetRecipeStepVessels())
-
-	// Recipe Step Completion Conditions (read-only)
-	mcp.AddTool(mcpServer, getRecipeStepCompletionConditionTool, h.GetRecipeStepCompletionCondition())
-	mcp.AddTool(mcpServer, getRecipeStepCompletionConditionsTool, h.GetRecipeStepCompletionConditions())
-
-	// Recipe Steps (read-only)
-	mcp.AddTool(mcpServer, getRecipeStepTool, h.GetRecipeStep())
-	mcp.AddTool(mcpServer, getRecipeStepsTool, h.GetRecipeSteps())
-
-	// Recipes (read-only)
-	mcp.AddTool(mcpServer, getRecipeTool, h.GetRecipe())
-	mcp.AddTool(mcpServer, getRecipesTool, h.GetRecipes())
-	mcp.AddTool(mcpServer, searchForRecipesTool, h.SearchForRecipes())
+	// Each domain's tools, in the order the build listed them. The SDK keeps the last tool
+	// registered under a name and says nothing about the first, so the build's test over the
+	// built server is what holds two domains to distinct names.
+	for _, toolset := range h.toolsets {
+		toolset.RegisterOn(mcpServer)
+	}
 
 	// Issue Reports (read-only, and only the caller's own: the queue is a service administrator's)
 	mcp.AddTool(mcpServer, getIssueReportTool, h.GetIssueReport())

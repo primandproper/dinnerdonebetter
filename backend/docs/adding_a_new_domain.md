@@ -7,7 +7,7 @@ This document enumerates every step required to add a new domain (or new entity 
 ## When to Use This Doc
 
 - **New business domain**: Adding a completely new area (e.g., invoicing, inventory) — follow the full path.
-- **New entity within domain**: Adding a new table/entity to an existing domain (e.g., new `valid_*` in mealplanning) — follow the shorter path in [Section 11](#11-new-entity-within-existing-domain).
+- **New entity within domain**: Adding a new table/entity to an existing domain (e.g., new `valid_*` in mealplanning) — follow the shorter path in [Section 12](#12-new-entity-within-existing-domain).
 
 ## Should This Be Generic?
 
@@ -409,7 +409,37 @@ If adding:
 
 ---
 
-## 9. Integration Tests
+## 9. Registration Seams
+
+A domain reaches every process through one package — `internal/domain/<domain>/registration`
+for the example domain — and the builders under `internal/build/` name it at a
+`// Domain: <domain>` marker. `TestDomainMarkerCensus` in that package holds every file under
+the census roots to the marker, so grepping for it is the complete edit list when the domain is
+swapped. The shape is plain functions over leaf types that already exist; there is no
+contribution struct and no plugin registry, on purpose ([#1468], [#1469]).
+
+Beyond the gRPC surface, the permission table, the comment targets, the scheduled jobs, the
+runners and the search indexes (`RegisterIndexes`), a domain contributes to three generic
+consumers that used to hold the example domain by name:
+
+| Seam                                             | Domain contributes                                                                                                                                  | Listed in                                                           |
+|--------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Outbound notifications (the async handler)       | `OutboundNotifications(i) (datachangemessagehandler.OutboundNotificationHandler, error)` — the mail its events imply                                 | `internal/build/functions/data_change_message_handler/build.go`     |
+| Search index rules (the outbox side effect)      | `IndexRules() []searchsync.Rule` beside its index names — which of its writes feed which index                                                       | `internal/indexevents/indexevents.go`                               |
+| MCP tools                                        | `MCPTools(i) (mcptools.Toolset, error)` — a type with `RegisterOn(*mcp.Server)` over its repository, in `internal/services/<domain>/mcp`           | `internal/build/services/mcp/build.go`                              |
+| Product analytics allowlist                      | `<domain>.AnalyticsEventTypes() []string` — the events a product question is asked of                                                               | `internal/domain/analytics/reportable.go`                           |
+| Search index initializer (`cmd/tools`)           | `RegisterForSearchIndexInitializer(i)` plus the same `RegisterIndexes`                                                                               | `cmd/tools/search_index_initializer/main.go`                        |
+
+The handler over platform's identity events, the users index's rules, and the MCP tools over
+platform's stores stay with their generic owners: they come with every deployment, whatever
+domain it serves.
+
+[#1468]: https://github.com/primandproper/dinnerdonebetter/issues/1468
+[#1469]: https://github.com/primandproper/dinnerdonebetter/issues/1469
+
+---
+
+## 10. Integration Tests
 
 **Location**: `backend/testing/integration/apiserver/`
 
@@ -431,7 +461,7 @@ If adding:
 
 ---
 
-## 10. Admin Web App Routes (When Applicable)
+## 11. Admin Web App Routes (When Applicable)
 
 **Case-by-case.** API-only domains (e.g., internal ops, data privacy) may skip. Add when admins need CRUD (settings, valid_*, waitlists, issuereports).
 
@@ -450,7 +480,7 @@ If adding:
 
 ---
 
-## 11. New Entity Within Existing Domain
+## 12. New Entity Within Existing Domain
 
 Shorter path — reuse:
 
@@ -479,7 +509,7 @@ Shorter path — reuse:
 
 ---
 
-## 12. Quick Reference: File Checklist
+## 13. Quick Reference: File Checklist
 
 | PR Checklist Item        | Files / Paths                                                                                                         |
 |--------------------------|-----------------------------------------------------------------------------------------------------------------------|
@@ -500,6 +530,7 @@ Shorter path — reuse:
 | gRPC - Registration      | `build/services/api/grpc/extras.go`, `build.go`                                                                       |
 | Auth interceptor         | `authorization/*_permissions.go`; `services/<domain>/grpc/permissions.go`; `extras.go` AggregateMethodPermissions     |
 | Configs                  | `config/services_config.go`, `wire.go`, `config/environments/*.go` (if needed)                                        |
+| Registration seams       | `domain/<domain>/registration/`; one marked entry per list in `build/`, `indexevents/`, `domain/analytics/`            |
 | Integration tests        | `testing/integration/apiserver/<domain>_<entity>_test.go`                                                             |
 | Admin - List view        | `cmd/services/admin/routes.go`; handler in `cmd/services/admin/`                                                      |
 | Admin - Edit view        | Same                                                                                                                  |

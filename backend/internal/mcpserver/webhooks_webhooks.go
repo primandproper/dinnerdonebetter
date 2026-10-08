@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 
 	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	webhooksmcp "github.com/primandproper/platform-go/v15/webhooks/mcp"
@@ -26,39 +27,39 @@ import (
 // put it; it is that a secret readable over a tool call is a secret anybody who can reach
 // the tool can forge deliveries with.
 var webhookSubscriptionSchema = map[string]any{
-	"ID":                stringField("The ID of the subscription"),
-	"BelongsToEndpoint": stringField("The ID of the endpoint this subscription belongs to"),
-	"EventType":         stringField("The catalog event type this endpoint is subscribed to"),
-	fieldCreatedAt:      timestampField("When the subscription was created"),
-	fieldArchivedAt:     timestampField("When the subscription was archived"),
+	"ID":                     mcptools.StringField("The ID of the subscription"),
+	"BelongsToEndpoint":      mcptools.StringField("The ID of the endpoint this subscription belongs to"),
+	"EventType":              mcptools.StringField("The catalog event type this endpoint is subscribed to"),
+	mcptools.FieldCreatedAt:  mcptools.TimestampField("When the subscription was created"),
+	mcptools.FieldArchivedAt: mcptools.TimestampField("When the subscription was archived"),
 }
 
 var webhookEndpointSchema = map[string]any{
-	"ID":               stringField("The ID of the endpoint"),
-	fieldName:          stringField("The endpoint name"),
-	"URL":              stringField("The endpoint URL"),
-	"ContentType":      stringField("The content type; always application/json"),
-	"Disabled":         boolField("Whether deliveries to this endpoint are suspended"),
-	"Subscriptions":    arrayType(schemaObject(webhookSubscriptionSchema)),
-	fieldCreatedAt:     timestampField("When the endpoint was created"),
-	fieldLastUpdatedAt: timestampField("When the endpoint was last updated"),
-	fieldArchivedAt:    timestampField("When the endpoint was archived"),
+	"ID":                        mcptools.StringField("The ID of the endpoint"),
+	mcptools.FieldName:          mcptools.StringField("The endpoint name"),
+	"URL":                       mcptools.StringField("The endpoint URL"),
+	"ContentType":               mcptools.StringField("The content type; always application/json"),
+	"Disabled":                  mcptools.BoolField("Whether deliveries to this endpoint are suspended"),
+	"Subscriptions":             mcptools.ArrayType(mcptools.SchemaObject(webhookSubscriptionSchema)),
+	mcptools.FieldCreatedAt:     mcptools.TimestampField("When the endpoint was created"),
+	mcptools.FieldLastUpdatedAt: mcptools.TimestampField("When the endpoint was last updated"),
+	mcptools.FieldArchivedAt:    mcptools.TimestampField("When the endpoint was archived"),
 }
 
 // webhookEventTypeSchema is platform's webhooksmcp.EventTypeDefinition, which names its fields
 // in camelCase where this server's own types do not.
 var webhookEventTypeSchema = map[string]any{
-	"eventType":   stringField("The event type, as it appears in a webhook subscription"),
-	"description": stringField("Prose explaining when the event fires"),
+	"eventType":   mcptools.StringField("The event type, as it appears in a webhook subscription"),
+	"description": mcptools.StringField("Prose explaining when the event fires"),
 }
 
 var getWebhookTool = &mcp.Tool{
 	Name:        "GetWebhookEndpoint",
 	Description: "Get a webhook endpoint by its ID",
-	InputSchema: schemaObject(map[string]any{
-		"EndpointID": stringField("The ID of the endpoint to get"),
+	InputSchema: mcptools.SchemaObject(map[string]any{
+		"EndpointID": mcptools.StringField("The ID of the endpoint to get"),
 	}),
-	OutputSchema: schemaObject(webhookEndpointSchema),
+	OutputSchema: mcptools.SchemaObject(webhookEndpointSchema),
 }
 
 type GetWebhookInvocation struct {
@@ -87,11 +88,11 @@ func (h *mcpToolManager) GetWebhook() mcp.ToolHandlerFor[*GetWebhookInvocation, 
 var getWebhooksTool = &mcp.Tool{
 	Name:        "GetWebhookEndpoints",
 	Description: "Get webhook endpoints with optional filtering",
-	InputSchema: schemaObject(map[string]any{
-		fieldFilter: filtering.QueryFilterSchema(),
+	InputSchema: mcptools.SchemaObject(map[string]any{
+		mcptools.FieldFilter: filtering.QueryFilterSchema(),
 	}),
-	OutputSchema: schemaObject(map[string]any{
-		fieldResults: arrayType(schemaObject(webhookEndpointSchema)),
+	OutputSchema: mcptools.SchemaObject(map[string]any{
+		mcptools.FieldResults: mcptools.ArrayType(mcptools.SchemaObject(webhookEndpointSchema)),
 	}),
 }
 
@@ -124,9 +125,9 @@ func (h *mcpToolManager) GetWebhooks() mcp.ToolHandlerFor[*GetWebhooksInvocation
 var getWebhookEventTypesTool = &mcp.Tool{
 	Name:        "GetWebhookEventTypes",
 	Description: "Get the event types a webhook can subscribe to",
-	InputSchema: schemaObject(map[string]any{}),
-	OutputSchema: schemaObject(map[string]any{
-		"results": arrayType(schemaObject(webhookEventTypeSchema)),
+	InputSchema: mcptools.SchemaObject(map[string]any{}),
+	OutputSchema: mcptools.SchemaObject(map[string]any{
+		"results": mcptools.ArrayType(mcptools.SchemaObject(webhookEventTypeSchema)),
 	}),
 }
 

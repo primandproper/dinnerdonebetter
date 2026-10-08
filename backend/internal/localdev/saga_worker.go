@@ -6,6 +6,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	// Domain: mealplanning — this dev-only process builds the domain's workers by hand.
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"

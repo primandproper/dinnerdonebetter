@@ -1,12 +1,15 @@
-package mcpserver
+package mcptools
 
 import (
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 
+	"github.com/modelcontextprotocol/go-sdk/auth"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +49,7 @@ func TestFilterSchemaMatchesQueryFilter(t *testing.T) {
 	assert.ElementsMatch(t, expected, actual)
 }
 
-func Test_objectType(T *testing.T) {
+func TestObjectType(T *testing.T) {
 	T.Parallel()
 
 	T.Run("with required fields", func(t *testing.T) {
@@ -60,8 +63,52 @@ func Test_objectType(T *testing.T) {
 			},
 			"required": required,
 		}
-		actual := objectType(map[string]any{"things": "stuff"}, required...)
+		actual := ObjectType(map[string]any{"things": "stuff"}, required...)
 
 		assert.Equal(t, expected, actual)
+	})
+
+	T.Run("without required fields", func(t *testing.T) {
+		t.Parallel()
+
+		actual := ObjectType(map[string]any{"things": "stuff"})
+
+		assert.NotContains(t, actual, "required")
+	})
+}
+
+func TestAccountFromRequest(T *testing.T) {
+	T.Parallel()
+
+	T.Run("reads the account off the token", func(t *testing.T) {
+		t.Parallel()
+
+		accountID := fake.BuildFakeID()
+		req := &mcp.CallToolRequest{Extra: &mcp.RequestExtra{TokenInfo: &auth.TokenInfo{
+			Extra: map[string]any{ClaimAccountID: accountID},
+		}}}
+
+		actual, err := AccountFromRequest(req)
+		require.NoError(t, err)
+		assert.Equal(t, accountID, actual)
+	})
+
+	T.Run("refuses a call with no token", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := AccountFromRequest(&mcp.CallToolRequest{})
+		require.ErrorIs(t, err, errNotAuthenticated)
+
+		_, err = AccountFromRequest(nil)
+		require.ErrorIs(t, err, errNotAuthenticated)
+	})
+
+	T.Run("refuses a token naming no account", func(t *testing.T) {
+		t.Parallel()
+
+		req := &mcp.CallToolRequest{Extra: &mcp.RequestExtra{TokenInfo: &auth.TokenInfo{UserID: fake.BuildFakeID()}}}
+
+		_, err := AccountFromRequest(req)
+		require.ErrorIs(t, err, errNoAccountOnToken)
 	})
 }

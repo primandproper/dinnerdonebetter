@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 	coreemails "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/emails"
@@ -25,6 +25,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
+	"github.com/samber/do/v2"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -41,16 +42,24 @@ const (
 	unknownValue  = "unknown"
 )
 
-// OutboundNotificationHandler handles outbound notifications for a domain's events.
-// Returns true if the event was handled. May return emails to be published by the caller.
+// OutboundNotificationHandler answers, for one event, whether it is a domain's to notify about
+// and if so the mail to send: handled is false for an event the handler does not recognize, and
+// the caller tries the next one. emailType labels the mail in the logs.
+//
+// Each domain contributes one through RegisterAsyncDataChangeMessageHandler; the handler over
+// platform's own identity events is this package's.
 type OutboundNotificationHandler func(ctx context.Context, event *webhooks.Envelope) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
+
+// OutboundNotifier builds one domain's OutboundNotificationHandler from the injector, once the
+// process has registered what it reads through.
+type OutboundNotifier func(i do.Injector) (OutboundNotificationHandler, error)
 
 var errRequiredDataIsNil = errors.New("required data is nil")
 
 // AsyncDataChangeMessageHandler is a cross-cutting event router that dispatches domain events to
 // email and mobile notifications, and runs the Syncer that applies each search index's events.
-// It necessarily references all domain repositories and event types. Domain-specific handler
-// logic lives in dedicated files (e.g., mealplanning_handlers.go) to keep concerns separable.
+// It names no domain: which events imply a mail is each domain's OutboundNotificationHandler's
+// to say, and which indexes it drains is the Registry's.
 //
 // It does not publish index events. It used to: a handler picked a row ID out of a data change
 // message and published an event onto the index's topic, which made indexing a dual write one
@@ -71,7 +80,6 @@ type AsyncDataChangeMessageHandler struct {
 	directory                                 platformidentity.Store
 	db                                        database.Client
 	consumerProvider                          messagequeue.ConsumerProvider
-	mealPlanRepo                              mealplanning.Repository
 	pushFanout                                *push.Fanout
 	handlerErrorsCounter                      metrics.Int64Counter
 	messageDecodeErrorsCounter                metrics.Int64Counter
@@ -111,7 +119,7 @@ func NewAsyncDataChangeMessageHandler(
 	emailer email.Emailer,
 	metricsProvider metrics.Provider,
 	searchSyncers []SearchSyncer,
-	mealPlanRepo mealplanning.Repository,
+	outboundNotificationHandlers []OutboundNotificationHandler,
 	pushFanout *push.Fanout,
 ) (*AsyncDataChangeMessageHandler, error) {
 	dataChangesExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("data_changes_execution_time")
@@ -210,17 +218,14 @@ func NewAsyncDataChangeMessageHandler(
 		emailsSentCounter:                         emailsSentCounter,
 		emailsFailedCounter:                       emailsFailedCounter,
 		searchSyncers:                             searchSyncers,
-		mealPlanRepo:                              mealPlanRepo,
 		pushFanout:                                pushFanout,
 		baseURL:                                   cfg.BaseURL,
 	}
 
-	// Register domain-specific event handlers.
-	// When adding or removing a domain from this template, update these registrations.
-	handler.outboundNotificationHandlers = []OutboundNotificationHandler{
-		handler.handleMealPlanningOutboundNotification,
-		handler.handleIdentityOutboundNotification,
-	}
+	// The domains' handlers as handed in, then this package's own over platform's identity
+	// events. The first to claim an event answers for it, so two handlers claiming one event
+	// type is a mistake the order would hide; every handler here claims a disjoint set.
+	handler.outboundNotificationHandlers = append(slices.Clone(outboundNotificationHandlers), handler.handleIdentityOutboundNotification)
 
 	// Built last, because the specs read the handler's own event handler factories.
 	if handler.poolGroup, err = newPoolGroup(ctx, handler); err != nil {
