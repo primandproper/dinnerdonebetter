@@ -1,5 +1,9 @@
 # platform-go v14: test port findings
 
+> **Adoption log, not a living document.** This records what one platform port changed and
+> found, as of the date it was written. Paths, version numbers and open items in it are the
+> port's, not the repository's today; read `../writing_go.md` and the domain docs for what exists.
+
 A `replace`-directive port of this repo onto `platform-go` at `main` (untagged
 v14) plus `primitives-go/v2` v2.2.0, done on the branch `v14-test-port` to
 answer one question: **is there anything in v14 that would force a v15?**

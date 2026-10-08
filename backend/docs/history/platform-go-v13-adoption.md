@@ -1,5 +1,9 @@
 # platform-go v13 adoption
 
+> **Adoption log, not a living document.** This records what one platform port changed and
+> found, as of the date it was written. Paths, version numbers and open items in it are the
+> port's, not the repository's today; read `../writing_go.md` and the domain docs for what exists.
+
 Record of the v12 → v13 port, and of what it deliberately left for later.
 
 ## What v13 is

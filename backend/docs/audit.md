@@ -186,9 +186,13 @@ and `Verify` can tell retention's gap from a deletion.
 
 ## Redaction
 
-`audit.Redactions` (in `internal/domain/audit/redaction.go`) declares what never
-becomes durable, keyed by resource type, with the empty key applying to every
-resource type.
+A `Redaction` declares what never becomes durable, keyed by resource type, with
+the empty key applying to every resource type. This application declares none of
+its own: credentials are platform's default, `audit.CredentialRedaction`, which
+`NewRecorder` installs, and the one place a resource type of ours would add a
+rule is `ProvideAuditLog` in `internal/repositories/postgres/auditlogentries`.
+The personal free text on platform's rows — a comment's body, an operator's
+note — is hashed by the `RecordingHooks` that diff it.
 
 It lives in code rather than in a config file on purpose: a bearer token is a bearer
 token in every environment, and a policy that could be relaxed by an environment
@@ -206,11 +210,10 @@ is "did this change, and is it the same value as that one" — rotating a creden
 is a real event and the new credential is not a thing to write down.
 
 The static counterpart is the `audit:"-"` struct tag, which keeps a field out of
-every `Diff` wherever it appears. `identity.Account.Members` carries it: auditing an
-account update would otherwise copy the whole membership roster, including user
-email addresses and birthdays, into the audit table on every update. A field tagged
-`json:"-"` — `User.HashedPassword`, `User.TwoFactorSecret` — is skipped by `Diff`
-already.
+every `Diff` wherever it appears. A waitlist signup's `Contact` carries it: the
+address never reaches a diff, so withdrawing a signup does not write the address
+it withdrew into the one table kept for years. A field tagged `json:"-"` is
+skipped by `Diff` already.
 
 ## Reading it
 

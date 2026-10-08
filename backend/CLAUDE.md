@@ -69,19 +69,18 @@ See `docs/writing_go.md` for full details.
 - **Errors**: Always check errors (enforced by linter). Wrap external errors for context.
 - **Context**: Always use `ctx := t.Context()` in tests that interact with services.
 
-## Adding a New Domain
+## One Domain, Platform Underneath
 
-See `docs/adding_a_new_domain.md` for the full checklist (note: doc still references Wire but DI is now `samber/do`). Key steps:
+Mealplanning is the only domain this service has, and no new ones are planned: the work is to
+simplify it, not extend it. Every other store is platform-go's with ~100 lines of wiring (`comments`,
+`issuereports`, `waitlists`, `settings`, `billing`, `webhooks`, and the rest). Before writing a new
+store, check whether platform already ships the domain; if it does not, hand-roll it against sqlc
+the way `internal/repositories/postgres/mealplanning` does. There is no CRUD kit, and the reasons
+are recorded in `docs/writing_go.md` ("Should This Be Generic?") so the question is not re-filed.
 
-1. Migration (`migrations/migration_files/NNNNN_name.sql`, register in `migrate.go`)
-2. Query codegen (`cmd/tools/codegen/queries/`, register in `main.go`, run `make querier`)
-3. Domain types (`internal/domain/<domain>/` — structs, fakes, converters, mocks)
-4. Repository (`internal/repositories/postgres/<domain>/`)
-5. Manager (`internal/domain/<domain>/manager/`)
-6. gRPC proto (`proto/<domain>/`, run `make proto` from repo root)
-7. gRPC service (`internal/services/<domain>/grpc/`)
-8. Permissions (`internal/authorization/`; the surface's table is one entry in `internal/build/services/api/grpc/surfaces.go`)
-9. DI registration: a registration package like `internal/domain/mealplanning/registration`, named from the builders under `internal/build/` at every `// Domain: mealplanning` marker — the marker census is the complete edit list. The same package contributes the domain's outbound notifications, search index rules, MCP tools and analytics events (see `docs/adding_a_new_domain.md` §9)
+Every site outside the three mealplanning roots that names the domain carries a
+`// Domain: mealplanning` marker, and `TestDomainMarkerCensus` holds the composition root to it;
+the domain registers through `internal/domain/mealplanning/registration`.
 
 ## Configuration
 
@@ -91,10 +90,9 @@ Two-stage config: JSON file (path from `CONFIGURATION_FILEPATH` env var) + envir
 
 - `docs/audit.md` — the tamper-evident audit log: how to record an entry, what the chain guarantees, retention, redaction
 - `docs/search-pagination.md` — how clients page search results, and what the cursor means on each path
-- `docs/writing_go.md` — Go conventions, testing, naming, patterns
-- `docs/adding_a_new_domain.md` — Step-by-step domain creation checklist
+- `docs/writing_go.md` — Go conventions, testing, naming, patterns, and why there is no CRUD kit
 - `docs/migrations.md` — Database migration workflow
-- `docs/platform-go-v13-adoption.md` — The v12 → v13 port: what changed, and what it left for later
+- `docs/history/` — Adoption logs for the v13 and v14 ports: records of what each changed, not living docs
 - `docs/configuration.md` — Config loading, env vars, deployment
 - `docs/payments.md` — Payments domain architecture
 - `docs/metering.md` — Usage metering: what is counted, why nothing is limited or billed yet

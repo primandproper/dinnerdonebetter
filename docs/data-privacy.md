@@ -220,10 +220,12 @@ signup is pending until the address confirms it, and the confirmation mail carri
 link that withdraws the signup — with the same digest kept — whether or not it was ever confirmed.
 See `internal/build/waitlists`.
 
-Two caveats are stated in `internal/domain/waitlists/privacy` rather than worked around: the
-withdrawals do **not** run inside the request's transaction (platform's `Withdraw` owns its own),
-and administratively archived signups are out of reach (the store's read of a subject's signups is
-a read of live rows). Both need a store change upstream, filed as platform-go #458.
+The collector and eraser are platform's own (`waitlists/privacy`), registered through the
+`WaitlistsAdapter` in `internal/build/dataprivacy/registry.go`. Two caveats are platform's to
+close rather than worked around here: the withdrawals do **not** run inside the request's
+transaction (platform's `Withdraw` owns its own), and administratively archived signups are out of
+reach (the store's read of a subject's signups is a read of live rows). Both were filed as
+platform-go #458.
 
 **`oauth2_clients`** (platform-go's `authentication/oauth2clients/privacy`) deletes every client
 the subject registered. It is the third eraser registered because the cascade cannot reach it, and
