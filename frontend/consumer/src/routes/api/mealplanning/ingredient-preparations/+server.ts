@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidIngredientPreparationsByPreparation } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
-import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { QueryFilter } from '@primandproper/platform-client/filtering/v1';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
   const session = locals.session;

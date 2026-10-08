@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { QueryFilter } from '@primandproper/platform-client/filtering/v1';
 import { EntryQuery } from '@primandproper/platform-client/audit/v1';
 import { getUser, listAccountsForUser, listAuditEntries } from '$lib/grpc/clients';
 

@@ -1,4 +1,4 @@
-import { MealComponentType, RecipeStepProductType } from '$lib/recipes/client-enums';
+import { MealComponentType, RecipeStepProductType } from './client-enums';
 import type {
   RecipeCreationRequestInput,
   RecipeStepCreationRequestInput,
@@ -15,7 +15,7 @@ import type {
   ValidPreparationInstrument,
   ValidPreparationVessel,
   ValidIngredientMeasurementUnit,
-} from '$lib/recipes/client-types';
+} from './client-types';
 
 function createEmptyStep(index: number): RecipeStepCreationRequestInput {
   return {
