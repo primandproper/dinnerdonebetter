@@ -24,11 +24,11 @@ var fieldExceptions = map[string]map[string]Rule{
 		"BelongsToMealPlan": Skip(parentStampedByCaller),
 	},
 	"ConvertMealPlanGroceryListItemCreationRequestInputToMealPlanGroceryListItemDatabaseCreationInput": {
-		"BelongsToMealPlanOption": Skip(groceryProvenance),
-		"OptionIndex":             Skip(groceryProvenance),
-		"IngredientIndex":         Skip(groceryProvenance),
-		"RecipeStepID":            Skip(groceryProvenance),
-		"RecipeID":                Skip(groceryProvenance),
+		fieldBelongsToMealPlanOption: Skip(groceryProvenance),
+		"OptionIndex":                Skip(groceryProvenance),
+		"IngredientIndex":            Skip(groceryProvenance),
+		"RecipeStepID":               Skip(groceryProvenance),
+		"RecipeID":                   Skip(groceryProvenance),
 	},
 	"ConvertMealPlanGroceryListItemToMealPlanGroceryListItemCreationRequestInput": {
 		fieldValidMeasurementUnitID: Expr("x.MeasurementUnit.ID", ambiguousMeasurementUnit),
@@ -43,13 +43,13 @@ var fieldExceptions = map[string]map[string]Rule{
 		"BelongsToMealPlanEvent": Skip(parentStampedByCaller),
 	},
 	"ConvertMealPlanOptionToMealPlanOptionCreationRequestInput": {
-		"Selections": Skip("A stored MealPlanOption does not carry the recipe selections made against it; they are read from the meal plan."),
+		fieldSelections: Skip("A stored MealPlanOption does not carry the recipe selections made against it; they are read from the meal plan."),
 	},
 	"ConvertMealPlanRecipeOptionSelectionCreationRequestInputToMealPlanRecipeOptionSelectionDatabaseCreationInput": {
-		"BelongsToMealPlanOption": Skip(parentStampedByCaller),
+		fieldBelongsToMealPlanOption: Skip(parentStampedByCaller),
 	},
 	"ConvertRecipePrepTaskStepToRecipePrepTaskStepUpdateRequestInput": {
-		"BelongsToRecipeStep":     Expr("new(x.BelongsToRecipeStep)", pointsAtACopy),
+		fieldBelongsToRecipeStep:  Expr("new(x.BelongsToRecipeStep)", pointsAtACopy),
 		"BelongsToRecipePrepTask": Expr("new(x.BelongsToRecipePrepTask)", pointsAtACopy),
 		"SatisfiesRecipeStep":     Expr("new(x.SatisfiesRecipeStep)", pointsAtACopy),
 	},
@@ -122,6 +122,10 @@ const (
 // Field names the exception tables below repeat.
 const (
 	fieldBelongsToAccount                = "BelongsToAccount"
+	fieldBelongsToMealPlanOption         = "BelongsToMealPlanOption"
+	fieldBelongsToRecipeStep             = "BelongsToRecipeStep"
+	fieldMedia                           = "Media"
+	fieldSelections                      = "Selections"
 	fieldBelongsToUser                   = "BelongsToUser"
 	fieldCreatedByUser                   = "CreatedByUser"
 	fieldProductOfRecipeStepIndex        = "ProductOfRecipeStepIndex"

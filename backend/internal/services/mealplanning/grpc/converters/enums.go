@@ -1,0 +1,361 @@
+package grpcconverters
+
+// Every protobuf enum crosses into the domain as a string, through one pair of functions per enum.
+// The generated converters name these by convention — ConvertStringToX and ConvertXToString — so a
+// new enum needs its pair here before a message that carries it can be generated.
+//
+// A value either side does not recognize falls back to a default rather than failing, which is
+// what each function's default case returns.
+
+import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
+)
+
+func ConvertStringToMealPlanTaskStatus(s string) mealplanningsvc.MealPlanTaskStatus {
+	switch s {
+	case mealplanning.MealPlanTaskStatusPostponed:
+		return mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_POSTPONED
+	case mealplanning.MealPlanTaskStatusIgnored:
+		return mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_IGNORED
+	case mealplanning.MealPlanTaskStatusCanceled:
+		return mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_CANCELED
+	case mealplanning.MealPlanTaskStatusFinished:
+		return mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_FINISHED
+	case mealplanning.MealPlanTaskStatusUnfinished:
+		return mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_UNFINISHED
+	default:
+		return mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_UNFINISHED
+	}
+}
+
+func ConvertMealPlanTaskStatusToString(s mealplanningsvc.MealPlanTaskStatus) string {
+	switch s {
+	case mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_POSTPONED:
+		return mealplanning.MealPlanTaskStatusPostponed
+	case mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_IGNORED:
+		return mealplanning.MealPlanTaskStatusIgnored
+	case mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_CANCELED:
+		return mealplanning.MealPlanTaskStatusCanceled
+	case mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_FINISHED:
+		return mealplanning.MealPlanTaskStatusFinished
+	case mealplanningsvc.MealPlanTaskStatus_MEAL_PLAN_TASK_STATUS_UNFINISHED:
+		return mealplanning.MealPlanTaskStatusUnfinished
+	default:
+		return mealplanning.MealPlanTaskStatusUnfinished
+	}
+}
+
+func ConvertStringToMealPlanGroceryListItemStatus(s string) mealplanningsvc.MealPlanGroceryListItemStatus {
+	switch s {
+	case mealplanning.MealPlanGroceryListItemStatusAlreadyOwned:
+		return mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_ALREADY_OWNED
+	case mealplanning.MealPlanGroceryListItemStatusNeeds:
+		return mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_NEEDS
+	case mealplanning.MealPlanGroceryListItemStatusUnavailable:
+		return mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_UNAVAILABLE
+	case mealplanning.MealPlanGroceryListItemStatusAcquired:
+		return mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_ACQUIRED
+	case mealplanning.MealPlanGroceryListItemStatusUnknown:
+		return mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_UNKNOWN
+	default:
+		return mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_UNKNOWN
+	}
+}
+
+func ConvertMealPlanGroceryListItemStatusToString(s mealplanningsvc.MealPlanGroceryListItemStatus) string {
+	switch s {
+	case mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_ALREADY_OWNED:
+		return mealplanning.MealPlanGroceryListItemStatusAlreadyOwned
+	case mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_NEEDS:
+		return mealplanning.MealPlanGroceryListItemStatusNeeds
+	case mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_UNAVAILABLE:
+		return mealplanning.MealPlanGroceryListItemStatusUnavailable
+	case mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_ACQUIRED:
+		return mealplanning.MealPlanGroceryListItemStatusAcquired
+	case mealplanningsvc.MealPlanGroceryListItemStatus_MEAL_PLAN_GROCERY_LIST_ITEM_STATUS_UNKNOWN:
+		return mealplanning.MealPlanGroceryListItemStatusUnknown
+	default:
+		return mealplanning.MealPlanGroceryListItemStatusUnknown
+	}
+}
+
+func ConvertStringToMealPlanEventName(s string) mealplanningsvc.MealPlanEventName {
+	switch s {
+	case mealplanning.BreakfastMealName:
+		return mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_BREAKFAST
+	case mealplanning.SecondBreakfastMealName:
+		return mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_SECOND_BREAKFAST
+	case mealplanning.BrunchMealName:
+		return mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_BRUNCH
+	case mealplanning.LunchMealName:
+		return mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_LUNCH
+	case mealplanning.DinnerMealName:
+		return mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_DINNER
+	case mealplanning.SupperMealName:
+		return mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_SUPPER
+	default:
+		return mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_SECOND_BREAKFAST
+	}
+}
+
+func ConvertMealPlanEventNameToString(s mealplanningsvc.MealPlanEventName) string {
+	switch s {
+	case mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_BREAKFAST:
+		return mealplanning.BreakfastMealName
+	case mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_SECOND_BREAKFAST:
+		return mealplanning.SecondBreakfastMealName
+	case mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_BRUNCH:
+		return mealplanning.BrunchMealName
+	case mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_LUNCH:
+		return mealplanning.LunchMealName
+	case mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_DINNER:
+		return mealplanning.DinnerMealName
+	case mealplanningsvc.MealPlanEventName_MEAL_PLAN_EVENT_NAME_SUPPER:
+		return mealplanning.SupperMealName
+	default:
+		return mealplanning.SecondBreakfastMealName
+	}
+}
+
+func ConvertStringToMealPlanStatus(s string) mealplanningsvc.MealPlanStatus {
+	switch s {
+	case string(mealplanning.MealPlanStatusAwaitingVotes):
+		return mealplanningsvc.MealPlanStatus_MEAL_PLAN_STATUS_AWAITING_VOTES
+	case string(mealplanning.MealPlanStatusFinalized):
+		return mealplanningsvc.MealPlanStatus_MEAL_PLAN_STATUS_FINALIZED
+	default:
+		return mealplanningsvc.MealPlanStatus_MEAL_PLAN_STATUS_AWAITING_VOTES
+	}
+}
+
+func ConvertMealPlanStatusToString(s mealplanningsvc.MealPlanStatus) string {
+	switch s {
+	case mealplanningsvc.MealPlanStatus_MEAL_PLAN_STATUS_AWAITING_VOTES:
+		return string(mealplanning.MealPlanStatusAwaitingVotes)
+	case mealplanningsvc.MealPlanStatus_MEAL_PLAN_STATUS_FINALIZED:
+		return string(mealplanning.MealPlanStatusFinalized)
+	default:
+		return string(mealplanning.MealPlanStatusAwaitingVotes)
+	}
+}
+
+func ConvertStringToMealComponentType(s string) mealplanningsvc.MealComponentType {
+	switch s {
+	case mealplanning.MealComponentTypesAmuseBouche:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_AMUSE_BOUCHE
+	case mealplanning.MealComponentTypesAppetizer:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_APPETIZER
+	case mealplanning.MealComponentTypesSoup:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_SOUP
+	case mealplanning.MealComponentTypesMain:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_MAIN
+	case mealplanning.MealComponentTypesSalad:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_SALAD
+	case mealplanning.MealComponentTypesBeverage:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_BEVERAGE
+	case mealplanning.MealComponentTypesSide:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_SIDE
+	case mealplanning.MealComponentTypesDessert:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_DESSERT
+	case mealplanning.MealComponentTypesUnspecified:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_UNSPECIFIED
+	default:
+		return mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_UNSPECIFIED
+	}
+}
+
+func ConvertMealComponentTypeToString(s mealplanningsvc.MealComponentType) string {
+	switch s {
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_AMUSE_BOUCHE:
+		return mealplanning.MealComponentTypesAmuseBouche
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_APPETIZER:
+		return mealplanning.MealComponentTypesAppetizer
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_SOUP:
+		return mealplanning.MealComponentTypesSoup
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_MAIN:
+		return mealplanning.MealComponentTypesMain
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_SALAD:
+		return mealplanning.MealComponentTypesSalad
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_BEVERAGE:
+		return mealplanning.MealComponentTypesBeverage
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_SIDE:
+		return mealplanning.MealComponentTypesSide
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_DESSERT:
+		return mealplanning.MealComponentTypesDessert
+	case mealplanningsvc.MealComponentType_MEAL_COMPONENT_TYPE_UNSPECIFIED:
+		return mealplanning.MealComponentTypesUnspecified
+	default:
+		return mealplanning.MealComponentTypesUnspecified
+	}
+}
+
+func ConvertStringToMealPlanElectionMethod(s string) mealplanningsvc.MealPlanElectionMethod {
+	switch s {
+	case mealplanning.MealPlanElectionMethodSchulze:
+		return mealplanningsvc.MealPlanElectionMethod_MEAL_PLAN_ELECTION_METHOD_SCHULZE
+	case mealplanning.MealPlanElectionMethodInstantRunoff:
+		return mealplanningsvc.MealPlanElectionMethod_MEAL_PLAN_ELECTION_METHOD_INSTANT_RUNOFF
+	default:
+		return mealplanningsvc.MealPlanElectionMethod_MEAL_PLAN_ELECTION_METHOD_SCHULZE
+	}
+}
+
+func ConvertMealPlanElectionMethodToString(s mealplanningsvc.MealPlanElectionMethod) string {
+	switch s {
+	case mealplanningsvc.MealPlanElectionMethod_MEAL_PLAN_ELECTION_METHOD_SCHULZE:
+		return mealplanning.MealPlanElectionMethodSchulze
+	case mealplanningsvc.MealPlanElectionMethod_MEAL_PLAN_ELECTION_METHOD_INSTANT_RUNOFF:
+		return mealplanning.MealPlanElectionMethodInstantRunoff
+	default:
+		return mealplanning.MealPlanElectionMethodSchulze
+	}
+}
+
+func ConvertStringToMealPlanRecipeOptionSelectionType(s string) mealplanningsvc.MealPlanRecipeOptionSelectionType {
+	switch s {
+	case mealplanning.MealPlanRecipeOptionSelectionTypeIngredient:
+		return mealplanningsvc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT
+	case mealplanning.MealPlanRecipeOptionSelectionTypeInstrument:
+		return mealplanningsvc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INSTRUMENT
+	case mealplanning.MealPlanRecipeOptionSelectionTypeVessel:
+		return mealplanningsvc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_VESSEL
+	default:
+		return mealplanningsvc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_UNSPECIFIED
+	}
+}
+
+func ConvertMealPlanRecipeOptionSelectionTypeToString(s mealplanningsvc.MealPlanRecipeOptionSelectionType) string {
+	switch s {
+	case mealplanningsvc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INGREDIENT:
+		return mealplanning.MealPlanRecipeOptionSelectionTypeIngredient
+	case mealplanningsvc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_INSTRUMENT:
+		return mealplanning.MealPlanRecipeOptionSelectionTypeInstrument
+	case mealplanningsvc.MealPlanRecipeOptionSelectionType_MEAL_PLAN_RECIPE_OPTION_SELECTION_TYPE_VESSEL:
+		return mealplanning.MealPlanRecipeOptionSelectionTypeVessel
+	default:
+		return ""
+	}
+}
+
+func ConvertStringToRecipeStepProductType(s string) mealplanningsvc.RecipeStepProductType {
+	switch s {
+	case mealplanning.RecipeStepProductInstrumentType:
+		return mealplanningsvc.RecipeStepProductType_RECIPE_STEP_PRODUCT_TYPE_INSTRUMENT
+	case mealplanning.RecipeStepProductVesselType:
+		return mealplanningsvc.RecipeStepProductType_RECIPE_STEP_PRODUCT_TYPE_VESSEL
+	case mealplanning.RecipeStepProductIngredientType:
+		return mealplanningsvc.RecipeStepProductType_RECIPE_STEP_PRODUCT_TYPE_INGREDIENT
+	default:
+		return mealplanningsvc.RecipeStepProductType_RECIPE_STEP_PRODUCT_TYPE_INGREDIENT
+	}
+}
+
+func ConvertRecipeStepProductTypeToString(s mealplanningsvc.RecipeStepProductType) string {
+	switch s {
+	case mealplanningsvc.RecipeStepProductType_RECIPE_STEP_PRODUCT_TYPE_INSTRUMENT:
+		return mealplanning.RecipeStepProductInstrumentType
+	case mealplanningsvc.RecipeStepProductType_RECIPE_STEP_PRODUCT_TYPE_VESSEL:
+		return mealplanning.RecipeStepProductVesselType
+	case mealplanningsvc.RecipeStepProductType_RECIPE_STEP_PRODUCT_TYPE_INGREDIENT:
+		return mealplanning.RecipeStepProductIngredientType
+	default:
+		return mealplanning.RecipeStepProductIngredientType
+	}
+}
+
+func ConvertStringToValidIngredientStateAttributeType(s string) mealplanningsvc.ValidIngredientStateAttributeType {
+	switch s {
+	case mealplanning.ValidIngredientStateAttributeTypeTexture:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_TEXTURE
+	case mealplanning.ValidIngredientStateAttributeTypeConsistency:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_CONSISTENCY
+	case mealplanning.ValidIngredientStateAttributeTypeTemperature:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_TEMPERATURE
+	case mealplanning.ValidIngredientStateAttributeTypeColor:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_COLOR
+	case mealplanning.ValidIngredientStateAttributeTypeAppearance:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_APPEARANCE
+	case mealplanning.ValidIngredientStateAttributeTypeOdor:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_ODOR
+	case mealplanning.ValidIngredientStateAttributeTypeTaste:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_TASTE
+	case mealplanning.ValidIngredientStateAttributeTypeSound:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_SOUND
+	case mealplanning.ValidIngredientStateAttributeTypeOther:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_OTHER
+	default:
+		return mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_OTHER
+	}
+}
+
+func ConvertValidIngredientStateAttributeTypeToString(s mealplanningsvc.ValidIngredientStateAttributeType) string {
+	switch s {
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_TEXTURE:
+		return mealplanning.ValidIngredientStateAttributeTypeTexture
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_CONSISTENCY:
+		return mealplanning.ValidIngredientStateAttributeTypeConsistency
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_TEMPERATURE:
+		return mealplanning.ValidIngredientStateAttributeTypeTemperature
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_COLOR:
+		return mealplanning.ValidIngredientStateAttributeTypeColor
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_APPEARANCE:
+		return mealplanning.ValidIngredientStateAttributeTypeAppearance
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_ODOR:
+		return mealplanning.ValidIngredientStateAttributeTypeOdor
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_TASTE:
+		return mealplanning.ValidIngredientStateAttributeTypeTaste
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_SOUND:
+		return mealplanning.ValidIngredientStateAttributeTypeSound
+	case mealplanningsvc.ValidIngredientStateAttributeType_VALID_INGREDIENT_STATE_ATTRIBUTE_TYPE_OTHER:
+		return mealplanning.ValidIngredientStateAttributeTypeOther
+	default:
+		return mealplanning.ValidIngredientStateAttributeTypeOther
+	}
+}
+
+func ConvertStringToValidVesselShape(s string) mealplanningsvc.ValidVesselShape {
+	switch s {
+	case mealplanning.VesselShapeHemisphere:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_HEMISPHERE
+	case mealplanning.VesselShapeRectangle:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_RECTANGLE
+	case mealplanning.VesselShapeCone:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_CONE
+	case mealplanning.VesselShapePyramid:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_PYRAMID
+	case mealplanning.VesselShapeCylinder:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_CYLINDER
+	case mealplanning.VesselShapeSphere:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_SPHERE
+	case mealplanning.VesselShapeCube:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_CUBE
+	case mealplanning.VesselShapeOther:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_OTHER
+	default:
+		return mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_OTHER
+	}
+}
+
+func ConvertValidVesselShapeToString(s mealplanningsvc.ValidVesselShape) string {
+	switch s {
+	case mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_HEMISPHERE:
+		return mealplanning.VesselShapeHemisphere
+	case mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_RECTANGLE:
+		return mealplanning.VesselShapeRectangle
+	case mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_CONE:
+		return mealplanning.VesselShapeCone
+	case mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_PYRAMID:
+		return mealplanning.VesselShapePyramid
+	case mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_CYLINDER:
+		return mealplanning.VesselShapeCylinder
+	case mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_SPHERE:
+		return mealplanning.VesselShapeSphere
+	case mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_CUBE:
+		return mealplanning.VesselShapeCube
+	case mealplanningsvc.ValidVesselShape_VESSEL_SHAPE_OTHER:
+		return mealplanning.VesselShapeOther
+	default:
+		return mealplanning.VesselShapeOther
+	}
+}

@@ -20,6 +20,12 @@
 // reason, and each reason is rendered into the generated source. Conversions whose bodies are not
 // field assignments at all are listed there too, and stay hand-written in converters_manual.go
 // beside the generated file.
+//
+// The same tool generates the gRPC converters — the functions that carry a mealplanning entity
+// between its domain type and its protobuf message — on the same terms: fields derived from the
+// two structs, per-field exceptions with reasons in grpc_exceptions.go, and the conversions that
+// are not field assignments left in that package's converters_manual.go. The one difference is
+// that which gRPC conversions exist is declared rather than read off type names; grpc.go says why.
 package main
 
 import (
@@ -85,6 +91,12 @@ func generate(root string) error {
 		}
 
 		written[generatedPath(domain)] = rendered
+	}
+
+	if rendered, grpcErr := generateGRPC(root, index); grpcErr != nil {
+		failures = append(failures, grpcErr)
+	} else {
+		written[grpcGeneratedPath()] = rendered
 	}
 
 	if len(failures) > 0 {

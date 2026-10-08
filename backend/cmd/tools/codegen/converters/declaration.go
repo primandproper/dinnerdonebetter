@@ -55,6 +55,18 @@ const (
 	ruleExpr
 	// ruleSkip leaves a destination field at its zero value, deliberately.
 	ruleSkip
+	// ruleFrom reads a source field named differently from the destination field, and derives
+	// how to carry it across exactly as it would for a field of the same name.
+	ruleFrom
+	// ruleUnguarded converts a nested message held by pointer without checking it for nil
+	// first. Never derived: the converter it calls dereferences what it is handed.
+	ruleUnguarded
+	// ruleEmptySlice converts a collection into a slice that starts empty rather than nil, so
+	// that an empty source becomes [] rather than null.
+	ruleEmptySlice
+	// ruleDetached copies what a source pointer points at into a new pointer, rather than
+	// copying the pointer and sharing what it points at.
+	ruleDetached
 )
 
 // Rule is what happens to one destination field.
@@ -116,6 +128,41 @@ func MapSlice(sourceField, converter, why string) Rule {
 // different facts, and only one of them is a bug when it turns out to be false.
 func Skip(why string) Rule {
 	return Rule{kind: ruleSkip, why: why}
+}
+
+// From reads a differently named source field, carried across the way a same-named one would be.
+//
+// The gRPC messages and the domain types mostly agree on names, and where they do not — a rating
+// the message calls RecipeId and the domain calls BelongsToRecipe — the rename is the only thing
+// worth declaring: the conversion between the two types is still derived.
+func From(sourceField, why string) Rule {
+	return Rule{kind: ruleFrom, sourceField: sourceField, why: why}
+}
+
+// Unguarded converts a nested message held by pointer without a nil check, which panics on an
+// absent one.
+//
+// A pointer on both sides is the case where absence is representable, so the derivation guards
+// it. A converter that did not is preserved with this rather than corrected, because generating
+// it is not supposed to change what it does.
+func Unguarded(why string) Rule {
+	return Rule{kind: ruleUnguarded, why: why}
+}
+
+// EmptySlice builds a converted collection from an empty slice rather than a nil one.
+//
+// The derivation starts from nil, which is what most of the converters this replaced did: an
+// empty source becomes a nil slice, which is null on the wire. Some started from an empty literal
+// instead, and the two are not interchangeable — they serialize differently and compare unequal —
+// so the ones that did say so here.
+func EmptySlice(why string) Rule {
+	return Rule{kind: ruleEmptySlice, why: why}
+}
+
+// Detached copies the value behind a source pointer into a new one, guarded for nil, rather than
+// copying the pointer itself.
+func Detached(why string) Rule {
+	return Rule{kind: ruleDetached, why: why}
 }
 
 // elementPlaceholder is the name the generated loop gives the element being converted.

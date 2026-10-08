@@ -251,7 +251,7 @@ func (s *serviceImpl) CreateValidIngredient(ctx context.Context, request *mealpl
 
 	logger := s.logger.WithSpan(span)
 
-	created, err := s.mealPlanningManager.CreateValidIngredient(ctx, mealplanningconverters.ConvertGRPCCreateValidIngredientRequestToValidIngredientCreationRequestInput(request.Input))
+	created, err := s.mealPlanningManager.CreateValidIngredient(ctx, mealplanningconverters.ConvertGRPCValidIngredientCreationRequestInputToValidIngredientCreationRequestInput(request.Input))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid ingredient")
 	}
@@ -297,7 +297,7 @@ func (s *serviceImpl) CreateValidIngredientMeasurementUnit(ctx context.Context, 
 
 	logger := s.logger.WithSpan(span)
 
-	created, err := s.mealPlanningManager.CreateValidIngredientMeasurementUnit(ctx, mealplanningconverters.ConvertGRPCCreateValidIngredientMeasurementUnitRequestToValidIngredientMeasurementUnitCreationRequestInput(request.Input))
+	created, err := s.mealPlanningManager.CreateValidIngredientMeasurementUnit(ctx, mealplanningconverters.ConvertGRPCValidIngredientMeasurementUnitCreationRequestInputToValidIngredientMeasurementUnitCreationRequestInput(request.Input))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid ingredient measurement unit")
 	}
@@ -320,7 +320,7 @@ func (s *serviceImpl) CreateValidIngredientPreparation(ctx context.Context, requ
 
 	logger := s.logger.WithSpan(span)
 
-	created, err := s.mealPlanningManager.CreateValidIngredientPreparation(ctx, mealplanningconverters.ConvertGRPCCreateValidIngredientPreparationRequestToValidIngredientPreparationCreationRequestInput(request.Input))
+	created, err := s.mealPlanningManager.CreateValidIngredientPreparation(ctx, mealplanningconverters.ConvertGRPCValidIngredientPreparationCreationRequestInputToValidIngredientPreparationCreationRequestInput(request.Input))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid ingredient preparation")
 	}
@@ -366,7 +366,7 @@ func (s *serviceImpl) CreateValidIngredientState(ctx context.Context, request *m
 
 	logger := s.logger.WithSpan(span)
 
-	input := mealplanningconverters.ConvertGRPCCreateValidIngredientStateRequestToValidIngredientStateCreationRequestInput(request.Input)
+	input := mealplanningconverters.ConvertGRPCValidIngredientStateCreationRequestInputToValidIngredientStateCreationRequestInput(request.Input)
 	created, err := s.mealPlanningManager.CreateValidIngredientState(ctx, input)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid ingredient state")
@@ -390,7 +390,7 @@ func (s *serviceImpl) CreateValidIngredientStateIngredient(ctx context.Context, 
 
 	logger := s.logger.WithSpan(span)
 
-	created, err := s.mealPlanningManager.CreateValidIngredientStateIngredient(ctx, mealplanningconverters.ConvertGRPCCreateValidIngredientStateIngredientRequestToValidIngredientStateIngredientCreationRequestInput(request.Input))
+	created, err := s.mealPlanningManager.CreateValidIngredientStateIngredient(ctx, mealplanningconverters.ConvertGRPCValidIngredientStateIngredientCreationRequestInputToValidIngredientStateIngredientCreationRequestInput(request.Input))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid ingredient state ingredient")
 	}
@@ -413,7 +413,7 @@ func (s *serviceImpl) CreateValidInstrument(ctx context.Context, request *mealpl
 
 	logger := s.logger.WithSpan(span)
 
-	created, err := s.mealPlanningManager.CreateValidInstrument(ctx, mealplanningconverters.ConvertGRPCCreateValidInstrumentRequestToValidInstrumentCreationRequestInput(request.Input))
+	created, err := s.mealPlanningManager.CreateValidInstrument(ctx, mealplanningconverters.ConvertGRPCValidInstrumentCreationRequestInputToValidInstrumentCreationRequestInput(request.Input))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid instrument")
 	}
@@ -459,7 +459,7 @@ func (s *serviceImpl) CreateValidMeasurementUnitConversion(ctx context.Context, 
 
 	logger := s.logger.WithSpan(span)
 
-	created, err := s.mealPlanningManager.CreateValidMeasurementUnitConversion(ctx, mealplanningconverters.ConvertGRPCCreateValidMeasurementUnitConversionRequestToValidMeasurementUnitConversionCreationRequestInput(request.Input))
+	created, err := s.mealPlanningManager.CreateValidMeasurementUnitConversion(ctx, mealplanningconverters.ConvertGRPCValidMeasurementUnitConversionCreationRequestInputToValidMeasurementUnitConversionCreationRequestInput(request.Input))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid measurement unit conversion")
 	}
@@ -505,7 +505,7 @@ func (s *serviceImpl) CreateValidPreparationInstrument(ctx context.Context, requ
 
 	logger := s.logger.WithSpan(span)
 
-	created, err := s.mealPlanningManager.CreateValidPreparationInstrument(ctx, mealplanningconverters.ConvertGRPCCreateValidPreparationInstrumentRequestToValidPreparationInstrumentCreationRequestInput(request.Input))
+	created, err := s.mealPlanningManager.CreateValidPreparationInstrument(ctx, mealplanningconverters.ConvertGRPCValidPreparationInstrumentCreationRequestInputToValidPreparationInstrumentCreationRequestInput(request.Input))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid preparation instrument")
 	}
@@ -528,7 +528,7 @@ func (s *serviceImpl) CreateValidPreparationVessel(ctx context.Context, request 
 
 	logger := s.logger.WithSpan(span)
 
-	created, err := s.mealPlanningManager.CreateValidPreparationVessel(ctx, mealplanningconverters.ConvertGRPCCreateValidPreparationVesselRequestToValidPreparationVesselCreationRequestInput(request.Input))
+	created, err := s.mealPlanningManager.CreateValidPreparationVessel(ctx, mealplanningconverters.ConvertGRPCValidPreparationVesselCreationRequestInputToValidPreparationVesselCreationRequestInput(request.Input))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating valid preparation vessel")
 	}
