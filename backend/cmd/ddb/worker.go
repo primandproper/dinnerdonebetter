@@ -146,12 +146,12 @@ func runScheduler(ctx context.Context, cfg *config.SchedulerConfig) error {
 		return err
 	}
 
-	notificationQueue, err := schedulerbuild.NewNotificationQueue(i)
+	runners, err := schedulerbuild.Runners(i)
 	if err != nil {
-		return fmt.Errorf("building the meal plan task notification queue: %w", err)
+		return fmt.Errorf("building the scheduler's runners: %w", err)
 	}
 
-	svc, err := service.New(i, service.WithRunners(notificationQueue))
+	svc, err := service.New(i, service.WithRunners(runners...))
 	if err != nil {
 		return fmt.Errorf("could not assemble the scheduler: %w", err)
 	}

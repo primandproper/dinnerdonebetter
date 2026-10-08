@@ -369,6 +369,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 				Storage: gcpMediaStorage,
 				Debug:   false,
 			},
+			// Domain: mealplanning
 			MealPlanning: mealplanningcfg.Config{
 				UseSearchService: true,
 			},

@@ -9,6 +9,7 @@ import (
 	schedulerbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/scheduler"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
@@ -109,6 +110,13 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		require.NotNil(t, do.MustInvoke[*platformdataprivacy.Sweeper](i))
 		require.NotNil(t, do.MustInvoke[*retention.Sweeper](i))
 		require.NotNil(t, do.MustInvoke[*metering.Flusher](i))
+
+		// The reindex job resolves the Registry from inside its closure, and the Registry
+		// resolves every domain's index clients as it registers the indexes. This container
+		// declared none of those clients until each domain's registration began registering
+		// them, and nothing above would have said so: the job ticked, panicked, and was
+		// recorded as a failed run.
+		require.NotNil(t, do.MustInvoke[*searchindexes.Registry](i))
 	})
 
 	T.Run("schedules the reapers platform's stores own", func(t *testing.T) {
@@ -116,12 +124,12 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 
 		i := buildSchedulerInjector(t)
 
-		queue, err := schedulerbuild.NewNotificationQueue(i)
+		runners, err := schedulerbuild.Runners(i)
 		require.NoError(t, err)
 
 		// New is what hands the scheduler its jobs — this application's and platform's own — so
 		// the process is assembled exactly as cmd/ddb assembles it.
-		_, err = service.New(i, service.WithRunners(queue))
+		_, err = service.New(i, service.WithRunners(runners...))
 		require.NoError(t, err)
 
 		// The scheduler cannot be asked what it holds, but it refuses a second job under a name

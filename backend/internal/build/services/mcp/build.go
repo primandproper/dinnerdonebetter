@@ -67,6 +67,7 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// The upload registry, because both repositories above read media through it —
 	// a user's avatar, a recipe step's images.
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
+	// Domain: mealplanning
 	mealplanningrepo.RegisterMealPlanningRepository(i)
 	webhooksstore.RegisterWebhooksStore(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)

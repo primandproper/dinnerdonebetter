@@ -52,7 +52,7 @@ func TestSharedInjector_HTTPAndGRPCServersShareOneContainer(t *testing.T) {
 	_, hasHTTPServer := provided[do.NameOf[http.Server]()]
 	assert.True(t, hasHTTPServer, "shared injector should provide the HTTP server")
 
-	_, hasGRPCServer := provided[do.NameOf[*grpcapi.GRPCService]()]
+	_, hasGRPCServer := provided[do.NameOf[*grpc.Server]()]
 	assert.True(t, hasGRPCServer, "shared injector should provide the gRPC server")
 }
 

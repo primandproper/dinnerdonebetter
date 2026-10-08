@@ -64,13 +64,16 @@ func buildDatabaseClientForTest(t *testing.T) (platformcomments.Store, database.
 
 	auditRecorder := auditLogEntryRepo.Recorder()
 
+	catalog, err := comments.Catalog()
+	require.NoError(t, err)
+
 	c, err := ProvideCommentsRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
 		pgc,
 		pgtesting.NewRecorderForTest(t, ctx, pgc, auditRecorder),
-		comments.Catalog(),
+		catalog,
 	)
 	require.NoError(t, err)
 

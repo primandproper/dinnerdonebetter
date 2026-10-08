@@ -26,7 +26,6 @@ import (
 	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v15/service"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
@@ -96,11 +95,15 @@ func BuildInjector(
 	waitlistsrepo.RegisterWaitlistsRepository(i)
 
 	// Every search index this process drains the topic of: one Registry, built from each
-	// domain's indexes. See internal/searchindexes.
-	searchindexes.Register(ctx, i, identityindexing.RegisterIndexes, mealplanningindexing.RegisterIndexes)
-
-	// searchers
-	RegisterSearchers(i)
+	// domain's indexes. See internal/searchindexes. Each domain registers the index clients
+	// its registrar resolves; identity's are here, and the domain's arrived with its
+	// registration above.
+	identityindexing.RegisterSearchers(i)
+	searchindexes.Register(ctx, i,
+		identityindexing.RegisterIndexes,
+		// Domain: mealplanning
+		mealplanningregistration.RegisterIndexes,
+	)
 
 	// main handler
 	datachangemessagehandler.RegisterAsyncDataChangeMessageHandler(i)

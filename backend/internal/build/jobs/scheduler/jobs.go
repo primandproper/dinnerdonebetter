@@ -4,10 +4,9 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
-	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
-	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
 	"github.com/primandproper/platform-go/v15/metering"
@@ -21,13 +20,11 @@ import (
 // Job names. These are also the distributed lock keys, so renaming one lets an old replica and
 // a new replica both run that job during a rollout.
 const (
-	jobMealPlanFinalizationStarter = "meal_plan_finalization_starter"
-	jobMealPlanTaskNotifications   = "meal_plan_task_notifications"
-	jobSearchDataIndexScheduler    = "search_data_index_scheduler"
-	jobQueueTest                   = "queue_test"
-	jobDataPrivacySweep            = "data_privacy_sweep"
-	jobAuditRetentionSweeper       = "audit_retention_sweeper"
-	jobMeteringFlusher             = "metering_flusher"
+	jobSearchDataIndexScheduler = "search_data_index_scheduler"
+	jobQueueTest                = "queue_test"
+	jobDataPrivacySweep         = "data_privacy_sweep"
+	jobAuditRetentionSweeper    = "audit_retention_sweeper"
+	jobMeteringFlusher          = "metering_flusher"
 )
 
 // RegisterJobs registers this application's scheduled jobs, every enabled one already rendered, as
@@ -38,6 +35,9 @@ const (
 // the jobs platform schedules for itself — operations' recovery and reap, and saga retention — in
 // one call, so a duplicate name or an invalid job anywhere fails the boot rather than leaving a
 // schedule that is partly what was asked for.
+//
+// The jobs are this application's own, which are rendered here, followed by each domain's,
+// which the domain renders from its own block of the config and contributes already built.
 func RegisterJobs(i do.Injector) {
 	do.Provide[[]jobs.Job](i, func(i do.Injector) ([]jobs.Job, error) {
 		jobsCfg := do.MustInvoke[*config.ScheduledJobsConfig](i)
@@ -47,16 +47,6 @@ func RegisterJobs(i do.Injector) {
 			cfg  *jobscfg.JobConfig
 			name string
 		}{
-			{
-				name: jobMealPlanFinalizationStarter,
-				cfg:  &jobsCfg.MealPlanning.MealPlanFinalizationStarter,
-				// The starter reports how many sagas it began; the scheduler has nowhere to
-				// put a count, and the worker already records it as a metric.
-				run: func(ctx context.Context) error {
-					_, workErr := do.MustInvoke[*mealplanfinalization.Starter](i).Work(ctx)
-					return workErr
-				},
-			},
 			{
 				name: jobSearchDataIndexScheduler,
 				cfg:  &jobsCfg.SearchDataIndexScheduler,
@@ -70,20 +60,6 @@ func RegisterJobs(i do.Injector) {
 				// change rate; running them concurrently would multiply that load against
 				// the same database for no gain in a job with a whole tick to finish in.
 				run: runReindexers(i),
-			},
-			{
-				name: jobMealPlanTaskNotifications,
-				cfg:  &jobsCfg.MealPlanning.MealPlanTaskNotifications,
-				// One pass enqueues every task still owed a reminder, drains what the
-				// queue hands over, and sends under the lease. The count of pushes it
-				// sent has nowhere to go here — the queue and the fan-out both record
-				// their own counters — so it is dropped the way the finalization
-				// starter's is.
-				run: func(ctx context.Context) error {
-					_, workErr := do.MustInvoke[*mealplantasknotifications.Worker](i).Work(ctx)
-
-					return workErr
-				},
 			},
 			{
 				name: jobQueueTest,
@@ -152,6 +128,18 @@ func RegisterJobs(i do.Injector) {
 			}
 
 			scheduled = append(scheduled, job)
+		}
+
+		for _, contribute := range []func(do.Injector) ([]jobs.Job, error){
+			// Domain: mealplanning
+			mealplanningregistration.ScheduledJobs,
+		} {
+			contributed, err := contribute(i)
+			if err != nil {
+				return nil, err
+			}
+
+			scheduled = append(scheduled, contributed...)
 		}
 
 		return scheduled, nil

@@ -108,6 +108,42 @@ func TestBuildInjector_RegistersTheNotificationChain(t *testing.T) {
 	}
 }
 
+// TestBuildInjector_RegistersEverySearcherTheReindexJobResolves names the text index clients
+// the search index Registry resolves, one per index, because this container went without all
+// nine of them.
+//
+// The reindex job resolves the Registry from inside its closure at tick time, and the Registry
+// resolves each domain's index clients as it registers the indexes. Nothing resolved any of
+// that at boot, so a scheduler composed without the clients started, reported healthy, and
+// failed the reindex job on its first tick — which is what this process did until each domain's
+// registration began registering the clients beside the indexes they serve.
+//
+// Declarations rather than resolutions, for the reason the notification chain test gives.
+func TestBuildInjector_RegistersEverySearcherTheReindexJobResolves(t *testing.T) {
+	t.Parallel()
+
+	i := buildInjector(t)
+
+	declared := map[string]bool{}
+	for _, service := range i.ListProvidedServices() {
+		declared[service.Service] = true
+	}
+
+	for _, name := range []string{
+		"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing.UserTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.RecipeTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.MealTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidIngredientTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidInstrumentTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidMeasurementUnitTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidPreparationTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidIngredientStateTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidVesselTextSearcher",
+	} {
+		assert.True(t, declared[name], "the search index Registry resolves %s and this container does not declare it", name)
+	}
+}
+
 // TestBuildInjector_RegistersEveryPrivacyCollectorStore names the stores the data privacy
 // registry resolves that nothing else in this process touches.
 //

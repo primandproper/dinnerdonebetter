@@ -10,8 +10,8 @@ type (
 	// It is an alias for the platform's type rather than a defined type of its
 	// own, which is the adoption platform documents and the thing that lets this
 	// application's permission maps be composed with the ones platform's own gRPC
-	// surfaces ship — see internal/build/services/api/grpc.AggregateMethodPermissions,
-	// which now merges commentsgrpc.Permissions() alongside this repo's own. A
+	// surfaces ship — see internal/build/services/api/grpc.MethodPermissionFragments,
+	// which merges commentsgrpc.Permissions() alongside this repo's own. A
 	// defined type would have made that one conversion per domain, for thirteen
 	// domains.
 	Permission = platformauthz.Permission

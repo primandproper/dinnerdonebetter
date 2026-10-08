@@ -19,11 +19,13 @@ type (
 	ServicesConfig struct {
 		_ struct{} `json:"-"`
 
-		Payments      paymentscfg.Config     `envPrefix:"PAYMENTS_"       json:"payments,omitzero"`
-		UploadedMedia uploadscfg.Config      `envPrefix:"UPLOADED_MEDIA_" json:"uploadedMedia,omitzero"`
-		MealPlanning  mealplanningcfg.Config `envPrefix:"MEAL_PLANNING_"  json:"mealPlanning,omitzero"`
-		Auth          authentication.Config  `envPrefix:"AUTH_"           json:"auth,omitzero"`
-		DataPrivacy   dataprivacycfg.Config  `envPrefix:"DATA_PRIVACY_"   json:"dataPrivacy,omitzero"`
+		Payments      paymentscfg.Config `envPrefix:"PAYMENTS_"       json:"payments,omitzero"`
+		UploadedMedia uploadscfg.Config  `envPrefix:"UPLOADED_MEDIA_" json:"uploadedMedia,omitzero"`
+		// Domain: mealplanning — swapping the domain replaces this field, its validator
+		// below, and the type it names.
+		MealPlanning mealplanningcfg.Config `envPrefix:"MEAL_PLANNING_" json:"mealPlanning,omitzero"`
+		Auth         authentication.Config  `envPrefix:"AUTH_"          json:"auth,omitzero"`
+		DataPrivacy  dataprivacycfg.Config  `envPrefix:"DATA_PRIVACY_"  json:"dataPrivacy,omitzero"`
 	}
 )
 
