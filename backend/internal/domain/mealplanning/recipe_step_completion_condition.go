@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -18,12 +17,6 @@ const (
 	// RecipeStepCompletionConditionArchivedServiceEventType indicates a recipe step completion condition was archived.
 	RecipeStepCompletionConditionArchivedServiceEventType = "recipe_step_completion_condition_archived"
 )
-
-func init() {
-	gob.Register(new(RecipeStepCompletionCondition))
-	gob.Register(new(RecipeStepCompletionConditionCreationRequestInput))
-	gob.Register(new(RecipeStepCompletionConditionUpdateRequestInput))
-}
 
 type (
 	// RecipeStepCompletionCondition represents a recipe step completion condition. Effectively, this says "Ingredients must be in IngredientState".

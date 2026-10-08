@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -29,10 +28,6 @@ const (
 	// MealPlanTaskStatusFinished represents the finished enum member for meal plan task status in the DB.
 	MealPlanTaskStatusFinished = "finished"
 )
-
-func init() {
-	gob.Register(new(MealPlanTask))
-}
 
 type (
 	// MealPlanTask represents a meal plan task.

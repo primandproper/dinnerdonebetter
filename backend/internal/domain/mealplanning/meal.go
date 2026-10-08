@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -43,11 +42,6 @@ const (
 var (
 	errOneMainMinimumRequired = errors.New("at least one main required for meal creation")
 )
-
-func init() {
-	gob.Register(new(Meal))
-	gob.Register(new(MealCreationRequestInput))
-}
 
 type (
 	// Meal represents a meal.

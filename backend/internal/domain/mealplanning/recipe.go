@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"fmt"
 	"time"
 
@@ -28,12 +27,6 @@ const (
 	RecipeStatusApproved      = "approved"
 	RecipeStatusNeedsRevision = "needs_revision"
 )
-
-func init() {
-	gob.Register(new(Recipe))
-	gob.Register(new(RecipeCreationRequestInput))
-	gob.Register(new(RecipeUpdateRequestInput))
-}
 
 type (
 	// Recipe represents a recipe.

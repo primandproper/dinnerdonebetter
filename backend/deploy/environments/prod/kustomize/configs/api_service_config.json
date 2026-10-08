@@ -219,16 +219,6 @@
 			},
 			"mobileProvider": "noop"
 		},
-		"users": {
-			"publicMediaURLPrefix": "https://media.dinnerdonebetter.com/avatars",
-			"uploads": {
-				"storageConfig": {
-					"bucketPrefix": "avatars/",
-					"bucketName": "media.dinnerdonebetter.com",
-					"provider": "gcp"
-				}
-			}
-		},
 		"uploadedMedia": {
 			"storageConfig": {
 				"bucketPrefix": "avatars/",

@@ -9,8 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
-	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
+	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 
 	capitalismcfg "github.com/primandproper/primitives-go/v2/capitalism/config"
 	"github.com/primandproper/primitives-go/v2/encoding"
@@ -169,27 +168,39 @@ func (s *stubAuthService) serve(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusOK)
 }
 
-// stubProcessorRegistry records whether the payments webhook handler got as far as resolving a
-// processor. It answers no to every provider: reaching the lookup at all is the signal.
-type stubProcessorRegistry struct {
-	consulted bool
+// stubWebhooks records which provider's webhook endpoint each request reached. Each endpoint
+// reads the body the way billing/http's does, so a bound that only takes effect on the read is
+// still visible to a test.
+type stubWebhooks struct {
+	reached []string
 }
 
-func (r *stubProcessorRegistry) GetProcessor(string) (payments.PaymentProcessor, bool) {
-	r.consulted = true
+func (s *stubWebhooks) handlers() *paymentsbuild.WebhookHandlers {
+	endpoint := func(provider string) http.Handler {
+		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			s.reached = append(s.reached, provider)
 
-	return nil, false
+			if _, err := io.ReadAll(req.Body); err != nil {
+				res.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			res.WriteHeader(http.StatusOK)
+		})
+	}
+
+	return &paymentsbuild.WebhookHandlers{
+		Stripe:     endpoint(capitalismcfg.StripeProvider),
+		RevenueCat: endpoint(capitalismcfg.RevenueCatProvider),
+	}
 }
 
-func buildAPIRouter(t *testing.T, authService *stubAuthService, registry *stubProcessorRegistry) http.Handler {
+func buildAPIRouter(t *testing.T, authService *stubAuthService, webhooks *stubWebhooks) http.Handler {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracerProvider := tracingnoop.NewTracerProvider()
 
-	// The webhook handler is built with no payments manager: every request this test sends is
-	// either refused before it runs or turned away at the processor lookup, both of which come
-	// before the manager is touched.
 	router, err := ProvideAPIRouter(
 		t.Context(),
 		routingcfg.Config{
@@ -200,7 +211,7 @@ func buildAPIRouter(t *testing.T, authService *stubAuthService, registry *stubPr
 		tracerProvider,
 		metricsnoop.NewMetricsProvider(),
 		authService,
-		paymentswebhook.NewWebhookHandler(logger, tracerProvider, nil, registry),
+		webhooks.handlers(),
 		&stubRegistry{result: &healthcheck.Result{Status: healthcheck.StatusUp}},
 		nil,
 		nil,
@@ -228,7 +239,7 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 
 		authService := &stubAuthService{}
 
-		res := postTo(t, buildAPIRouter(t, authService, &stubProcessorRegistry{}), "/token", "grant_type=authorization_code")
+		res := postTo(t, buildAPIRouter(t, authService, &stubWebhooks{}), "/token", "grant_type=authorization_code")
 
 		assert.Equal(t, http.StatusOK, res.Code)
 		assert.True(t, authService.reached)
@@ -239,7 +250,7 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 
 		authService := &stubAuthService{}
 
-		res := postTo(t, buildAPIRouter(t, authService, &stubProcessorRegistry{}), "/token", strings.Repeat("x", maxRequestBodyBytes+1))
+		res := postTo(t, buildAPIRouter(t, authService, &stubWebhooks{}), "/token", strings.Repeat("x", maxRequestBodyBytes+1))
 
 		// 413 rather than 400: a client told its request was malformed sends the same one again.
 		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
@@ -257,7 +268,7 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/token", strings.NewReader(strings.Repeat("x", maxRequestBodyBytes+1)))
 		req.ContentLength = -1
 		res := httptest.NewRecorder()
-		buildAPIRouter(t, authService, &stubProcessorRegistry{}).ServeHTTP(res, req)
+		buildAPIRouter(t, authService, &stubWebhooks{}).ServeHTTP(res, req)
 
 		assert.True(t, authService.reached)
 		assert.Equal(t, http.StatusBadRequest, res.Code)
@@ -266,27 +277,25 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 	T.Run("a payments webhook within the bound reaches its handler", func(t *testing.T) {
 		t.Parallel()
 
-		registry := &stubProcessorRegistry{}
+		webhooks := &stubWebhooks{}
 
-		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/stripe", `{"type":"test"}`)
+		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, webhooks), "/api/payments/webhooks/stripe", `{"type":"test"}`)
 
-		// The stub registry knows no providers, so the handler's own answer is a 500 — which is
-		// only reachable by running.
-		assert.Equal(t, http.StatusInternalServerError, res.Code)
-		assert.True(t, registry.consulted)
+		assert.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, []string{capitalismcfg.StripeProvider}, webhooks.reached)
 	})
 
 	T.Run("an oversized payments webhook is refused before its handler runs", func(t *testing.T) {
 		t.Parallel()
 
-		registry := &stubProcessorRegistry{}
+		webhooks := &stubWebhooks{}
 
-		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/stripe", strings.Repeat("x", maxRequestBodyBytes+1))
+		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, webhooks), "/api/payments/webhooks/stripe", strings.Repeat("x", maxRequestBodyBytes+1))
 
 		// Signature verification reads the body, so a body nobody has to hold is one nobody has
 		// to verify.
 		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
-		assert.False(t, registry.consulted)
+		assert.Empty(t, webhooks.reached)
 	})
 }
 
@@ -297,22 +306,24 @@ func Test_ProvideAPIRouter_paymentsWebhookRoutes(T *testing.T) {
 		T.Run(provider+" has a route of its own", func(t *testing.T) {
 			t.Parallel()
 
-			registry := &stubProcessorRegistry{}
+			webhooks := &stubWebhooks{}
 
-			postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/"+provider, `{}`)
+			postTo(t, buildAPIRouter(t, &stubAuthService{}, webhooks), "/api/payments/webhooks/"+provider, `{}`)
 
-			assert.True(t, registry.consulted)
+			// Its own endpoint and nobody else's: a delivery verified against the other
+			// provider's secret is one that endpoint rejects every time.
+			assert.Equal(t, []string{provider}, webhooks.reached)
 		})
 	}
 
 	T.Run("a provider nobody mounted is the router's 404", func(t *testing.T) {
 		t.Parallel()
 
-		registry := &stubProcessorRegistry{}
+		webhooks := &stubWebhooks{}
 
-		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/"+fake.BuildFakeID(), `{}`)
+		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, webhooks), "/api/payments/webhooks/"+fake.BuildFakeID(), `{}`)
 
 		assert.Equal(t, http.StatusNotFound, res.Code)
-		assert.False(t, registry.consulted)
+		assert.Empty(t, webhooks.reached)
 	})
 }

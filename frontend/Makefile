@@ -1,6 +1,10 @@
 .PHONY: check test build lint lint-fix format format-check install deploy_prod
 
-# Run svelte-check in both consumer and admin (type-check only, no artifacts)
+# check, build, test and lint each start with `npm run deps:check` (npm ls), which fails when
+# what is installed in node_modules is not what package.json asks for: an install left over
+# from before a version bump type-checks and builds against the wrong library. `npm ci` fixes it.
+
+# Type-check both apps (svelte-check) and the session and recipes packages (tsc)
 check:
 	npm run check
 
@@ -8,7 +12,7 @@ check:
 build:
 	npm run build
 
-# Run unit tests in both consumer and admin
+# Run unit tests in both apps and the workspace packages
 test:
 	npm run test
 

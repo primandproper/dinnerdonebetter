@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	capitalismcfg "github.com/primandproper/primitives-go/v2/capitalism/config"
@@ -37,7 +37,7 @@ func ProvideAPIRouter(
 	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
 	authService auth.AuthDataService,
-	paymentsWebhookHandler *paymentswebhook.WebhookHandler,
+	paymentsWebhooks *paymentsbuild.WebhookHandlers,
 	healthRegistry healthcheck.Registry,
 	platformSurfaces *PlatformSurfaces,
 	authorizeThrottle routing.Middleware,
@@ -79,11 +79,14 @@ func ProvideAPIRouter(
 	router.Handle(http.MethodPost, oauth2server.PathRevoke, http.HandlerFunc(authService.RevokeHandler))
 
 	// One route per provider this service takes deliveries from, rather than a /{provider}
-	// pattern: a path naming any other provider is the router's 404.
+	// pattern: a path naming any other provider is the router's 404, and the provider an
+	// endpoint verifies against is fixed when it is mounted rather than read off whatever path
+	// a caller chose. They stay raw handlers: verification reads the signature header and the
+	// body together off the request the provider sent, and the bound a typed route would have
+	// brought with it is the router's default above.
 	router.Group("/api/payments/webhooks", func(paymentsRouter *routing.Router) {
-		for _, provider := range []string{capitalismcfg.StripeProvider, capitalismcfg.RevenueCatProvider} {
-			paymentsRouter.Handle(http.MethodPost, "/"+provider, paymentsWebhookHandler.For(provider))
-		}
+		paymentsRouter.Handle(http.MethodPost, "/"+capitalismcfg.StripeProvider, paymentsWebhooks.Stripe)
+		paymentsRouter.Handle(http.MethodPost, "/"+capitalismcfg.RevenueCatProvider, paymentsWebhooks.RevenueCat)
 	})
 
 	if err = router.Err(); err != nil {

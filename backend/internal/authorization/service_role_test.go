@@ -13,7 +13,7 @@ func TestServiceRoles(T *testing.T) {
 	T.Run("service user", func(t *testing.T) {
 		t.Parallel()
 
-		r := NewServiceRolePermissionChecker([]string{ServiceUserRole.String()}, nil)
+		r := NewServiceRolePermissionChecker([]string{ServiceUserRoleName}, nil)
 
 		assert.False(t, r.IsServiceAdmin())
 	})
@@ -25,14 +25,13 @@ func TestServiceRoles(T *testing.T) {
 		r := NewServiceRolePermissionChecker([]string{ServiceAdminRoleName}, allPerms)
 
 		assert.True(t, r.IsServiceAdmin())
-		assert.True(t, r.CanUpdateUserAccountStatuses())
 		assert.True(t, r.CanImpersonateUsers())
 	})
 
 	T.Run("both", func(t *testing.T) {
 		t.Parallel()
 
-		r := NewServiceRolePermissionChecker([]string{ServiceUserRole.String(), ServiceAdminRoleName}, nil)
+		r := NewServiceRolePermissionChecker([]string{ServiceUserRoleName, ServiceAdminRoleName}, nil)
 
 		assert.True(t, r.IsServiceAdmin())
 	})

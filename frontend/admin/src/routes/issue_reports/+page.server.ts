@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { listIssueReports } from '$lib/grpc/clients';
-import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { QueryFilter } from '@primandproper/platform-client/filtering/v1';
 import { toOperatorRows } from './rows';
 
 export const load: PageServerLoad = async ({ locals }) => {

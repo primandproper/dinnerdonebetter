@@ -166,14 +166,6 @@
 			},
 			"mobileProvider": "noop"
 		},
-		"users": {
-			"uploads": {
-				"storageConfig": {
-					"bucketName": "avatars",
-					"provider": "memory"
-				}
-			}
-		},
 		"uploadedMedia": {
 			"storageConfig": {
 				"bucketName": "avatars",

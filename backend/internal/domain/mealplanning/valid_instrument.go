@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -18,12 +17,6 @@ const (
 	// ValidInstrumentArchivedServiceEventType indicates a valid instrument was archived.
 	ValidInstrumentArchivedServiceEventType = "valid_instrument_archived"
 )
-
-func init() {
-	gob.Register(new(ValidInstrument))
-	gob.Register(new(ValidInstrumentCreationRequestInput))
-	gob.Register(new(ValidInstrumentUpdateRequestInput))
-}
 
 type (
 	// ValidInstrument represents a valid instrument.
@@ -42,24 +35,6 @@ type (
 		DisplayInSummaryLists          bool       `json:"displayInSummaryLists"`
 		IncludeInGeneratedInstructions bool       `json:"includeInGeneratedInstructions"`
 		UsableForStorage               bool       `json:"usableForStorage"`
-	}
-
-	// NullableValidInstrument represents a fully nullable valid instrument.
-	NullableValidInstrument struct {
-		_ struct{} `json:"-"`
-
-		LastUpdatedAt                  *time.Time
-		ArchivedAt                     *time.Time
-		Description                    *string
-		IconPath                       *string
-		ID                             *string
-		Name                           *string
-		Slug                           *string
-		DisplayInSummaryLists          *bool
-		IncludeInGeneratedInstructions *bool
-		PluralName                     *string
-		UsableForStorage               *bool
-		CreatedAt                      *time.Time
 	}
 
 	// ValidInstrumentCreationRequestInput represents what a user could set as input for creating valid instruments.

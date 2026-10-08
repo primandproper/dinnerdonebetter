@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -18,12 +17,6 @@ const (
 	// MealListItemArchivedServiceEventType indicates a meal list item was archived.
 	MealListItemArchivedServiceEventType = "meal_list_item_archived"
 )
-
-func init() {
-	gob.Register(new(MealListItem))
-	gob.Register(new(MealListItemCreationRequestInput))
-	gob.Register(new(MealListItemUpdateRequestInput))
-}
 
 type (
 	// MealListItem represents a single entry in a meal list.

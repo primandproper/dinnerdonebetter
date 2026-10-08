@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-
 	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
 	notificationspb "github.com/primandproper/platform-go/v15/notifications/notificationspb"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -42,7 +40,7 @@ func createUserNotification(ctx context.Context, forUser string) (*platformnotif
 		created, writeErr = notifsInbox.CreateNotification(ctx, tx, tenancy.Global(), &platformnotifications.Notification{
 			ID:        identifiers.New(),
 			Principal: forUser,
-			Topic:     notifications.DefaultTopic,
+			Topic:     fake.BuildFakeID(),
 			Title:     fake.BuildFakeID(),
 		})
 

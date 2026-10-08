@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -18,12 +17,6 @@ const (
 	// RecipeListItemArchivedServiceEventType indicates a recipe list item was archived.
 	RecipeListItemArchivedServiceEventType = "recipe_list_item_archived"
 )
-
-func init() {
-	gob.Register(new(RecipeListItem))
-	gob.Register(new(RecipeListItemCreationRequestInput))
-	gob.Register(new(RecipeListItemUpdateRequestInput))
-}
 
 type (
 	// RecipeListItem represents a single entry in a recipe list.

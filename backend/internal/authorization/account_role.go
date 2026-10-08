@@ -2,15 +2,11 @@ package authorization
 
 import (
 	"encoding/gob"
-	"slices"
 
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 )
 
 type (
-	// AccountRole describes a role a user has for an account context.
-	AccountRole role
-
 	// AccountRolePermissionsChecker checks permissions for one or more account Roles.
 	AccountRolePermissionsChecker interface {
 		HasPermission(Permission) bool
@@ -18,11 +14,6 @@ type (
 )
 
 const (
-	// AccountMemberRole is a role for a plain account participant.
-	AccountMemberRole AccountRole = iota
-	// AccountAdminRole is a role for someone who can manipulate the specifics of an account.
-	AccountAdminRole AccountRole = iota
-
 	// AccountAdminRoleName administers a single account.
 	AccountAdminRoleName = "account_admin"
 	// AccountMemberRoleName is ordinary membership of a single account.
@@ -54,23 +45,7 @@ func NewAccountRolePermissionCheckerFromSet(roleNames []string, perms *platforma
 	}
 }
 
-func (r AccountRole) String() string {
-	switch r {
-	case AccountMemberRole:
-		return AccountMemberRoleName
-	case AccountAdminRole:
-		return AccountAdminRoleName
-	default:
-		return ""
-	}
-}
-
 // HasPermission returns whether a user can do something or not.
 func (r accountRoleCollection) HasPermission(p Permission) bool {
 	return r.Permissions.Has(p)
-}
-
-// IsAccountAdmin returns whether a user is an account admin.
-func (r accountRoleCollection) IsAccountAdmin() bool {
-	return slices.Contains(r.RoleNames, AccountAdminRoleName)
 }
