@@ -4,7 +4,6 @@ import (
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	platformauth "github.com/primandproper/primitives-go/v2/authentication"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
-	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
@@ -19,12 +18,6 @@ type (
 )
 
 var (
-	// ErrInvalidTOTPToken indicates that a provided two-factor code is invalid.
-	// Alias for totp.ErrInvalidCode, retained so existing callers / error mappers keep working.
-	ErrInvalidTOTPToken = totp.ErrInvalidCode
-	// ErrTOTPRequired indicates that the user has TOTP enabled but did not provide a code.
-	// Alias for totp.ErrCodeRequired, retained for the same reason as ErrInvalidTOTPToken.
-	ErrTOTPRequired = totp.ErrCodeRequired
 	// ErrUserBanned is what a login gets when the user's account status does not admit
 	// signing in. It is platform's sentinel rather than one of this package's: the check
 	// is no longer made here — Store.GetPrincipal refuses before it reads a membership —

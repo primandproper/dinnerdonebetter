@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { passkeySignIn, PasskeyReason, PlatformError } from '@primandproper/platform-client';
 import type { RequestHandler } from './$types';
-import { landingAfterSignIn } from '$lib/auth/required-actions';
+import { landingAfterSignIn } from '@dinnerdonebetter/session';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   let body: { username?: string; assertionResponse?: string; totpCode?: string };

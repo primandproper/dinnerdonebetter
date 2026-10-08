@@ -24,10 +24,6 @@ func (authSessionIdentityGRPCMapper) Map(err error) (code codes.Code, ok bool) {
 		return codes.Unknown, false
 	}
 	switch {
-	case errors.Is(err, authentication.ErrTOTPRequired):
-		return codes.Unauthenticated, true
-	case errors.Is(err, authentication.ErrInvalidTOTPToken):
-		return codes.InvalidArgument, true
 	case errors.Is(err, sessions.ErrAuthenticationNotFound):
 		return codes.Unauthenticated, true
 	// This application's impersonation policy refusing an operator, which signin wraps and

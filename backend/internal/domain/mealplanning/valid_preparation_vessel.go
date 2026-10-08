@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -18,12 +17,6 @@ const (
 	// ValidPreparationVesselArchivedServiceEventType indicates a valid preparation vessel was archived.
 	ValidPreparationVesselArchivedServiceEventType = "valid_preparation_vessel_archived"
 )
-
-func init() {
-	gob.Register(new(ValidPreparationVessel))
-	gob.Register(new(ValidPreparationVesselCreationRequestInput))
-	gob.Register(new(ValidPreparationVesselUpdateRequestInput))
-}
 
 type (
 	// ValidPreparationVessel represents a valid preparation instrument.

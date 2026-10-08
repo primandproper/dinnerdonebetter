@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -18,12 +17,6 @@ const (
 	// ValidIngredientPreparationArchivedServiceEventType indicates a valid ingredient preparation was archived.
 	ValidIngredientPreparationArchivedServiceEventType = "valid_ingredient_preparation_archived"
 )
-
-func init() {
-	gob.Register(new(ValidIngredientPreparation))
-	gob.Register(new(ValidIngredientPreparationCreationRequestInput))
-	gob.Register(new(ValidIngredientPreparationUpdateRequestInput))
-}
 
 type (
 	// ValidIngredientPreparation represents a valid ingredient preparation.

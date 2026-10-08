@@ -1,0 +1,27 @@
+{
+  "name": "@dinnerdonebetter/session",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "tsc -p .",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@primandproper/platform-client": "0.0.2"
+  },
+  "peerDependencies": {
+    "@sveltejs/kit": "^2.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "2.55.0",
+    "@types/node": "25.5.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.0"
+  }
+}

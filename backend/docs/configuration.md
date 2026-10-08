@@ -40,16 +40,16 @@ For example, `config.Service.GRPCServer.Port` maps to `DINNER_DONE_BETTER_GRPC_S
 
 ## Valid environment variables
 
-A canonical list of all valid environment variables is **programmatically generated** in:
+A canonical list of the variables that override the API server's config is **programmatically generated** in:
 
 ```bash
-internal/config/envvars/env_vars.go
+.env.example
 ```
 
 That file is produced by `cmd/tools/codegen/valid_env_vars`, which walks the config structs (`APIServiceConfig`, `MCPServiceConfig`, etc.) and extracts env var names from `env` and `envPrefix` tags. Regenerate it with:
 
 ```bash
-./scripts/env_vars.sh
+make env_vars
 ```
 
 ## Config struct tagging
@@ -174,7 +174,7 @@ Backend Terraform (`backend/deploy/environments/prod/terraform`) requires these 
 ## Related
 
 - `internal/config/configs.go` – Config struct definitions and `LoadConfigFromEnvironment` / `LoadConfigFromPath`
-- `internal/config/env_vars.go` – `ApplyEnvironmentVariables` (uses caarlos0/env)
-- `internal/config/envvars/env_vars.go` – Generated list of valid env var names
-- `cmd/tools/codegen/valid_env_vars` – Code generator for env var constants
+- `internal/config/env_vars.go` – The env var options every loader shares (prefix, debug logging)
+- `.env.example` – Generated list of the API server's env var names and defaults
+- `cmd/tools/codegen/valid_env_vars` – Code generator for `.env.example`
 - `cmd/tools/codegen/configs` – Generates JSON config files per environment

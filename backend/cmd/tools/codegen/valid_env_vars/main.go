@@ -1,9 +1,12 @@
-// Command valid_env_vars regenerates the constants naming every environment variable that can
-// override a configuration field, plus the .env.example that lists them for an operator.
+// Command valid_env_vars regenerates the .env.example that lists, for an operator, every
+// environment variable that can override an API server configuration field.
 //
 // The walk itself lives in platform's config/envvars. What is left here is the three things that
 // are ours: which constraint names the loadable config structs, which module's source has to be
 // read alongside our own, and the .env example, which platform does not emit.
+//
+// It deliberately does not call envvars.Generate: the Go constants that writes had no reader, so
+// this uses Collect, the half that returns the set as data.
 package main
 
 import (
@@ -26,18 +29,17 @@ const (
 	unionKey = "internal/config.configurations"
 
 	// platformModulePrefix and primitivesModulePrefix bound which dependency modules get
-	// parsed alongside this one. Most generated constants come from their config structs
+	// parsed alongside this one. Most variables come from their config structs
 	// embedded in ours, and parsing the rest of the module graph would cost time without
 	// contributing a key.
 	//
 	// There are two because v14 split the platform in two: the substrate — database, cache,
 	// observability, messaging, routing — moved to primitives-go, and with it most of the
 	// config this application embeds. Naming only platform-go silently emitted a third of
-	// the constants, because a module that is not parsed contributes no keys and no error.
+	// the variables, because a module that is not parsed contributes no keys and no error.
 	platformModulePrefix   = "github.com/primandproper/platform-go"
 	primitivesModulePrefix = "github.com/primandproper/primitives-go"
 
-	outputPath  = "internal/config/envvars/env_vars.go"
 	dotEnvPath  = ".env.example"
 	rootTypeEnv = "APIServiceConfig"
 )
@@ -54,18 +56,9 @@ func main() {
 		Dir:          dir,
 		Prefix:       config.EnvVarPrefix,
 		UnionKey:     unionKey,
-		OutputPath:   outputPath,
-		Package:      "envvars",
 		Dependencies: []string{platformModulePrefix, primitivesModulePrefix},
 	}
 
-	if err = envvars.Generate(ctx, opts); err != nil {
-		log.Fatalf("generating env var constants: %v", err)
-	}
-
-	// Collected a second time rather than threaded out of Generate: Collect is the exported
-	// half precisely so a caller can build something else out of the same set, and the walk is
-	// cached behind it.
 	variables, err := envvars.Collect(ctx, opts)
 	if err != nil {
 		log.Fatalf("collecting env vars for %s: %v", dotEnvPath, err)

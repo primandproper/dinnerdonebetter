@@ -5,7 +5,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 
@@ -104,10 +103,6 @@ func RegisterConfigs(i do.Injector) {
 	})
 
 	// From ServicesConfig
-	do.Provide[*identitycfg.Config](i, func(i do.Injector) (*identitycfg.Config, error) {
-		svc := do.MustInvoke[*config.ServicesConfig](i)
-		return &svc.Users, nil
-	})
 	do.Provide[*mealplanningcfg.Config](i, func(i do.Injector) (*mealplanningcfg.Config, error) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)
 		return &svc.MealPlanning, nil

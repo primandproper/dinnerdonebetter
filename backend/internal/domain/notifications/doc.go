@@ -1,7 +1,6 @@
 /*
 Package notifications is this application's half of platform-go's notifications:
-the data change events a notification write emits, the topic every notification
-is filed under, and the push fanout's registration.
+the push fanout's registration, in push.
 
 The inbox and the device registry are platform's; see
 internal/repositories/postgres/notificationsstore.

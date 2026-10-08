@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/platform-go/v15/mediaregistry"
@@ -19,12 +18,6 @@ const (
 	// ValidIngredientArchivedServiceEventType indicates a valid ingredient was archived.
 	ValidIngredientArchivedServiceEventType = "valid_ingredient_archived"
 )
-
-func init() {
-	gob.Register(new(ValidIngredient))
-	gob.Register(new(ValidIngredientCreationRequestInput))
-	gob.Register(new(ValidIngredientUpdateRequestInput))
-}
 
 type (
 	// ValidIngredient represents a valid ingredient.
@@ -69,50 +62,6 @@ type (
 		IsAcid                         bool                    `json:"isAcid"`
 		IsHeat                         bool                    `json:"isHeat"`
 		ContainsShellfish              bool                    `json:"containsShellfish"`
-	}
-
-	// NullableValidIngredient represents a nullable valid ingredient.
-	NullableValidIngredient struct {
-		_ struct{} `json:"-"`
-
-		CreatedAt                      *time.Time
-		LastUpdatedAt                  *time.Time
-		ArchivedAt                     *time.Time
-		ID                             *string
-		Warning                        *string
-		Description                    *string
-		IconPath                       *string
-		PluralName                     *string
-		StorageInstructions            *string
-		Name                           *string
-		MinStorageTemperatureInCelsius *float32
-		MaxStorageTemperatureInCelsius *float32
-		ContainsShellfish              *bool
-		ContainsDairy                  *bool
-		AnimalFlesh                    *bool
-		IsLiquid                       *bool
-		ContainsPeanut                 *bool
-		ContainsTreeNut                *bool
-		ContainsEgg                    *bool
-		ContainsWheat                  *bool
-		ContainsSoy                    *bool
-		AnimalDerived                  *bool
-		RestrictToPreparations         *bool
-		ContaminatesEquipment          *bool
-		ContainsSesame                 *bool
-		ContainsFish                   *bool
-		ContainsGluten                 *bool
-		Slug                           *string
-		ContainsAlcohol                *bool
-		ShoppingSuggestions            *string
-		IsStarch                       *bool
-		IsProtein                      *bool
-		IsGrain                        *bool
-		IsFruit                        *bool
-		IsSalt                         *bool
-		IsFat                          *bool
-		IsAcid                         *bool
-		IsHeat                         *bool
 	}
 
 	// ValidIngredientCreationRequestInput represents what a user could set as input for creating valid ingredients.

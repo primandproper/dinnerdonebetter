@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -24,12 +23,6 @@ const (
 	// RecipeStepVesselArchivedServiceEventType indicates a recipe step vessel was archived.
 	RecipeStepVesselArchivedServiceEventType = "recipe_step_vessel_archived"
 )
-
-func init() {
-	gob.Register(new(RecipeStepVessel))
-	gob.Register(new(RecipeStepVesselCreationRequestInput))
-	gob.Register(new(RecipeStepVesselUpdateRequestInput))
-}
 
 type (
 	// RecipeStepVessel represents a recipe step instrument.
