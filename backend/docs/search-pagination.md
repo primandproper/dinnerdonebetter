@@ -183,6 +183,6 @@ so no `GetXWithIDs` is ever asked to read zero IDs.
 - `search/pagination` in platform-go — the adapter described above
 - `errors/grpc` and `errors/http` in platform-go — `OutOfRange` and `InvalidArgument` mappings
 - `internal/domain/mealplanning/managers/` — index-backed searches with a database fallback
-- `internal/domain/identity/manager/user_data_manager.go` — `SearchForUsers`
-- `internal/grpc/converters/query_filter.go` — filter and pagination conversion at the gRPC boundary
+- `internal/services/identity/indexing/` — the users index and its searcher
+- `filtering/grpc` in primitives-go — filter and pagination conversion at the gRPC boundary; `decodeQueryFilter` in `internal/services/mealplanning/grpc/archive.go` is the one local wrapper
 - `proto/mealplanning/mealplanning_messages.proto` — `RecipeSummary`, `MealSummary` and `MealPlanSummary`

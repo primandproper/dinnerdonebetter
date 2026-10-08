@@ -77,9 +77,9 @@ flowchart TB
 ### The four billing tables
 
 The schema is platform-go's, rendered by `renderBillingDDL` in
-`internal/repositories/postgres/migrations` as migration 43 with the `ddb` prefix (see
-`branding.TablePrefix`), which drops the four tables `00011_payments.sql` created and the three
-enums they used. Every table carries a tenancy `scope`, and this application keeps all four in the
+`internal/repositories/postgres/migrations` as `billingMigrationVersion` with the `ddb` prefix (see
+`branding.TablePrefix`). The hand-written tables and enums it replaced are gone from the migration
+sequence rather than dropped by a later one; see `docs/migrations.md`. Every table carries a tenancy `scope`, and this application keeps all four in the
 global one — see the tenancy section of `internal/domain/payments`.
 
 - **ddb_billing_products** — the catalog: `kind` (`recurring`/`one_time`), `amount_cents` (BIGINT), `currency`, `billing_interval_months` (NULL for one-time), `external_product_id`
@@ -330,7 +330,8 @@ is deliberately no eraser — see `docs/data-privacy.md`.
 - Subscriptions: `create.subscriptions`, `read.subscriptions`, `update.subscriptions`, `archive.subscriptions`, `cancel.subscriptions`
 - Purchases / history: `read.purchases`, `read.payment_history`
 
-**`internal/services/payments/grpc/permissions.go`** maps gRPC methods to these permissions. The auth interceptor enforces them.
+The method-to-permission table is platform's, `billing/grpc.Permissions`, mounted as one entry in
+`internal/build/services/api/grpc/surfaces.go`. The auth interceptor enforces it.
 
 The account-scoped reads — subscriptions, purchases, payment history — answer for the session's
 active account and never for the `account_id` a request names. Honoring the request's would let any
@@ -383,7 +384,6 @@ asserts the behaviour #466 asked for.
 
 ## Related Documents
 
-- [Adding a New Domain](adding_a_new_domain.md) — General checklist for new domains
 - [Migrations](migrations.md) — Migration workflow
 - [Entitlements](entitlements.md) — Which plan an account is on, read from the billing store
-- [platform-go v13 adoption](platform-go-v13-adoption.md) — What adopting `billing` changed, and why
+- [platform-go v13 adoption](history/platform-go-v13-adoption.md) — What adopting `billing` changed, and why (a record of that port, not a living doc)

@@ -17,7 +17,7 @@ live beside what they describe, and those two packages carry the marker instead.
 Every site outside the three mealplanning roots that names this domain carries a
 "// Domain: mealplanning" marker, and TestDomainMarkerCensus holds the composition root to it:
 the marker census is the complete edit list. It is slices and a marker rather than a plugin
-system or a CRUD kit, on purpose — see docs/adding_a_new_domain.md "Should This Be Generic?".
+system or a CRUD kit, on purpose — see docs/writing_go.md "Should This Be Generic?".
 */
 package registration
 

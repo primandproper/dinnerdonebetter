@@ -1,5 +1,9 @@
 # Completing the v14 port: what landed, and what stopped it
 
+> **Adoption log, not a living document.** This records what one platform port changed and
+> found, as of the date it was written. Paths, version numbers and open items in it are the
+> port's, not the repository's today; read `../writing_go.md` and the domain docs for what exists.
+
 A run at finishing the v14 port on `v14-test-port`, taken because the settings
 finding came from *doing* the port rather than reading it — two spikes had found
 nothing and the third found a real hole, which is an argument for more surface

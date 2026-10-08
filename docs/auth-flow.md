@@ -407,4 +407,3 @@ control: every read already refuses an expired row.
 
 - [identity.md](identity.md) — Users, accounts, memberships, roles, permissions
 - [email_verification.md](email_verification.md) — Email verification flow
-- [backend/docs/adding_a_new_domain.md](../backend/docs/adding_a_new_domain.md) — Authorization permissions for new domains

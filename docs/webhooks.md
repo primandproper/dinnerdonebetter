@@ -45,10 +45,9 @@ The event type stored against an endpoint is the plain catalog type — the same
 holds, and the same one a subscriber reads out of `X-Platform-Event`.
 
 Registration and dispatch both go through platform-go's `webhooks.Dispatcher`, which is what
-applies the catalog gate and the SSRF policy. The write side is
-`internal/repositories/postgres/webhooks` (see `endpoints.go`); it reaches the `Store` directly
-for the two operations `Dispatcher` does not offer — replacing an endpoint's subscription set,
-and retiring it.
+applies the catalog gate and the SSRF policy. The store is platform's too, registered by
+`internal/repositories/postgres/webhooksstore` with platform's recording hooks installed, so every
+endpoint and subscription write leaves its audit entry and event on the caller's transaction.
 
 ## Events
 

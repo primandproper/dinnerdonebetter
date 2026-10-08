@@ -108,10 +108,10 @@ The system runs an OAuth 2.1 authorization server for service authentication:
 - Clients authenticate via `Authorization` header in gRPC requests
 - HTTP endpoints only support the OAuth2 flow (legacy HTTP auth routes should be deprecated)
 
-See [`backend/docs/auth-flow.md`](../backend/docs/auth-flow.md) for what the server enforces —
+See [`docs/auth-flow.md`](auth-flow.md) for what the server enforces —
 byte-exact redirect URIs, mandatory S256 PKCE, refresh rotation with reuse detection.
 
-**OAuth2 Implementation**: [`pkg/client/client.go:WithOAuth2Credentials`](pkg/client/client.go)
+**OAuth2 Implementation**: [`pkg/client/client.go:WithOAuth2Credentials`](../backend/pkg/client/client.go)
 
 ### Session Context
 
@@ -122,7 +122,7 @@ The session context contains:
 - Account permissions map (role for each account the user belongs to)
 - Service-level permissions
 
-**Domain Definition**: [`internal/authentication/sessions/session_context.go`](internal/authentication/sessions/session_context.go)
+**Domain Definition**: [`internal/authentication/sessions/session_context.go`](../backend/internal/authentication/sessions/session_context.go)
 
 ### Two-Factor Authentication (2FA)
 
@@ -140,9 +140,10 @@ The system supports a special admin-only login mode that has stricter requiremen
 3. **Verified 2FA**: The user must have a verified 2FA secret (`two_factor_secret_verified_at IS NOT NULL`)
 4. **Where the restriction lives**: in Go, not in SQL. There used to be a second query,
    `GetAdminUserByUsername`, whose extra `WHERE` clause was the whole difference; the directory
-   answers one sign-in read now, and `internal/authentication/manager.go` checks the role set on
-   what comes back. A filter a query forgets is a door left open, and a filter beside the decision
-   it gates is one a reader can see.
+   answers one sign-in read now, and platform's `signin.Service.AdminLoginForToken` checks the role
+   set on what comes back, against the roles `internal/authentication/do.go` names through
+   `WithAdminServiceRoles`. A filter a query forgets is a door left open, and a filter beside the
+   decision it gates is one a reader can see.
 
 **Key Differences from Regular Login**:
 
@@ -150,7 +151,7 @@ The system supports a special admin-only login mode that has stricter requiremen
 - Admin login **always** requires TOTP validation
 - Admin login only works for users holding the service admin role
 
-**Implementation**: [`internal/authentication/manager.go:ProcessLogin`](internal/authentication/manager.go) and [`internal/services/auth/handlers/authentication/authentication_http_routes.go:BuildLoginHandler`](internal/services/auth/handlers/authentication/authentication_http_routes.go)
+**Implementation**: platform-go's `authentication/signin` (`LoginForToken` and `AdminLoginForToken`), built with this application's policies in [`internal/authentication/do.go`](../backend/internal/authentication/do.go) and mounted by [`internal/build/signin`](../backend/internal/build/signin/grpc.go). The second factor on the admin door is platform's rule, not a policy here: it is required whatever `WithSecondFactorPolicy` says.
 
 ### Logout
 
@@ -219,7 +220,8 @@ When a user registers without an invitation:
 
 Registration is on the **auth** surface, not the identity one, because a caller signing up has no
 session and the identity surface's methods all assume one. See
-[`internal/domain/auth/managers/registration.go`](../backend/internal/domain/auth/managers/registration.go).
+[`internal/authentication/registration_policy.go`](../backend/internal/authentication/registration_policy.go), which
+platform's sign-in service runs on every registration.
 
 The status is a deliberate disagreement with platform, which starts a user `unverified` and admits
 only `good` to sign in. That is the right default for a directory and is not this application's

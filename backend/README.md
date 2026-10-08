@@ -23,20 +23,17 @@ make dev        # start local dev server
 | Category    | Tools                                                                                                                                                                                                              |
 |-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Core**    | [Go](https://golang.org/) 1.26, [Make](https://www.gnu.org/software/make/), [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)                             |
-| **Codegen** | [Wire](https://github.com/google/wire), [sqlc](https://sqlc.dev/), [gci](https://github.com/daixiang0/gci), [tagalign](https://github.com/4meepo/tagalign), [betteralign](https://github.com/dkorunic/betteralign) |
+| **Codegen** | [sqlc](https://sqlc.dev/), [gci](https://github.com/daixiang0/gci), [tagalign](https://github.com/4meepo/tagalign), [betteralign](https://github.com/dkorunic/betteralign)                                       |
 | **Infra**   | [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli), [Cloud SQL Proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy) (for prod DB access)                                             |
 
 These are declared in the `tool` block of `go.mod` and run via `go tool <name>`, so a
 checkout needs no extra installation. To run one standalone:
 
 ```bash
-go install github.com/google/wire/cmd/wire@v0.7.0
 go install github.com/dkorunic/betteralign/cmd/betteralign@v0.14.3
 go install github.com/4meepo/tagalign/cmd/tagalign@v1.4.3
 go install github.com/daixiang0/gci@v0.13.5
 ```
-
-`make setup` will ensure these are installed.
 
 Field alignment uses [betteralign](https://github.com/dkorunic/betteralign) rather than
 x/tools' `fieldalignment`: it preserves struct comments (fieldalignment deletes them on
@@ -89,13 +86,13 @@ make test lint integration_tests
 
 ## Documentation
 
-| Doc                                                   | Description                               |
-|-------------------------------------------------------|-------------------------------------------|
-| [adding_a_new_domain.md](docs/adding_a_new_domain.md) | Checklist for adding new domains/entities |
-| [configuration.md](docs/configuration.md)             | Config files and env var overrides        |
-| [migrations.md](docs/migrations.md)                   | Database migrations                       |
-| [payments.md](docs/payments.md)                       | Payments integration                      |
-| [writing_go.md](docs/writing_go.md)                   | Go style and conventions                  |
+| Doc                                       | Description                                                                 |
+|-------------------------------------------|-----------------------------------------------------------------------------|
+| [configuration.md](docs/configuration.md) | Config files and env var overrides                                          |
+| [migrations.md](docs/migrations.md)       | Database migrations                                                         |
+| [payments.md](docs/payments.md)           | Payments integration                                                        |
+| [writing_go.md](docs/writing_go.md)       | Go style and conventions, and why there is no CRUD kit                      |
+| [history/](docs/history/)                 | Adoption logs: what each platform port changed, kept as records, not guides |
 
 ---
 
