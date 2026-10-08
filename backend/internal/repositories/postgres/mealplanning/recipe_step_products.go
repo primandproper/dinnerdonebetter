@@ -68,50 +68,7 @@ func (q *repository) GetRecipeStepProduct(ctx context.Context, recipeID, recipeS
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting recipe step product")
 	}
 
-	recipeStepProduct := &mealplanning.RecipeStepProduct{
-		CreatedAt:                      result.CreatedAt,
-		MinMeasurementQuantity:         database.Float32PointerFromNullString(result.MinimumMeasurementQuantityValue),
-		MaxMeasurementQuantity:         database.Float32PointerFromNullString(result.MaximumMeasurementQuantityValue),
-		MinItemQuantity:                database.Float32PointerFromNullString(result.MinimumItemQuantityValue),
-		MaxItemQuantity:                database.Float32PointerFromNullString(result.MaximumItemQuantityValue),
-		MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumStorageTemperatureInCelsius),
-		MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumStorageTemperatureInCelsius),
-		MaxStorageDurationInSeconds:    database.Uint32PointerFromNullInt32(result.MaximumStorageDurationInSeconds),
-		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-		MeasurementUnit:                nil,
-		ContainedInVesselIndex:         database.Uint16PointerFromNullInt32(result.ContainedInVesselIndex),
-		Name:                           result.Name,
-		BelongsToRecipeStep:            result.BelongsToRecipeStep,
-		Type:                           string(result.Type),
-		ID:                             result.ID,
-		StorageInstructions:            result.StorageInstructions,
-		QuantityNotes:                  result.QuantityNotes,
-		Index:                          uint16(result.Index),
-		IsWaste:                        result.IsWaste,
-		IsLiquid:                       result.IsLiquid,
-		Compostable:                    result.Compostable,
-	}
-
-	if result.ValidMeasurementUnitID.Valid && result.ValidMeasurementUnitID.String != "" {
-		recipeStepProduct.MeasurementUnit = &mealplanning.ValidMeasurementUnit{
-			CreatedAt:     result.ValidMeasurementUnitCreatedAt.Time,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
-			Name:          result.ValidMeasurementUnitName.String,
-			IconPath:      result.ValidMeasurementUnitIconPath.String,
-			ID:            result.ValidMeasurementUnitID.String,
-			Description:   result.ValidMeasurementUnitDescription.String,
-			PluralName:    result.ValidMeasurementUnitPluralName.String,
-			Slug:          result.ValidMeasurementUnitSlug.String,
-			Volumetric:    database.BoolFromNullBool(result.ValidMeasurementUnitVolumetric),
-			Universal:     result.ValidMeasurementUnitUniversal.Bool,
-			Metric:        result.ValidMeasurementUnitMetric.Bool,
-			Imperial:      result.ValidMeasurementUnitImperial.Bool,
-		}
-	}
-
-	return recipeStepProduct, nil
+	return recipeStepProductFromRow(result), nil
 }
 
 // getRecipeStepProductsForRecipe fetches a list of recipe step products from the database that meet a particular filter.
@@ -131,50 +88,7 @@ func (q *repository) getRecipeStepProductsForRecipe(ctx context.Context, recipeI
 
 	recipeStepProducts := []*mealplanning.RecipeStepProduct{}
 	for _, result := range results {
-		recipeStepProduct := &mealplanning.RecipeStepProduct{
-			CreatedAt:                      result.CreatedAt,
-			MinMeasurementQuantity:         database.Float32PointerFromNullString(result.MinimumMeasurementQuantityValue),
-			MaxMeasurementQuantity:         database.Float32PointerFromNullString(result.MaximumMeasurementQuantityValue),
-			MinItemQuantity:                database.Float32PointerFromNullString(result.MinimumItemQuantityValue),
-			MaxItemQuantity:                database.Float32PointerFromNullString(result.MaximumItemQuantityValue),
-			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumStorageTemperatureInCelsius),
-			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumStorageTemperatureInCelsius),
-			MaxStorageDurationInSeconds:    database.Uint32PointerFromNullInt32(result.MaximumStorageDurationInSeconds),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			MeasurementUnit:                nil,
-			ContainedInVesselIndex:         database.Uint16PointerFromNullInt32(result.ContainedInVesselIndex),
-			Name:                           result.Name,
-			BelongsToRecipeStep:            result.BelongsToRecipeStep,
-			Type:                           string(result.Type),
-			ID:                             result.ID,
-			StorageInstructions:            result.StorageInstructions,
-			QuantityNotes:                  result.QuantityNotes,
-			Index:                          uint16(result.Index),
-			IsWaste:                        result.IsWaste,
-			IsLiquid:                       result.IsLiquid,
-			Compostable:                    result.Compostable,
-		}
-
-		if result.ValidMeasurementUnitID.Valid && result.ValidMeasurementUnitID.String != "" {
-			recipeStepProduct.MeasurementUnit = &mealplanning.ValidMeasurementUnit{
-				CreatedAt:     result.ValidMeasurementUnitCreatedAt.Time,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
-				Name:          result.ValidMeasurementUnitName.String,
-				IconPath:      result.ValidMeasurementUnitIconPath.String,
-				ID:            result.ValidMeasurementUnitID.String,
-				Description:   result.ValidMeasurementUnitDescription.String,
-				PluralName:    result.ValidMeasurementUnitPluralName.String,
-				Slug:          result.ValidMeasurementUnitSlug.String,
-				Volumetric:    database.BoolFromNullBool(result.ValidMeasurementUnitVolumetric),
-				Universal:     result.ValidMeasurementUnitUniversal.Bool,
-				Metric:        result.ValidMeasurementUnitMetric.Bool,
-				Imperial:      result.ValidMeasurementUnitImperial.Bool,
-			}
-		}
-
-		recipeStepProducts = append(recipeStepProducts, recipeStepProduct)
+		recipeStepProducts = append(recipeStepProducts, recipeStepProductFromRow((*generated.GetRecipeStepProductRow)(result)))
 	}
 
 	return recipeStepProducts, nil
@@ -214,50 +128,7 @@ func (q *repository) GetRecipeStepProducts(ctx context.Context, recipeID, recipe
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetRecipeStepProductsRow) *mealplanning.RecipeStepProduct {
-			recipeStepProduct := &mealplanning.RecipeStepProduct{
-				CreatedAt:                      result.CreatedAt,
-				MinMeasurementQuantity:         database.Float32PointerFromNullString(result.MinimumMeasurementQuantityValue),
-				MaxMeasurementQuantity:         database.Float32PointerFromNullString(result.MaximumMeasurementQuantityValue),
-				MinItemQuantity:                database.Float32PointerFromNullString(result.MinimumItemQuantityValue),
-				MaxItemQuantity:                database.Float32PointerFromNullString(result.MaximumItemQuantityValue),
-				MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumStorageTemperatureInCelsius),
-				MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumStorageTemperatureInCelsius),
-				MaxStorageDurationInSeconds:    database.Uint32PointerFromNullInt32(result.MaximumStorageDurationInSeconds),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-				MeasurementUnit:                nil,
-				ContainedInVesselIndex:         database.Uint16PointerFromNullInt32(result.ContainedInVesselIndex),
-				Name:                           result.Name,
-				BelongsToRecipeStep:            result.BelongsToRecipeStep,
-				Type:                           string(result.Type),
-				ID:                             result.ID,
-				StorageInstructions:            result.StorageInstructions,
-				QuantityNotes:                  result.QuantityNotes,
-				Index:                          uint16(result.Index),
-				IsWaste:                        result.IsWaste,
-				IsLiquid:                       result.IsLiquid,
-				Compostable:                    result.Compostable,
-			}
-			if result.ValidMeasurementUnitID.Valid && result.ValidMeasurementUnitID.String != "" {
-				recipeStepProduct.MeasurementUnit = &mealplanning.ValidMeasurementUnit{
-					CreatedAt:     result.ValidMeasurementUnitCreatedAt.Time,
-					LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
-					ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
-					Name:          result.ValidMeasurementUnitName.String,
-					IconPath:      result.ValidMeasurementUnitIconPath.String,
-					ID:            result.ValidMeasurementUnitID.String,
-					Description:   result.ValidMeasurementUnitDescription.String,
-					PluralName:    result.ValidMeasurementUnitPluralName.String,
-					Slug:          result.ValidMeasurementUnitSlug.String,
-					Volumetric:    database.BoolFromNullBool(result.ValidMeasurementUnitVolumetric),
-					Universal:     result.ValidMeasurementUnitUniversal.Bool,
-					Metric:        result.ValidMeasurementUnitMetric.Bool,
-					Imperial:      result.ValidMeasurementUnitImperial.Bool,
-				}
-			}
-			return recipeStepProduct
-		},
+		recipeStepProductFromListRow,
 		func(result *generated.GetRecipeStepProductsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -448,4 +319,103 @@ func (q *repository) ArchiveRecipeStepProduct(ctx context.Context, recipeID, rec
 	}
 
 	return nil
+}
+
+// recipeStepProductFromRow maps a recipe step product row, and its measurement unit when the left
+// join found one, to the domain type. The single-product and per-recipe reads select the same
+// columns, so their row types convert to generated.GetRecipeStepProductRow.
+func recipeStepProductFromRow(result *generated.GetRecipeStepProductRow) *mealplanning.RecipeStepProduct {
+	recipeStepProduct := &mealplanning.RecipeStepProduct{
+		CreatedAt:                      result.CreatedAt,
+		MinMeasurementQuantity:         database.Float32PointerFromNullString(result.MinimumMeasurementQuantityValue),
+		MaxMeasurementQuantity:         database.Float32PointerFromNullString(result.MaximumMeasurementQuantityValue),
+		MinItemQuantity:                database.Float32PointerFromNullString(result.MinimumItemQuantityValue),
+		MaxItemQuantity:                database.Float32PointerFromNullString(result.MaximumItemQuantityValue),
+		MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumStorageTemperatureInCelsius),
+		MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumStorageTemperatureInCelsius),
+		MaxStorageDurationInSeconds:    database.Uint32PointerFromNullInt32(result.MaximumStorageDurationInSeconds),
+		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+		MeasurementUnit:                nil,
+		ContainedInVesselIndex:         database.Uint16PointerFromNullInt32(result.ContainedInVesselIndex),
+		Name:                           result.Name,
+		BelongsToRecipeStep:            result.BelongsToRecipeStep,
+		Type:                           string(result.Type),
+		ID:                             result.ID,
+		StorageInstructions:            result.StorageInstructions,
+		QuantityNotes:                  result.QuantityNotes,
+		Index:                          uint16(result.Index),
+		IsWaste:                        result.IsWaste,
+		IsLiquid:                       result.IsLiquid,
+		Compostable:                    result.Compostable,
+	}
+
+	if result.ValidMeasurementUnitID.Valid && result.ValidMeasurementUnitID.String != "" {
+		recipeStepProduct.MeasurementUnit = &mealplanning.ValidMeasurementUnit{
+			CreatedAt:     result.ValidMeasurementUnitCreatedAt.Time,
+			LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
+			ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
+			Name:          result.ValidMeasurementUnitName.String,
+			IconPath:      result.ValidMeasurementUnitIconPath.String,
+			ID:            result.ValidMeasurementUnitID.String,
+			Description:   result.ValidMeasurementUnitDescription.String,
+			PluralName:    result.ValidMeasurementUnitPluralName.String,
+			Slug:          result.ValidMeasurementUnitSlug.String,
+			Volumetric:    database.BoolFromNullBool(result.ValidMeasurementUnitVolumetric),
+			Universal:     result.ValidMeasurementUnitUniversal.Bool,
+			Metric:        result.ValidMeasurementUnitMetric.Bool,
+			Imperial:      result.ValidMeasurementUnitImperial.Bool,
+		}
+	}
+
+	return recipeStepProduct
+}
+
+// recipeStepProductFromListRow is recipeStepProductFromRow for the paginated read, whose row also
+// carries the filtered and total counts.
+func recipeStepProductFromListRow(result *generated.GetRecipeStepProductsRow) *mealplanning.RecipeStepProduct {
+	recipeStepProduct := &mealplanning.RecipeStepProduct{
+		CreatedAt:                      result.CreatedAt,
+		MinMeasurementQuantity:         database.Float32PointerFromNullString(result.MinimumMeasurementQuantityValue),
+		MaxMeasurementQuantity:         database.Float32PointerFromNullString(result.MaximumMeasurementQuantityValue),
+		MinItemQuantity:                database.Float32PointerFromNullString(result.MinimumItemQuantityValue),
+		MaxItemQuantity:                database.Float32PointerFromNullString(result.MaximumItemQuantityValue),
+		MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumStorageTemperatureInCelsius),
+		MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumStorageTemperatureInCelsius),
+		MaxStorageDurationInSeconds:    database.Uint32PointerFromNullInt32(result.MaximumStorageDurationInSeconds),
+		ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+		MeasurementUnit:                nil,
+		ContainedInVesselIndex:         database.Uint16PointerFromNullInt32(result.ContainedInVesselIndex),
+		Name:                           result.Name,
+		BelongsToRecipeStep:            result.BelongsToRecipeStep,
+		Type:                           string(result.Type),
+		ID:                             result.ID,
+		StorageInstructions:            result.StorageInstructions,
+		QuantityNotes:                  result.QuantityNotes,
+		Index:                          uint16(result.Index),
+		IsWaste:                        result.IsWaste,
+		IsLiquid:                       result.IsLiquid,
+		Compostable:                    result.Compostable,
+	}
+
+	if result.ValidMeasurementUnitID.Valid && result.ValidMeasurementUnitID.String != "" {
+		recipeStepProduct.MeasurementUnit = &mealplanning.ValidMeasurementUnit{
+			CreatedAt:     result.ValidMeasurementUnitCreatedAt.Time,
+			LastUpdatedAt: database.TimePointerFromNullTime(result.ValidMeasurementUnitLastUpdatedAt),
+			ArchivedAt:    database.TimePointerFromNullTime(result.ValidMeasurementUnitArchivedAt),
+			Name:          result.ValidMeasurementUnitName.String,
+			IconPath:      result.ValidMeasurementUnitIconPath.String,
+			ID:            result.ValidMeasurementUnitID.String,
+			Description:   result.ValidMeasurementUnitDescription.String,
+			PluralName:    result.ValidMeasurementUnitPluralName.String,
+			Slug:          result.ValidMeasurementUnitSlug.String,
+			Volumetric:    database.BoolFromNullBool(result.ValidMeasurementUnitVolumetric),
+			Universal:     result.ValidMeasurementUnitUniversal.Bool,
+			Metric:        result.ValidMeasurementUnitMetric.Bool,
+			Imperial:      result.ValidMeasurementUnitImperial.Bool,
+		}
+	}
+
+	return recipeStepProduct
 }

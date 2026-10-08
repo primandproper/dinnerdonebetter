@@ -59,22 +59,7 @@ func (q *repository) GetRecipeRating(ctx context.Context, recipeID, recipeRating
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching recipe rating")
 	}
 
-	recipeRating := &types.RecipeRating{
-		CreatedAt:       result.CreatedAt,
-		LastUpdatedAt:   database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:      database.TimePointerFromNullTime(result.ArchivedAt),
-		Notes:           result.Notes,
-		ID:              result.ID,
-		BelongsToRecipe: result.BelongsToRecipe,
-		CreatedByUser:   result.CreatedByUser,
-		Taste:           database.Float32FromNullString(result.Taste),
-		Instructions:    database.Float32FromNullString(result.Instructions),
-		Overall:         database.Float32FromNullString(result.Overall),
-		Cleanup:         database.Float32FromNullString(result.Cleanup),
-		Difficulty:      database.Float32FromNullString(result.Difficulty),
-	}
-
-	return recipeRating, nil
+	return recipeRatingFromRow(result), nil
 }
 
 // GetRecipeRatingsForRecipe fetches a list of recipe ratings from the database that meet a particular filter.
@@ -109,22 +94,7 @@ func (q *repository) GetRecipeRatingsForRecipe(ctx context.Context, recipeID str
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetRecipeRatingsForRecipeRow) *types.RecipeRating {
-			return &types.RecipeRating{
-				CreatedAt:       result.CreatedAt,
-				LastUpdatedAt:   database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:      database.TimePointerFromNullTime(result.ArchivedAt),
-				Notes:           result.Notes,
-				ID:              result.ID,
-				BelongsToRecipe: result.BelongsToRecipe,
-				CreatedByUser:   result.CreatedByUser,
-				Taste:           database.Float32FromNullString(result.Taste),
-				Instructions:    database.Float32FromNullString(result.Instructions),
-				Overall:         database.Float32FromNullString(result.Overall),
-				Cleanup:         database.Float32FromNullString(result.Cleanup),
-				Difficulty:      database.Float32FromNullString(result.Difficulty),
-			}
-		},
+		recipeRatingFromListRow,
 		func(result *generated.GetRecipeRatingsForRecipeRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -168,20 +138,7 @@ func (q *repository) GetRecipeRatingsForUser(ctx context.Context, userID string,
 	x = filtering.Drain(
 		results,
 		func(result *generated.GetRecipeRatingsForUserRow) *types.RecipeRating {
-			return &types.RecipeRating{
-				CreatedAt:       result.CreatedAt,
-				LastUpdatedAt:   database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:      database.TimePointerFromNullTime(result.ArchivedAt),
-				Notes:           result.Notes,
-				ID:              result.ID,
-				BelongsToRecipe: result.BelongsToRecipe,
-				CreatedByUser:   result.CreatedByUser,
-				Taste:           database.Float32FromNullString(result.Taste),
-				Instructions:    database.Float32FromNullString(result.Instructions),
-				Overall:         database.Float32FromNullString(result.Overall),
-				Cleanup:         database.Float32FromNullString(result.Cleanup),
-				Difficulty:      database.Float32FromNullString(result.Difficulty),
-			}
+			return recipeRatingFromListRow((*generated.GetRecipeRatingsForRecipeRow)(result))
 		},
 		func(result *generated.GetRecipeRatingsForUserRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -311,4 +268,43 @@ func (q *repository) ArchiveRecipeRating(ctx context.Context, recipeID, recipeRa
 	}
 
 	return nil
+}
+
+// recipeRatingFromRow maps a recipe rating row to its domain type. The single-rating read returns
+// the table model, generated.RecipeRatings; the paginated reads go through recipeRatingFromListRow.
+func recipeRatingFromRow(result *generated.RecipeRatings) *types.RecipeRating {
+	return &types.RecipeRating{
+		CreatedAt:       result.CreatedAt,
+		LastUpdatedAt:   database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:      database.TimePointerFromNullTime(result.ArchivedAt),
+		Notes:           result.Notes,
+		ID:              result.ID,
+		BelongsToRecipe: result.BelongsToRecipe,
+		CreatedByUser:   result.CreatedByUser,
+		Taste:           database.Float32FromNullString(result.Taste),
+		Instructions:    database.Float32FromNullString(result.Instructions),
+		Overall:         database.Float32FromNullString(result.Overall),
+		Cleanup:         database.Float32FromNullString(result.Cleanup),
+		Difficulty:      database.Float32FromNullString(result.Difficulty),
+	}
+}
+
+// recipeRatingFromListRow is recipeRatingFromRow for the paginated reads, whose rows also carry the
+// filtered and total counts. The by-recipe and by-user reads select the same columns, so the
+// by-user row converts to generated.GetRecipeRatingsForRecipeRow.
+func recipeRatingFromListRow(result *generated.GetRecipeRatingsForRecipeRow) *types.RecipeRating {
+	return &types.RecipeRating{
+		CreatedAt:       result.CreatedAt,
+		LastUpdatedAt:   database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:      database.TimePointerFromNullTime(result.ArchivedAt),
+		Notes:           result.Notes,
+		ID:              result.ID,
+		BelongsToRecipe: result.BelongsToRecipe,
+		CreatedByUser:   result.CreatedByUser,
+		Taste:           database.Float32FromNullString(result.Taste),
+		Instructions:    database.Float32FromNullString(result.Instructions),
+		Overall:         database.Float32FromNullString(result.Overall),
+		Cleanup:         database.Float32FromNullString(result.Cleanup),
+		Difficulty:      database.Float32FromNullString(result.Difficulty),
+	}
 }

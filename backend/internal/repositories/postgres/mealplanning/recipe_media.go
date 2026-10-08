@@ -51,20 +51,7 @@ func (q *repository) GetRecipeMedia(ctx context.Context, recipeMediaID string) (
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting recipe media")
 	}
 
-	recipeMedia := &types.RecipeMedia{
-		CreatedAt:           result.CreatedAt,
-		ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ID:                  result.ID,
-		BelongsToRecipe:     database.StringPointerFromNullString(result.BelongsToRecipe),
-		BelongsToRecipeStep: database.StringPointerFromNullString(result.BelongsToRecipeStep),
-		MimeType:            result.MimeType,
-		InternalPath:        result.InternalPath,
-		ExternalPath:        result.ExternalPath,
-		Index:               uint16(result.Index),
-	}
-
-	return recipeMedia, nil
+	return recipeMediaFromRow(result), nil
 }
 
 // getRecipeMediaForRecipe fetches a list of recipe media from the database that meet a particular filter.
@@ -84,18 +71,7 @@ func (q *repository) getRecipeMediaForRecipe(ctx context.Context, recipeID strin
 
 	recipeMedia := make([]*types.RecipeMedia, len(results))
 	for i, result := range results {
-		recipeMedia[i] = &types.RecipeMedia{
-			CreatedAt:           result.CreatedAt,
-			ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:                  result.ID,
-			BelongsToRecipe:     database.StringPointerFromNullString(result.BelongsToRecipe),
-			BelongsToRecipeStep: database.StringPointerFromNullString(result.BelongsToRecipeStep),
-			MimeType:            result.MimeType,
-			InternalPath:        result.InternalPath,
-			ExternalPath:        result.ExternalPath,
-			Index:               uint16(result.Index),
-		}
+		recipeMedia[i] = recipeMediaFromRow((*generated.GetRecipeMediaRow)(result))
 	}
 
 	return recipeMedia, nil
@@ -124,18 +100,7 @@ func (q *repository) getRecipeMediaForRecipeStep(ctx context.Context, recipeID, 
 
 	recipeMedia := []*types.RecipeMedia{}
 	for _, result := range results {
-		recipeMedia = append(recipeMedia, &types.RecipeMedia{
-			CreatedAt:           result.CreatedAt,
-			ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:                  result.ID,
-			BelongsToRecipe:     database.StringPointerFromNullString(result.BelongsToRecipe),
-			BelongsToRecipeStep: database.StringPointerFromNullString(result.BelongsToRecipeStep),
-			MimeType:            result.MimeType,
-			InternalPath:        result.InternalPath,
-			ExternalPath:        result.ExternalPath,
-			Index:               uint16(result.Index),
-		})
+		recipeMedia = append(recipeMedia, recipeMediaFromRow((*generated.GetRecipeMediaRow)(result)))
 	}
 
 	return recipeMedia, nil
@@ -244,4 +209,22 @@ func (q *repository) ArchiveRecipeMedia(ctx context.Context, recipeMediaID strin
 
 		return nil
 	})
+}
+
+// recipeMediaFromRow maps a recipe media row to its domain type. The by-ID, per-recipe and per-step
+// reads select the same columns, so each of their row types converts to
+// generated.GetRecipeMediaRow.
+func recipeMediaFromRow(result *generated.GetRecipeMediaRow) *types.RecipeMedia {
+	return &types.RecipeMedia{
+		CreatedAt:           result.CreatedAt,
+		ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ID:                  result.ID,
+		BelongsToRecipe:     database.StringPointerFromNullString(result.BelongsToRecipe),
+		BelongsToRecipeStep: database.StringPointerFromNullString(result.BelongsToRecipeStep),
+		MimeType:            result.MimeType,
+		InternalPath:        result.InternalPath,
+		ExternalPath:        result.ExternalPath,
+		Index:               uint16(result.Index),
+	}
 }
