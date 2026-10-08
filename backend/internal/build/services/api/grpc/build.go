@@ -50,6 +50,7 @@ import (
 	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
 	"github.com/primandproper/platform-go/v15/service"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/qrcodes"
 	"github.com/primandproper/primitives-go/v2/random"
 	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
@@ -79,6 +80,7 @@ func BuildInjector(
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
+	do.ProvideValue[clock.Clock](i, clock.NewClock())
 
 	service.Register(i, &cfg.Service)
 

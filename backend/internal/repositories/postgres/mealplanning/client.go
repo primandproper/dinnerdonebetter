@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
-	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/platform-go/v15/outbox"
 	platformrecording "github.com/primandproper/platform-go/v15/recording"
@@ -35,7 +34,6 @@ type repository struct {
 	tracer           tracing.Tracer
 	logger           logging.Logger
 	generatedQuerier generated.Querier
-	roster           platformidentity.DirectoryReader
 	emitter          *webhooks.Emitter
 	recorder         *platformrecording.Recorder
 	writer           *outbox.Writer
@@ -58,7 +56,6 @@ type repository struct {
 func ProvideMealPlanningRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-	roster platformidentity.DirectoryReader,
 	client database.Client,
 	emitter *webhooks.Emitter,
 	recorder *platformrecording.Recorder,
@@ -73,7 +70,6 @@ func ProvideMealPlanningRepository(
 		writeDB:          client.Writer(),
 		tracer:           tracer,
 		generatedQuerier: generated.New(),
-		roster:           roster,
 		emitter:          emitter,
 		recorder:         recorder,
 		writer:           writer,

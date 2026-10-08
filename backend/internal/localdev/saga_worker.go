@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -14,6 +15,7 @@ import (
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/saga"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	pglock "github.com/primandproper/primitives-go/v2/distributedlock/postgres"
@@ -72,7 +74,9 @@ func StartSagaWorker(
 	registry := saga.NewRegistry()
 	if err = mealplanfinalization.Register(
 		registry,
-		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, identityStore, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads),
+		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads),
+		ddbidentity.NewAccountRoster(identityStore, databaseClient.Reader()),
+		clock.NewClock(),
 		recipeanalysis.NewRecipeAnalyzer(logger, tracerProvider),
 		grocerylistpreparation.NewGroceryListCreator(logger, tracerProvider),
 		logger,

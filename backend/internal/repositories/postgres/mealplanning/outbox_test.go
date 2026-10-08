@@ -9,8 +9,8 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/platform-go/v15/webhooks"
@@ -277,7 +277,7 @@ func TestQuerier_Integration_IndexEventsCommitWithTheirWrite(t *testing.T) {
 	dbc, _ := buildDatabaseClientForTest(t)
 
 	indexRows := func() []outboxRow {
-		return fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeValidVessels)
+		return fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeValidVessels)
 	}
 
 	// create
@@ -321,7 +321,7 @@ func TestQuerier_Integration_IndexEventRollsBackWithItsWrite(t *testing.T) {
 	// row that never changed could still have been announced to the index.
 	require.Error(t, dbc.ArchiveValidVessel(ctx, "nonexistent"))
 
-	assert.Empty(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeValidVessels))
+	assert.Empty(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeValidVessels))
 }
 
 func TestQuerier_Integration_RecipeCreationEnqueuesOneIndexEvent(t *testing.T) {
@@ -332,7 +332,7 @@ func TestQuerier_Integration_RecipeCreationEnqueuesOneIndexEvent(t *testing.T) {
 	// the other of the two shapes a write takes in this package.
 	created := createRecipeForTest(t, ctx, nil, dbc, false)
 
-	events := decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes))
+	events := decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeRecipes))
 	require.Len(t, events, 1)
 	assert.Equal(t, created.ID, events[0].DocumentID)
 	assert.Equal(t, searchsync.OpUpsert, events[0].Op)
@@ -346,7 +346,7 @@ func TestQuerier_Integration_RecipeStepWritesReindexTheirRecipe(t *testing.T) {
 	recipe := createRecipeForTest(t, ctx, buildRecipeForTestCreation(t, ctx, user.ID, dbc), dbc, false)
 
 	recipeEvents := func() []searchsync.Event {
-		return decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes))
+		return decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeRecipes))
 	}
 
 	// The recipe's own creation is one event; every write below is a change to the same
@@ -380,7 +380,7 @@ func TestQuerier_Integration_RecipeStepCreationIsAtomicWithItsIndexEvent(t *test
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	recipe := createRecipeForTest(t, ctx, buildRecipeForTestCreation(t, ctx, user.ID, dbc), dbc, false)
 
-	before := len(decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes)))
+	before := len(decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeRecipes)))
 
 	// A step naming a preparation that does not exist fails partway through the write. It used
 	// to run outside a transaction, so the step row survived a failure among its children;
@@ -392,7 +392,7 @@ func TestQuerier_Integration_RecipeStepCreationIsAtomicWithItsIndexEvent(t *test
 	_, err := dbc.CreateRecipeStep(ctx, doomed)
 	require.Error(t, err)
 
-	assert.Len(t, decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes)), before)
+	assert.Len(t, decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeRecipes)), before)
 
 	exists, err := dbc.RecipeStepExists(ctx, recipe.ID, doomed.ID)
 	require.NoError(t, err)

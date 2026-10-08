@@ -46,6 +46,28 @@ func (q *Queries) CheckRecipeExistence(ctx context.Context, db DBTX, id string) 
 	return exists, err
 }
 
+const checkRecipeOwnership = `-- name: CheckRecipeOwnership :one
+SELECT EXISTS (
+	SELECT recipes.id
+	FROM recipes
+	WHERE recipes.archived_at IS NULL
+		AND recipes.id = $1
+		AND recipes.created_by_user = $2
+)
+`
+
+type CheckRecipeOwnershipParams struct {
+	ID            string
+	CreatedByUser string
+}
+
+func (q *Queries) CheckRecipeOwnership(ctx context.Context, db DBTX, arg *CheckRecipeOwnershipParams) (bool, error) {
+	row := db.QueryRowContext(ctx, checkRecipeOwnership, arg.ID, arg.CreatedByUser)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createRecipe = `-- name: CreateRecipe :exec
 INSERT INTO recipes (
 	id,

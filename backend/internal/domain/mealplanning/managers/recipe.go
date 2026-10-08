@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -59,8 +59,9 @@ func (m *mealPlanningManager) CreateRecipe(ctx context.Context, creatorID string
 	// which rule the recipe broke. A caller needs both.
 	//
 	// This is the first of the two gates a creation passes, and the one that catches the
-	// rules about the request's own shape — a recipe with one step never reaches the
-	// repository, which is where the same joining is done for the rules that need a read.
+	// rules about the request's own shape — a recipe with one step never reaches
+	// checkRecipeForCreation, which is where the same joining is done for the rules that need
+	// a read.
 	if err := input.ValidateWithContext(ctx); err != nil {
 		return nil, observability.PrepareError(
 			fmt.Errorf("%w: %w", mealplanning.ErrInvalidRecipeInput, err), span, "validating recipe input")
@@ -82,6 +83,10 @@ func (m *mealPlanningManager) CreateRecipe(ctx context.Context, creatorID string
 	convertedInput.CreatedByUser = creatorID
 	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, convertedInput.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, convertedInput.ID)
+
+	if err = m.checkRecipeForCreation(ctx, convertedInput); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "validating recipe")
+	}
 
 	created, err := m.db.CreateRecipe(ctx, convertedInput)
 	if err != nil {
@@ -152,7 +157,7 @@ func (m *mealPlanningManager) SearchRecipes(ctx context.Context, query string, u
 // searchRecipesViaIndex searches recipes via the external search index. Returns (nil, err) on search failure or GetRecipesWithIDs failure, and (nil, errIndexHadNothing) on an empty first page.
 func (m *mealPlanningManager) searchRecipesViaIndex(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
 	results, err := searchpagination.Hydrated(ctx, m.recipeSearchIndex, query, filter,
-		func(subset *eatingindexing.RecipeSearchSubset) string { return subset.ID },
+		func(subset *searchindex.RecipeSearchSubset) string { return subset.ID },
 		m.db.GetRecipesWithIDs,
 	)
 	if err != nil {
@@ -216,7 +221,7 @@ func (m *mealPlanningManager) SearchRecipesWithInstrumentOwnership(ctx context.C
 	return recipes, nil
 }
 
-func (m *mealPlanningManager) UpdateRecipe(ctx context.Context, recipeID string, input *mealplanning.RecipeUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateRecipe(ctx context.Context, recipeID, ownerID string, input *mealplanning.RecipeUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -232,8 +237,10 @@ func (m *mealPlanningManager) UpdateRecipe(ctx context.Context, recipeID string,
 		return observability.PrepareAndLogError(err, logger, span, "retrieving existing recipe")
 	}
 
+	// The owner goes to the statement rather than to a check beforehand, as with ArchiveRecipe:
+	// a recipe somebody else wrote matches no row, and reads as not there.
 	existingRecipe.Update(input)
-	if err = m.db.UpdateRecipe(ctx, existingRecipe); err != nil {
+	if err = m.db.UpdateRecipe(ctx, existingRecipe, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe")
 	}
 
@@ -273,14 +280,20 @@ func (m *mealPlanningManager) ArchiveRecipe(ctx context.Context, recipeID, owner
 	return nil
 }
 
-func (m *mealPlanningManager) AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, uploadedByUser string) error {
+// AddRecipeImage attaches an upload to a recipe. Only the recipe's author may, so the uploader
+// is also the owner the write is checked against.
+func (m *mealPlanningManager) AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
-	if err := m.db.AddRecipeImage(ctx, recipeID, uploadedMediaID, uploadedByUser); err != nil {
+	if err := m.requireRecipeOwnership(ctx, recipeID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
+
+	if err := m.db.AddRecipeImage(ctx, recipeID, uploadedMediaID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "adding recipe image")
 	}
 
@@ -314,9 +327,18 @@ func (m *mealPlanningManager) RecipeEstimatedPrepSteps(ctx context.Context, reci
 	return responseEvents, nil
 }
 
-func (m *mealPlanningManager) RecipeImageUpload(ctx context.Context) error {
-	_, span := m.tracer.StartSpan(ctx)
+// AuthorizeRecipeImageUpload is asked by the upload RPC before it reads a byte of the image: a
+// refusal then costs the client one message rather than the object. AddRecipeImage asks the same
+// question again when it attaches the upload.
+func (m *mealPlanningManager) AuthorizeRecipeImageUpload(ctx context.Context, recipeID, ownerID string) error {
+	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
+
+	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
+
+	if err := m.requireRecipeOwnership(ctx, recipeID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	return nil
 }
@@ -361,6 +383,10 @@ func (m *mealPlanningManager) CloneRecipe(ctx context.Context, recipeID, newOwne
 
 	cloneInput := cloneRecipe(original, newOwnerID)
 	cloneInput.ClonedFromRecipeID = &recipeID
+
+	if err = m.checkRecipeForCreation(ctx, cloneInput); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "validating clone of recipe")
+	}
 
 	newRecipe, err := m.db.CreateRecipe(ctx, cloneInput)
 	if err != nil {

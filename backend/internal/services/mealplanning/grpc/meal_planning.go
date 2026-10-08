@@ -2,11 +2,9 @@ package grpc
 
 import (
 	"context"
-	"errors"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
@@ -16,7 +14,6 @@ import (
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
 	"github.com/primandproper/primitives-go/v2/observability"
-	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc/codes"
@@ -28,43 +25,6 @@ const (
 	recipeStepIDKey    = "recipe_step_id"
 	ingredientIndexKey = "ingredient_index"
 )
-
-// verifyMealPlanAccess fetches the session context and confirms the meal plan belongs to the
-// requester's active account. It is the service-layer authorization guard for meal-plan
-// sub-resource handlers whose manager methods do not accept an account-scoping argument.
-func (s *serviceImpl) verifyMealPlanAccess(ctx context.Context, mealPlanID string, logger logging.Logger, span tracing.Span) error {
-	sessionContextData, err := sessions.RequireFromContext(ctx)
-	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
-	}
-
-	if _, err = s.mealPlanningManager.ReadMealPlan(ctx, mealPlanID, sessionContextData.GetActiveAccountID()); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan not found or access denied")
-	}
-
-	return nil
-}
-
-// verifyMealPlanOptionAccess fetches the session context and confirms the meal plan option resolves
-// (via its event and meal plan) to the requester's active account. It is the service-layer
-// authorization guard for the recipe-option-selection handlers, whose requests carry only an option ID.
-func (s *serviceImpl) verifyMealPlanOptionAccess(ctx context.Context, mealPlanOptionID string, logger logging.Logger, span tracing.Span) error {
-	sessionContextData, err := sessions.RequireFromContext(ctx)
-	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
-	}
-
-	belongs, err := s.mealPlanningManager.MealPlanOptionBelongsToAccount(ctx, mealPlanOptionID, sessionContextData.GetActiveAccountID())
-	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to verify meal plan option access")
-	}
-
-	if !belongs {
-		return errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("meal plan option not found for account"), logger, span, codes.NotFound, "meal plan option not found or access denied")
-	}
-
-	return nil
-}
 
 func (s *serviceImpl) ArchiveMeal(ctx context.Context, request *mealplanningsvc.ArchiveMealRequest) (*mealplanningsvc.ArchiveMealResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
@@ -131,11 +91,12 @@ func (s *serviceImpl) ArchiveMealPlanEvent(ctx context.Context, request *mealpla
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId); err != nil {
+	if err = s.mealPlanningManager.ArchiveMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetActiveAccountID()); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "failed to archive meal plan event")
 	}
 
@@ -157,11 +118,12 @@ func (s *serviceImpl) ArchiveMealPlanGroceryListItem(ctx context.Context, reques
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId); err != nil {
+	if err = s.mealPlanningManager.ArchiveMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId, sessionContextData.GetActiveAccountID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan grocery list item")
 	}
 
@@ -184,11 +146,12 @@ func (s *serviceImpl) ArchiveMealPlanOption(ctx context.Context, request *mealpl
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId); err != nil {
+	if err = s.mealPlanningManager.ArchiveMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, sessionContextData.GetActiveAccountID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan option")
 	}
 
@@ -212,11 +175,12 @@ func (s *serviceImpl) ArchiveMealPlanOptionVote(ctx context.Context, request *me
 		mealplanningkeys.MealPlanIDKey:           request.MealPlanId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId); err != nil {
+	if err = s.mealPlanningManager.ArchiveMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId, sessionContextData.GetActiveAccountID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan option vote")
 	}
 
@@ -579,13 +543,14 @@ func (s *serviceImpl) CreateMealPlanEvent(ctx context.Context, request *mealplan
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanEventCreationRequestInputToMealPlanEventCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateMealPlanEvent(ctx, request.MealPlanId, input)
+	created, err := s.mealPlanningManager.CreateMealPlanEvent(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID(), input)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan event")
 	}
@@ -612,13 +577,14 @@ func (s *serviceImpl) CreateMealPlanOption(ctx context.Context, request *mealpla
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanOptionCreationRequestInputToMealPlanOptionCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateMealPlanOptionWithEventID(ctx, request.MealPlanEventId, input)
+	created, err := s.mealPlanningManager.CreateMealPlanOptionWithEventID(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetActiveAccountID(), input)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan option")
 	}
@@ -650,25 +616,11 @@ func (s *serviceImpl) CreateMealPlanOptionVote(ctx context.Context, request *mea
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if _, err = s.mealPlanningManager.ReadMealPlan(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID()); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan not found or access denied")
-	}
-
 	input := converters.ConvertGRPCMealPlanOptionVoteCreationRequestInputToMealPlanOptionVoteCreationRequestInput(request.Input)
-	for i := range input.Votes {
-		input.Votes[i].ByUser = sessionContextData.GetUserID()
-	}
 
-	created, err := s.mealPlanningManager.CreateMealPlanOptionVotes(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetUserID(), input)
+	created, err := s.mealPlanningManager.CreateMealPlanOptionVotes(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetActiveAccountID(), sessionContextData.GetUserID(), input)
 	if err != nil {
-		switch {
-		case errors.Is(err, mealplanning.ErrMealPlanEventNotEligibleForVoting):
-			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.FailedPrecondition, "meal plan event is not eligible for voting")
-		case errors.Is(err, mealplanning.ErrMealPlanOptionNotFoundForEvent):
-			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "meal plan option not found for event")
-		default:
-			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan option vote")
-		}
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan option vote")
 	}
 
 	x := &mealplanningsvc.CreateMealPlanOptionVoteResponse{
@@ -696,13 +648,14 @@ func (s *serviceImpl) CreateMealPlanTask(ctx context.Context, request *mealplann
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanTaskCreationRequestInputToMealPlanTaskCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateMealPlanTask(ctx, input)
+	created, err := s.mealPlanningManager.CreateMealPlanTask(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID(), input)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan task")
 	}
@@ -911,11 +864,12 @@ func (s *serviceImpl) GetMealPlanEvent(ctx context.Context, request *mealplannin
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanEvent, err := s.mealPlanningManager.ReadMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId)
+	mealPlanEvent, err := s.mealPlanningManager.ReadMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan event")
 	}
@@ -943,11 +897,12 @@ func (s *serviceImpl) GetMealPlanEvents(ctx context.Context, request *mealplanni
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	if err = s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanEventsResult, err := s.mealPlanningManager.ListMealPlanEvents(ctx, request.MealPlanId, filter)
+	mealPlanEventsResult, err := s.mealPlanningManager.ListMealPlanEvents(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan events")
 	}
@@ -975,11 +930,12 @@ func (s *serviceImpl) GetMealPlanGroceryListItem(ctx context.Context, request *m
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanGroceryListItem, err := s.mealPlanningManager.ReadMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId)
+	mealPlanGroceryListItem, err := s.mealPlanningManager.ReadMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan grocery list item")
 	}
@@ -1007,11 +963,12 @@ func (s *serviceImpl) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	if err = s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanGroceryListItems, err := s.mealPlanningManager.ListMealPlanGroceryListItemsByMealPlan(ctx, request.MealPlanId, filter)
+	mealPlanGroceryListItems, err := s.mealPlanningManager.ListMealPlanGroceryListItemsByMealPlan(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan grocery list items")
 	}
@@ -1041,11 +998,12 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelection(ctx context.Context, requ
 		selectionTypeKey:                     request.SelectionType,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	selection, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, uint16(request.IngredientIndex), converters.ConvertMealPlanRecipeOptionSelectionTypeToString(request.SelectionType))
+	selection, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, sessionContextData.GetActiveAccountID(), uint16(request.IngredientIndex), converters.ConvertMealPlanRecipeOptionSelectionTypeToString(request.SelectionType))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan recipe option selection")
 	}
@@ -1071,8 +1029,9 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx con
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveMealPlanRecipeOptionSelectionsPermission))
@@ -1080,7 +1039,7 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx con
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	selections, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, request.MealPlanOptionId, filter)
+	selections, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx, request.MealPlanOptionId, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan recipe option selections")
 	}
@@ -1111,13 +1070,14 @@ func (s *serviceImpl) CreateMealPlanRecipeOptionSelection(ctx context.Context, r
 		mealplanningkeys.MealPlanOptionIDKey: request.Input.BelongsToMealPlanOption,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanRecipeOptionSelectionCreationRequestInputToMealPlanRecipeOptionSelectionCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, input)
+	created, err := s.mealPlanningManager.CreateMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, sessionContextData.GetActiveAccountID(), input)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create meal plan recipe option selection")
 	}
@@ -1147,18 +1107,19 @@ func (s *serviceImpl) UpdateMealPlanRecipeOptionSelection(ctx context.Context, r
 		selectionTypeKey:                     request.SelectionType,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanRecipeOptionSelectionUpdateRequestInputToMealPlanRecipeOptionSelectionUpdateRequestInput(request.Input)
 
 	selectionTypeStr := converters.ConvertMealPlanRecipeOptionSelectionTypeToString(request.SelectionType)
-	if err := s.mealPlanningManager.UpdateMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, uint16(request.IngredientIndex), selectionTypeStr, input); err != nil {
+	if err = s.mealPlanningManager.UpdateMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, sessionContextData.GetActiveAccountID(), uint16(request.IngredientIndex), selectionTypeStr, input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update meal plan recipe option selection")
 	}
 
-	updated, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, uint16(request.IngredientIndex), selectionTypeStr)
+	updated, err := s.mealPlanningManager.GetMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, sessionContextData.GetActiveAccountID(), uint16(request.IngredientIndex), selectionTypeStr)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch updated meal plan recipe option selection")
 	}
@@ -1184,12 +1145,13 @@ func (s *serviceImpl) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, 
 		selectionTypeKey:                     request.SelectionType,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	selectionTypeStr := converters.ConvertMealPlanRecipeOptionSelectionTypeToString(request.SelectionType)
-	if err := s.mealPlanningManager.ArchiveMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, uint16(request.IngredientIndex), selectionTypeStr); err != nil {
+	if err = s.mealPlanningManager.ArchiveMealPlanRecipeOptionSelection(ctx, request.MealPlanOptionId, request.RecipeStepId, sessionContextData.GetActiveAccountID(), uint16(request.IngredientIndex), selectionTypeStr); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive meal plan recipe option selection")
 	}
 
@@ -1212,11 +1174,12 @@ func (s *serviceImpl) GetMealPlanOption(ctx context.Context, request *mealplanni
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanOption, err := s.mealPlanningManager.ReadMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId)
+	mealPlanOption, err := s.mealPlanningManager.ReadMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan option")
 	}
@@ -1242,11 +1205,12 @@ func (s *serviceImpl) GetMealPlanOptionVote(ctx context.Context, request *mealpl
 		mealplanningkeys.MealPlanOptionVoteIDKey: request.MealPlanOptionVoteId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanOptionVote, err := s.mealPlanningManager.ReadMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId)
+	mealPlanOptionVote, err := s.mealPlanningManager.ReadMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan option vote")
 	}
@@ -1276,11 +1240,12 @@ func (s *serviceImpl) GetMealPlanOptionVotes(ctx context.Context, request *mealp
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	if err = s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanOptionVotesResult, err := s.mealPlanningManager.ListMealPlanOptionVotes(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, filter)
+	mealPlanOptionVotesResult, err := s.mealPlanningManager.ListMealPlanOptionVotes(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan option votes")
 	}
@@ -1311,11 +1276,12 @@ func (s *serviceImpl) GetMealPlanOptions(ctx context.Context, request *mealplann
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	if err = s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanOptionsResult, err := s.mealPlanningManager.ListMealPlanOptions(ctx, request.MealPlanId, request.MealPlanEventId, filter)
+	mealPlanOptionsResult, err := s.mealPlanningManager.ListMealPlanOptions(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan options")
 	}
@@ -1343,11 +1309,12 @@ func (s *serviceImpl) GetMealPlanTask(ctx context.Context, request *mealplanning
 		mealplanningkeys.MealPlanTaskIDKey: request.MealPlanTaskId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanTask, err := s.mealPlanningManager.ReadMealPlanTask(ctx, request.MealPlanId, request.MealPlanTaskId)
+	mealPlanTask, err := s.mealPlanningManager.ReadMealPlanTask(ctx, request.MealPlanId, request.MealPlanTaskId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to read meal plan task")
 	}
@@ -1375,11 +1342,12 @@ func (s *serviceImpl) GetMealPlanTasks(ctx context.Context, request *mealplannin
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	if err = s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	mealPlanTasks, err := s.mealPlanningManager.ListMealPlanTasksByMealPlan(ctx, request.MealPlanId, filter)
+	mealPlanTasks, err := s.mealPlanningManager.ListMealPlanTasksByMealPlan(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch list of meal plan tasks")
 	}
@@ -1645,17 +1613,18 @@ func (s *serviceImpl) UpdateMealPlanEvent(ctx context.Context, request *mealplan
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanEventUpdateRequestInputToMealPlanEventUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetActiveAccountID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update meal plan event")
 	}
 
-	updated, err := s.mealPlanningManager.ReadMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId)
+	updated, err := s.mealPlanningManager.ReadMealPlanEvent(ctx, request.MealPlanId, request.MealPlanEventId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch updated meal plan event")
 	}
@@ -1679,11 +1648,12 @@ func (s *serviceImpl) SwapMealPlanEvents(ctx context.Context, request *mealplann
 		mealplanningkeys.MealPlanEventIDKey: request.MealPlanEventIdA + "," + request.MealPlanEventIdB,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.SwapMealPlanEvents(ctx, request.MealPlanId, request.MealPlanEventIdA, request.MealPlanEventIdB); err != nil {
+	if err = s.mealPlanningManager.SwapMealPlanEvents(ctx, request.MealPlanId, request.MealPlanEventIdA, request.MealPlanEventIdB, sessionContextData.GetActiveAccountID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to swap meal plan events")
 	}
 
@@ -1709,17 +1679,18 @@ func (s *serviceImpl) UpdateMealPlanGroceryListItem(ctx context.Context, request
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanGroceryListItemUpdateRequestInputToMealPlanGroceryListItemUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId, sessionContextData.GetActiveAccountID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update meal plan grocery list item")
 	}
 
-	updated, err := s.mealPlanningManager.ReadMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId)
+	updated, err := s.mealPlanningManager.ReadMealPlanGroceryListItem(ctx, request.MealPlanId, request.MealPlanGroceryListItemId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch updated meal plan grocery list item")
 	}
@@ -1748,17 +1719,18 @@ func (s *serviceImpl) UpdateMealPlanOption(ctx context.Context, request *mealpla
 		mealplanningkeys.MealPlanEventIDKey:  request.MealPlanEventId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanOptionUpdateRequestInputToMealPlanOptionUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, sessionContextData.GetActiveAccountID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update meal plan option")
 	}
 
-	updated, err := s.mealPlanningManager.ReadMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId)
+	updated, err := s.mealPlanningManager.ReadMealPlanOption(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch updated meal plan option")
 	}
@@ -1787,17 +1759,18 @@ func (s *serviceImpl) UpdateMealPlanOptionVote(ctx context.Context, request *mea
 		mealplanningkeys.MealPlanOptionVoteIDKey: request.MealPlanOptionVoteId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanOptionVoteUpdateRequestInputToMealPlanOptionVoteUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId, sessionContextData.GetActiveAccountID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update meal plan option vote")
 	}
 
-	updated, err := s.mealPlanningManager.ReadMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId)
+	updated, err := s.mealPlanningManager.ReadMealPlanOptionVote(ctx, request.MealPlanId, request.MealPlanEventId, request.MealPlanOptionId, request.MealPlanOptionVoteId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch updated meal plan option vote")
 	}
@@ -1825,18 +1798,19 @@ func (s *serviceImpl) UpdateMealPlanTaskStatus(ctx context.Context, request *mea
 		mealplanningkeys.MealPlanTaskIDKey: request.MealPlanTaskId,
 	}, span, s.logger)
 
-	if err := s.verifyMealPlanAccess(ctx, request.MealPlanId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCMealPlanTaskStatusChangeRequestInputToMealPlanTaskStatusChangeRequestInput(request.Input)
 	input.MealPlanTaskID = request.MealPlanTaskId
 
-	if err := s.mealPlanningManager.MealPlanTaskStatusChange(ctx, input); err != nil {
+	if err = s.mealPlanningManager.MealPlanTaskStatusChange(ctx, request.MealPlanId, sessionContextData.GetActiveAccountID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update meal plan task status")
 	}
 
-	updated, err := s.mealPlanningManager.ReadMealPlanTask(ctx, request.MealPlanId, request.MealPlanTaskId)
+	updated, err := s.mealPlanningManager.ReadMealPlanTask(ctx, request.MealPlanId, request.MealPlanTaskId, sessionContextData.GetActiveAccountID())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch updated meal plan task status")
 	}

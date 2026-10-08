@@ -230,12 +230,19 @@ func (h *uploadHarness) ownRecipe() *mealplanning.Recipe {
 	recipe := mealplanningfakes.BuildFakeRecipe()
 	recipe.CreatedByUser = h.userID
 
-	h.manager.ReadRecipeFunc = func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-		if recipeID != recipe.ID {
-			return nil, sql.ErrNoRows
+	h.manager.AuthorizeRecipeImageUploadFunc = func(_ context.Context, recipeID, ownerID string) error {
+		if recipeID != recipe.ID || ownerID != recipe.CreatedByUser {
+			return sql.ErrNoRows
 		}
 
-		return recipe, nil
+		return nil
+	}
+	h.manager.AuthorizeRecipeStepImageUploadFunc = func(_ context.Context, recipeID, _, ownerID string) error {
+		if recipeID != recipe.ID || ownerID != recipe.CreatedByUser {
+			return sql.ErrNoRows
+		}
+
+		return nil
 	}
 	h.manager.AddRecipeImageFunc = func(context.Context, string, string, string) error { return nil }
 
@@ -287,7 +294,7 @@ func TestServiceImpl_UploadRecipeImage(T *testing.T) {
 		attached := h.manager.AddRecipeImageCalls()[0]
 		assert.Equal(t, recipe.ID, attached.RecipeID)
 		assert.Equal(t, recorded.ID, attached.UploadedMediaID)
-		assert.Equal(t, h.userID, attached.UploadedByUser)
+		assert.Equal(t, h.userID, attached.OwnerID)
 
 		require.NotNil(t, stream.response)
 		assert.Equal(t, recorded.ID, stream.response.GetUploadedMediaId())
@@ -397,7 +404,7 @@ func TestServiceImpl_UploadRecipeImage(T *testing.T) {
 			uploadHeaderForTest(imageNameForTest(), uploadedmedia.MimeTypeImagePNG, nil),
 			uploadChunkForTest([]byte(fake.BuildFakeID())),
 		)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.Equal(t, codes.NotFound, status.Code(err))
 		assert.Empty(t, h.saved)
 		assert.Empty(t, h.manager.AddRecipeImageCalls())
 	})
@@ -560,8 +567,7 @@ func TestServiceImpl_UploadRecipeStepImage(T *testing.T) {
 		h := buildUploadHarness(t)
 		recipe := h.ownRecipe()
 		step := mealplanningfakes.BuildFakeRecipeStep()
-		h.manager.ReadRecipeStepFunc = func(context.Context, string, string) (*mealplanning.RecipeStep, error) { return step, nil }
-		h.manager.AddRecipeStepImageFunc = func(context.Context, string, string, string) error { return nil }
+		h.manager.AddRecipeStepImageFunc = func(context.Context, string, string, string, string) error { return nil }
 		name := imageNameForTest()
 
 		stream := &fakeUploadStream[mealplanningsvc.UploadRecipeStepImageRequest, mealplanningsvc.UploadRecipeStepImageResponse]{
@@ -577,12 +583,16 @@ func TestServiceImpl_UploadRecipeStepImage(T *testing.T) {
 		assert.Equal(t, mediaregistry.Subject{Type: recipeStepSubjectType, ID: step.ID}, recorded.BelongsTo)
 		assert.Equal(t, path.Join("recipes", recipe.ID, "steps", step.ID, recorded.ID, name), recorded.Key)
 
-		require.Len(t, h.manager.ReadRecipeStepCalls(), 1)
-		assert.Equal(t, recipe.ID, h.manager.ReadRecipeStepCalls()[0].RecipeID)
+		require.Len(t, h.manager.AuthorizeRecipeStepImageUploadCalls(), 1)
+		assert.Equal(t, recipe.ID, h.manager.AuthorizeRecipeStepImageUploadCalls()[0].RecipeID)
+		assert.Equal(t, step.ID, h.manager.AuthorizeRecipeStepImageUploadCalls()[0].RecipeStepID)
+		assert.Equal(t, h.userID, h.manager.AuthorizeRecipeStepImageUploadCalls()[0].OwnerID)
 
 		require.Len(t, h.manager.AddRecipeStepImageCalls(), 1)
+		assert.Equal(t, recipe.ID, h.manager.AddRecipeStepImageCalls()[0].RecipeID)
 		assert.Equal(t, step.ID, h.manager.AddRecipeStepImageCalls()[0].RecipeStepID)
 		assert.Equal(t, recorded.ID, h.manager.AddRecipeStepImageCalls()[0].UploadedMediaID)
+		assert.Equal(t, h.userID, h.manager.AddRecipeStepImageCalls()[0].OwnerID)
 		assert.Equal(t, recorded.ID, stream.response.GetUploadedMediaId())
 	})
 
@@ -591,7 +601,7 @@ func TestServiceImpl_UploadRecipeStepImage(T *testing.T) {
 
 		h := buildUploadHarness(t)
 		recipe := h.ownRecipe()
-		h.manager.ReadRecipeStepFunc = func(context.Context, string, string) (*mealplanning.RecipeStep, error) { return nil, sql.ErrNoRows }
+		h.manager.AuthorizeRecipeStepImageUploadFunc = func(context.Context, string, string, string) error { return sql.ErrNoRows }
 
 		stream := &fakeUploadStream[mealplanningsvc.UploadRecipeStepImageRequest, mealplanningsvc.UploadRecipeStepImageResponse]{
 			ctx: h.ctx,

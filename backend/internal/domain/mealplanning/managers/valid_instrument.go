@@ -6,7 +6,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -39,7 +39,7 @@ func (m *mealPlanningManager) SearchValidInstruments(ctx context.Context, query 
 		results, err = m.db.SearchForValidInstruments(ctx, query, filter)
 	} else {
 		results, err = searchpagination.Hydrated(ctx, m.validInstrumentSearchIndex, query, filter,
-			func(subset *eatingindexing.ValidInstrumentSearchSubset) string { return subset.ID },
+			func(subset *searchindex.ValidInstrumentSearchSubset) string { return subset.ID },
 			m.db.GetValidInstrumentsWithIDs,
 		)
 	}

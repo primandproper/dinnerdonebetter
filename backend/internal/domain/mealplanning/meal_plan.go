@@ -80,6 +80,7 @@ type (
 		ID               string                                                `json:"-"`
 		ElectionMethod   string                                                `json:"-"`
 		CreatedByUser    string                                                `json:"-"`
+		Status           string                                                `json:"-"`
 		Events           []*MealPlanEventDatabaseCreationInput                 `json:"-"`
 		Selections       []*MealPlanRecipeOptionSelectionDatabaseCreationInput `json:"-"`
 	}
@@ -140,7 +141,10 @@ type (
 		CreateMealPlan(ctx context.Context, input *MealPlanDatabaseCreationInput) (*MealPlan, error)
 		UpdateMealPlan(ctx context.Context, updated *MealPlan) error
 		ArchiveMealPlan(ctx context.Context, mealPlanID, accountID string) error
-		AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, accountID string) (bool, error)
+		// RecordMealPlanTally writes down what TallyMealPlan decided: the option chosen for
+		// each decided event and, when the tally finalized the plan, its status and the event
+		// announcing it, all in one transaction. It decides nothing itself.
+		RecordMealPlanTally(ctx context.Context, mealPlan *MealPlan, tally *MealPlanTally) error
 		GetFinalizedMealPlanOptionsForMealPlan(ctx context.Context, mealPlanID string) ([]*FinalizedMealPlanDatabaseResult, error)
 		// GetMealPlansAwaitingFinalizationSaga returns up to limit meal plans that the
 		// finalization pipeline still owes something to and that no saga has claimed.
@@ -169,12 +173,10 @@ func (x *MealPlan) Update(input *MealPlanUpdateRequestInput) {
 
 var _ validation.ValidatableWithContext = (*MealPlanCreationRequestInput)(nil)
 
-// ValidateWithContext validates a MealPlanCreationRequestInput.
+// ValidateWithContext validates a MealPlanCreationRequestInput's shape. Whether its voting
+// deadline is still ahead depends on when the question is asked, so that is
+// ValidateVotingDeadline's to answer.
 func (x *MealPlanCreationRequestInput) ValidateWithContext(ctx context.Context) error {
-	if time.Now().After(x.VotingDeadline) {
-		return errInvalidVotingDeadline
-	}
-
 	// Validate required fields first
 	if err := validation.ValidateStructWithContext(
 		ctx,
@@ -196,6 +198,15 @@ func (x *MealPlanCreationRequestInput) ValidateWithContext(ctx context.Context) 
 	return nil
 }
 
+// ValidateVotingDeadline reports whether a plan created at now would still have time to vote.
+func (x *MealPlanCreationRequestInput) ValidateVotingDeadline(now time.Time) error {
+	if now.After(x.VotingDeadline) {
+		return errInvalidVotingDeadline
+	}
+
+	return nil
+}
+
 var _ validation.ValidatableWithContext = (*MealPlanDatabaseCreationInput)(nil)
 
 // ValidateWithContext validates a MealPlanDatabaseCreationInput.
@@ -207,6 +218,7 @@ func (x *MealPlanDatabaseCreationInput) ValidateWithContext(ctx context.Context)
 		validation.Field(&x.VotingDeadline, validation.Required),
 		validation.Field(&x.BelongsToAccount, validation.Required),
 		validation.Field(&x.CreatedByUser, validation.Required),
+		validation.Field(&x.Status, validation.Required, validation.In(string(MealPlanStatusAwaitingVotes), string(MealPlanStatusFinalized))),
 	)
 }
 

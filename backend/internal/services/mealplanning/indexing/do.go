@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 
 	searchsync "github.com/primandproper/platform-go/v15/searchsync"
@@ -27,28 +28,28 @@ func RegisterIndexes(i do.Injector, registry *searchsync.Registry) error {
 
 	for _, register := range []func() error{
 		func() error {
-			return registerIndex(registry, NewMealSource, repo, do.MustInvoke[MealTextSearcher](i), repo.MarkMealsAsIndexed)
+			return registerIndex(registry, NewMealSource, repo, do.MustInvoke[searchindex.MealTextSearcher](i), repo.MarkMealsAsIndexed)
 		},
 		func() error {
-			return registerIndex(registry, NewRecipeSource, repo, do.MustInvoke[RecipeTextSearcher](i), repo.MarkRecipesAsIndexed)
+			return registerIndex(registry, NewRecipeSource, repo, do.MustInvoke[searchindex.RecipeTextSearcher](i), repo.MarkRecipesAsIndexed)
 		},
 		func() error {
-			return registerIndex(registry, NewValidIngredientSource, repo, do.MustInvoke[ValidIngredientTextSearcher](i), repo.MarkValidIngredientsAsIndexed)
+			return registerIndex(registry, NewValidIngredientSource, repo, do.MustInvoke[searchindex.ValidIngredientTextSearcher](i), repo.MarkValidIngredientsAsIndexed)
 		},
 		func() error {
-			return registerIndex(registry, NewValidInstrumentSource, repo, do.MustInvoke[ValidInstrumentTextSearcher](i), repo.MarkValidInstrumentsAsIndexed)
+			return registerIndex(registry, NewValidInstrumentSource, repo, do.MustInvoke[searchindex.ValidInstrumentTextSearcher](i), repo.MarkValidInstrumentsAsIndexed)
 		},
 		func() error {
-			return registerIndex(registry, NewValidMeasurementUnitSource, repo, do.MustInvoke[ValidMeasurementUnitTextSearcher](i), repo.MarkValidMeasurementUnitsAsIndexed)
+			return registerIndex(registry, NewValidMeasurementUnitSource, repo, do.MustInvoke[searchindex.ValidMeasurementUnitTextSearcher](i), repo.MarkValidMeasurementUnitsAsIndexed)
 		},
 		func() error {
-			return registerIndex(registry, NewValidPreparationSource, repo, do.MustInvoke[ValidPreparationTextSearcher](i), repo.MarkValidPreparationsAsIndexed)
+			return registerIndex(registry, NewValidPreparationSource, repo, do.MustInvoke[searchindex.ValidPreparationTextSearcher](i), repo.MarkValidPreparationsAsIndexed)
 		},
 		func() error {
-			return registerIndex(registry, NewValidIngredientStateSource, repo, do.MustInvoke[ValidIngredientStateTextSearcher](i), repo.MarkValidIngredientStatesAsIndexed)
+			return registerIndex(registry, NewValidIngredientStateSource, repo, do.MustInvoke[searchindex.ValidIngredientStateTextSearcher](i), repo.MarkValidIngredientStatesAsIndexed)
 		},
 		func() error {
-			return registerIndex(registry, NewValidVesselSource, repo, do.MustInvoke[ValidVesselTextSearcher](i), repo.MarkValidVesselsAsIndexed)
+			return registerIndex(registry, NewValidVesselSource, repo, do.MustInvoke[searchindex.ValidVesselTextSearcher](i), repo.MarkValidVesselsAsIndexed)
 		},
 	} {
 		if err := register(); err != nil {

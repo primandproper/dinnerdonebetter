@@ -62,3 +62,35 @@ func TestMembersOfAccount(T *testing.T) {
 		assert.Len(t, directory.ListAccountMembersCalls(), 2)
 	})
 }
+
+func TestAccountRoster_MembersOfAccount(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		accountID := identifiers.New()
+		member := identifiers.New()
+
+		directory := &identitymock.StoreMock{
+			ListAccountMembersFunc: func(
+				_ context.Context,
+				_ database.SQLQueryExecutor,
+				_ tenancy.Scope,
+				id string,
+				_ *filtering.QueryFilter,
+			) (*filtering.QueryFilteredResult[platformidentity.MembershipWithUser], error) {
+				assert.Equal(t, accountID, id)
+
+				return &filtering.QueryFilteredResult[platformidentity.MembershipWithUser]{
+					Data: []*platformidentity.MembershipWithUser{{User: &platformidentity.User{ID: member}}},
+				}, nil
+			},
+		}
+
+		members, err := NewAccountRoster(directory, nil).MembersOfAccount(t.Context(), accountID)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{member}, members)
+	})
+}

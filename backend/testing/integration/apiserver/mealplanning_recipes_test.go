@@ -926,7 +926,7 @@ func TestRecipes_GetMealPlanTasksForRecipe(T *testing.T) {
 
 		// Build a meal from the recipe and an auto-finalized single-option meal plan, whose
 		// finalization saga generates the meal plan tasks. GetMealPlanTasks is account-scoped
-		// (verifyMealPlanAccess), so it must be queried with a real meal plan ID owned by the
+		// (the manager's requireMealPlanAccess), so it must be queried with a real meal plan ID owned by the
 		// requester's account, not a recipe ID.
 		_, userClient := createUserAndClientForTest(t)
 		meal := createMealFromRecipe(t, createdRecipe, t.Name())

@@ -125,6 +125,9 @@ type (
 	// RecipeDataManager describes a structure capable of storing recipes permanently.
 	RecipeDataManager interface {
 		RecipeExists(ctx context.Context, recipeID string) (bool, error)
+		// RecipeIsOwnedBy reports whether userID wrote the recipe, which is what lets them
+		// change it or anything it is made of.
+		RecipeIsOwnedBy(ctx context.Context, recipeID, userID string) (bool, error)
 		GetRecipe(ctx context.Context, recipeID string) (*Recipe, error)
 		GetRecipes(ctx context.Context, status string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Recipe], error)
 		GetRecipesCreatedByUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Recipe], error)
@@ -132,7 +135,8 @@ type (
 		SearchForMealEligibleRecipes(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Recipe], error)
 		SearchForRecipesWithInstrumentOwnership(ctx context.Context, accountID, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[Recipe], error)
 		CreateRecipe(ctx context.Context, input *RecipeDatabaseCreationInput) (*Recipe, error)
-		UpdateRecipe(ctx context.Context, updated *Recipe) error
+		// UpdateRecipe writes a recipe's new contents, and only if ownerID wrote it.
+		UpdateRecipe(ctx context.Context, updated *Recipe, ownerID string) error
 		UpdateRecipeStatus(ctx context.Context, recipeID, newStatus string) error
 		MarkRecipesAsIndexed(ctx context.Context, ids []string) error
 		ArchiveRecipe(ctx context.Context, recipeID, userID string) error

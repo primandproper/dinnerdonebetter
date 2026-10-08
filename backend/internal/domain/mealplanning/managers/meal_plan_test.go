@@ -3,11 +3,13 @@ package managers
 import (
 	"context"
 	"testing"
+	"time"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
+	clockmock "github.com/primandproper/primitives-go/v2/clock/mock"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 
@@ -133,7 +135,11 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 		fakeInput := fakes.BuildFakeMealPlanCreationRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
-			CreateMealPlanFunc: func(_ context.Context, _ *types.MealPlanDatabaseCreationInput) (*types.MealPlan, error) {
+			CreateMealPlanFunc: func(_ context.Context, input *types.MealPlanDatabaseCreationInput) (*types.MealPlan, error) {
+				assert.Equal(t, ownerID, input.BelongsToAccount)
+				assert.Equal(t, creatorID, input.CreatedByUser)
+				assert.Equal(t, string(types.InitialMealPlanStatus(input.Events)), input.Status)
+
 				return expected, nil
 			},
 		}
@@ -144,6 +150,25 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateMealPlanCalls(), 1)
+	})
+
+	T.Run("with a voting deadline already behind the manager's clock", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		fakeInput := fakes.BuildFakeMealPlanCreationRequestInput()
+		mpm := newManagerForTestWithClock(t, nil, &clockmock.ClockMock{
+			NowFunc: func() time.Time { return fakeInput.VotingDeadline.Add(time.Minute) },
+		})
+
+		db := &mealplanningmock.RepositoryMock{}
+		attachRepositoryToManager(mpm, db)
+
+		actual, err := mpm.CreateMealPlan(ctx, fake.BuildFakeID(), fake.BuildFakeID(), fakeInput)
+		require.Error(t, err)
+		assert.Nil(t, actual)
+
+		assert.Empty(t, db.CreateMealPlanCalls())
 	})
 
 	T.Run("starts the finalization saga when meal plan is created finalized", func(t *testing.T) {
@@ -267,6 +292,29 @@ func TestMealPlanningManager_ArchiveMealPlan(T *testing.T) {
 	})
 }
 
+// buildVotedMealPlanForTest builds a plan awaiting votes whose one event offers two options,
+// with a ballot from every member on each, so a tally of it finalizes.
+func buildVotedMealPlanForTest(members []string) *types.MealPlan {
+	mealPlan := fakes.BuildFakeMealPlan()
+	event := mealPlan.Events[0]
+	event.Options = event.Options[:2]
+	mealPlan.Events = []*types.MealPlanEvent{event}
+
+	for i, option := range event.Options {
+		option.Votes = []*types.MealPlanOptionVote{}
+		for _, member := range members {
+			vote := fakes.BuildFakeMealPlanOptionVote()
+			vote.BelongsToMealPlanOption = option.ID
+			vote.ByUser = member
+			vote.Abstain = false
+			vote.Rank = uint8(i + 1)
+			option.Votes = append(option.Votes, vote)
+		}
+	}
+
+	return mealPlan
+}
+
 func TestMealPlanningManager_FinalizeMealPlan(T *testing.T) {
 	T.Parallel()
 
@@ -276,23 +324,35 @@ func TestMealPlanningManager_FinalizeMealPlan(T *testing.T) {
 		ctx := t.Context()
 		mpm := buildMealPlanManagerForTest(t)
 
-		expected := fakes.BuildFakeMealPlan()
+		members := []string{fake.BuildFakeID(), fake.BuildFakeID()}
+		mpm.electorate = &fakeElectorate{members: members}
+
+		expected := buildVotedMealPlanForTest(members)
+		exampleAccountID := fake.BuildFakeID()
 
 		db := &mealplanningmock.RepositoryMock{
-			AttemptToFinalizeMealPlanFunc: func(_ context.Context, mealPlanID, accountID string) (bool, error) {
+			GetMealPlanFunc: func(_ context.Context, mealPlanID, accountID string) (*types.MealPlan, error) {
 				assert.Equal(t, expected.ID, mealPlanID)
-				assert.Equal(t, expected.CreatedByUser, accountID)
+				assert.Equal(t, exampleAccountID, accountID)
 
-				return true, nil
+				return expected, nil
+			},
+			RecordMealPlanTallyFunc: func(_ context.Context, mealPlan *types.MealPlan, tally *types.MealPlanTally) error {
+				assert.Equal(t, expected, mealPlan)
+				assert.True(t, tally.Finalized)
+				require.Len(t, tally.Decisions, 1)
+				assert.Equal(t, expected.Events[0].Options[0].ID, tally.Decisions[0].MealPlanOptionID)
+
+				return nil
 			},
 		}
 		attachRepositoryToManager(mpm, db)
 
-		finalized, err := mpm.FinalizeMealPlan(ctx, expected.ID, expected.CreatedByUser)
+		finalized, err := mpm.FinalizeMealPlan(ctx, expected.ID, exampleAccountID)
 		assert.True(t, finalized)
 		require.NoError(t, err)
 
-		assert.Len(t, db.AttemptToFinalizeMealPlanCalls(), 1)
+		assert.Len(t, db.RecordMealPlanTallyCalls(), 1)
 	})
 
 	T.Run("starts the finalization saga when finalized", func(t *testing.T) {
@@ -303,23 +363,80 @@ func TestMealPlanningManager_FinalizeMealPlan(T *testing.T) {
 
 		mpm := buildMealPlanManagerForTestWithStarter(t, starter)
 
-		expected := fakes.BuildFakeMealPlan()
+		members := []string{fake.BuildFakeID()}
+		mpm.electorate = &fakeElectorate{members: members}
+
+		expected := buildVotedMealPlanForTest(members)
 
 		db := &mealplanningmock.RepositoryMock{
-			AttemptToFinalizeMealPlanFunc: func(_ context.Context, mealPlanID, accountID string) (bool, error) {
-				assert.Equal(t, expected.ID, mealPlanID)
-				assert.Equal(t, expected.CreatedByUser, accountID)
-
-				return true, nil
+			GetMealPlanFunc: func(context.Context, string, string) (*types.MealPlan, error) {
+				return expected, nil
+			},
+			RecordMealPlanTallyFunc: func(context.Context, *types.MealPlan, *types.MealPlanTally) error {
+				return nil
 			},
 		}
 		attachRepositoryToManager(mpm, db)
 
-		finalized, err := mpm.FinalizeMealPlan(ctx, expected.ID, expected.CreatedByUser)
+		finalized, err := mpm.FinalizeMealPlan(ctx, expected.ID, fake.BuildFakeID())
 		assert.True(t, finalized)
 		require.NoError(t, err)
 
-		assert.Len(t, db.AttemptToFinalizeMealPlanCalls(), 1)
 		assert.Equal(t, []string{expected.ID}, starter.calls)
+	})
+
+	T.Run("leaves the saga alone while a member has yet to vote", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		starter := &fakeFinalizationStarter{}
+
+		mpm := buildMealPlanManagerForTestWithStarter(t, starter)
+
+		voter := fake.BuildFakeID()
+		mpm.electorate = &fakeElectorate{members: []string{voter, fake.BuildFakeID()}}
+
+		expected := buildVotedMealPlanForTest([]string{voter})
+
+		db := &mealplanningmock.RepositoryMock{
+			GetMealPlanFunc: func(context.Context, string, string) (*types.MealPlan, error) {
+				return expected, nil
+			},
+			RecordMealPlanTallyFunc: func(_ context.Context, _ *types.MealPlan, tally *types.MealPlanTally) error {
+				assert.False(t, tally.Finalized)
+
+				return nil
+			},
+		}
+		attachRepositoryToManager(mpm, db)
+
+		finalized, err := mpm.FinalizeMealPlan(ctx, expected.ID, fake.BuildFakeID())
+		assert.False(t, finalized)
+		require.NoError(t, err)
+
+		assert.Empty(t, starter.calls)
+	})
+
+	T.Run("with a plan that is already finalized", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		expected := fakes.BuildFakeMealPlan()
+		expected.Status = string(types.MealPlanStatusFinalized)
+
+		db := &mealplanningmock.RepositoryMock{
+			GetMealPlanFunc: func(context.Context, string, string) (*types.MealPlan, error) {
+				return expected, nil
+			},
+		}
+		attachRepositoryToManager(mpm, db)
+
+		finalized, err := mpm.FinalizeMealPlan(ctx, expected.ID, fake.BuildFakeID())
+		assert.False(t, finalized)
+		require.ErrorIs(t, err, types.ErrAlreadyFinalized)
+
+		assert.Empty(t, db.RecordMealPlanTallyCalls())
 	})
 }
