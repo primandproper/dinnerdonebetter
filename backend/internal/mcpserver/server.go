@@ -15,11 +15,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 
-	issuereports "github.com/primandproper/platform-go/v15/issuereports"
-	waitlists "github.com/primandproper/platform-go/v15/waitlists"
-	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
-	"github.com/primandproper/primitives-go/v2/database"
+	oauth2mcp "github.com/primandproper/primitives-go/v2/authentication/oauth2server/mcp"
 	"github.com/primandproper/primitives-go/v2/encoding"
 	"github.com/primandproper/primitives-go/v2/healthcheck"
 	"github.com/primandproper/primitives-go/v2/observability"
@@ -27,7 +24,6 @@ import (
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	"github.com/primandproper/primitives-go/v2/version"
 
-	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -162,7 +158,7 @@ func Run(ctx context.Context, transport, baseURL string) error {
 // buildRouter creates a router with OAuth2 routes (unauthenticated) and the MCP handler (authenticated).
 //
 // health is what /_ops_/ready asks. Every check it holds must pass for the probe to answer 200.
-func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth2server.Server, resourceMetadata *oauth2server.ResourceMetadata, loginThrottle routing.Middleware, health healthcheck.Registry, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string) (*routing.Router, error) {
+func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth2server.Server, resourceMetadata *oauth2server.ResourceMetadata, loginThrottle routing.Middleware, health healthcheck.Registry, pillars *observability.Pillars, routingCfg *routingcfg.Config) (*routing.Router, error) {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(pillars.Logger), encoding.WithTracerProvider(pillars.TracerProvider))
 
 	router, err := routingcfg.NewRouter(ctx, routingCfg, encoder, routingcfg.WithPillars(pillars))
@@ -204,9 +200,21 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth
 	authServer.Mount(router, authMountMiddleware...)
 	resourceMetadata.Mount(router)
 
-	// Wrap the MCP handler with bearer token auth middleware. The MCP transport
-	// serves multiple methods (GET for streaming, POST for messages, DELETE to
-	// terminate a session), so register the handler for each.
+	// The MCP endpoint, behind the resource server's bearer check. The verifier makes both
+	// checks: the lookup, which is the whole point of an opaque access token — a revoked
+	// token stops working on the next request rather than at the end of its lifetime — and
+	// the audience, which RFC 8707 leaves to the resource server. It refuses a token with no
+	// audience as well as one naming somewhere else: a token minted with no resource
+	// indicator is spendable at every resource server sharing this store, the API among
+	// them. A client asking for a token for this server names it in the resource parameter,
+	// as the MCP specification requires it to.
+	//
+	// Protect is platform's composition of that verifier with the SDK's middleware. Every
+	// refusal carries the challenge whose resource_metadata parameter a client follows to
+	// discover where to get a token, and a verified token travels on each tool call as
+	// req.Extra.TokenInfo, which is what the gate every tool starts at reads. The MCP
+	// transport serves multiple methods (GET for streaming, POST for messages, DELETE to
+	// terminate a session), so the handler is registered for each.
 	verifier, err := oauth2server.NewVerifier(resourceMetadata, authServer,
 		oauth2server.WithVerifierLogger(pillars.Logger),
 		oauth2server.WithVerifierTracerProvider(pillars.TracerProvider),
@@ -216,12 +224,13 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth
 		return nil, err
 	}
 
-	authMiddleware := auth.RequireBearerToken(newTokenVerifier(verifier), &auth.RequireBearerTokenOptions{
-		ResourceMetadataURL: baseURL + oauth2server.PathProtectedResourceMetadata,
-	})
-	mcpWrapped := authMiddleware(mcpHandler)
+	protected, err := oauth2mcp.Protect(verifier, mcpHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
-		router.Handle(method, "/mcp", mcpWrapped)
+		router.Handle(method, "/mcp", protected)
 	}
 
 	if err = router.Err(); err != nil {
@@ -251,49 +260,18 @@ func throttleLoginForm(throttle routing.Middleware) routing.Middleware {
 	}
 }
 
-// mcpToolManager holds the tools over platform's stores: the ones every deployment of this
-// server has, whatever domain it serves. A domain's own tools arrive as toolsets, and the server
-// names none of them.
-type mcpToolManager struct {
-	// reader is the read executor every platform store call now takes. The MCP
-	// tools are all reads, so one executor settled here is enough: none of them
-	// has a caller transaction to join.
-	reader       database.SQLQueryExecutor
-	webhooks     platformwebhooks.Store
-	waitlists    waitlists.Store
-	issueReports issuereports.Store
-	toolsets     []mcptools.Toolset
-}
-
-// userFromRequest resolves the authenticated user's account from the MCP request's auth token.
-func (h *mcpToolManager) userFromRequest(req *mcp.CallToolRequest) (accountID string, err error) {
-	return mcptools.AccountFromRequest(req)
-}
-
-func (h *mcpToolManager) setupServer() *mcp.Server {
+// newToolServer builds the MCP server over every toolset the build listed, in that order.
+//
+// The server names no domain and no store: a domain's tools and platform's own arrive as
+// toolsets, each already behind the gate. The SDK keeps the last tool registered under a name
+// and says nothing about the first, so the build's test over the built server is what holds
+// two surfaces to distinct names.
+func newToolServer(toolsets []mcptools.Toolset) *mcp.Server {
 	mcpServer := mcp.NewServer(&mcp.Implementation{Name: fmt.Sprintf("%s-mcp", branding.CompanyNameSlug), Version: "v1.0.0"}, nil)
 
-	// Each domain's tools, in the order the build listed them. The SDK keeps the last tool
-	// registered under a name and says nothing about the first, so the build's test over the
-	// built server is what holds two domains to distinct names.
-	for _, toolset := range h.toolsets {
+	for _, toolset := range toolsets {
 		toolset.RegisterOn(mcpServer)
 	}
-
-	// Issue Reports (read-only, and only the caller's own: the queue is a service administrator's)
-	mcp.AddTool(mcpServer, getIssueReportTool, h.GetIssueReport())
-	mcp.AddTool(mcpServer, getIssueReportsTool, h.GetIssueReports())
-
-	// Webhooks (read-only)
-	mcp.AddTool(mcpServer, getWebhookTool, h.GetWebhook())
-	mcp.AddTool(mcpServer, getWebhooksTool, h.GetWebhooks())
-	mcp.AddTool(mcpServer, getWebhookEventTypesTool, h.GetWebhookEventTypes())
-
-	// Waitlists (read-only, catalog only — see waitlists_waitlists.go for why the
-	// signups are not here)
-	mcp.AddTool(mcpServer, getWaitlistTool, h.GetWaitlist())
-	mcp.AddTool(mcpServer, getWaitlistsTool, h.GetWaitlists())
-	mcp.AddTool(mcpServer, getOpenWaitlistsTool, h.GetOpenWaitlists())
 
 	return mcpServer
 }

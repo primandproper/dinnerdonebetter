@@ -6,7 +6,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
+	platformissuereports "github.com/primandproper/platform-go/v15/issuereports"
+	issuereportsmcp "github.com/primandproper/platform-go/v15/issuereports/mcp"
+	waitlistsmcp "github.com/primandproper/platform-go/v15/waitlists/mcp"
+	webhooksmcp "github.com/primandproper/platform-go/v15/webhooks/mcp"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,9 +30,10 @@ func TestMCPServer_AuthorizationCodeFlow(T *testing.T) {
 
 		// The row, not an empty answer. Everything between the login form and this
 		// assertion had to agree for it to arrive: the account the authenticator
-		// resolved travels on the token as a claim, the tool handler refuses a request
-		// without one, and the repository behind it is the one the MCP server's own
-		// container built from its own database credentials.
+		// resolved travels on the token as a claim, the gate resolved the token's
+		// subject in the directory and found them holding the read's grant, and the
+		// manager behind the tool is the one the MCP server's own container built from
+		// its own database credentials.
 		ingredient := &mealplanning.ValidIngredient{}
 		requireStructuredContent(t, res, ingredient)
 
@@ -107,8 +113,13 @@ func TestMCPServer_Tools(T *testing.T) {
 			names = append(names, tool.Name)
 		}
 
+		// The domain's tools, and platform's own over the stores every deployment of
+		// this server has.
 		assert.Contains(t, names, "GetValidIngredient")
 		assert.Contains(t, names, "SearchForRecipes")
+		assert.Contains(t, names, waitlistsmcp.ToolListLists)
+		assert.Contains(t, names, webhooksmcp.ToolListEventTypes)
+		assert.Contains(t, names, issuereportsmcp.ToolListReports)
 	})
 
 	T.Run("refuses a tool call with no token", func(t *testing.T) {
@@ -116,5 +127,21 @@ func TestMCPServer_Tools(T *testing.T) {
 
 		_, err := primary.getValidIngredient(t, "", seededIngredient.ID)
 		require.ErrorContains(t, err, "Unauthorized")
+	})
+
+	T.Run("carries the operator's grants to platform's tools", func(t *testing.T) {
+		t.Parallel()
+
+		accessToken := primary.authenticate(t)
+
+		// Paging the issue report queue is a service administrator's, over gRPC and
+		// here. The token this server mints carries what the admin's roles grant —
+		// the form it was minted through is the administrative door — so the queue
+		// answers, empty, rather than refusing the caller as nobody.
+		res, err := primary.callTool(t, accessToken, issuereportsmcp.ToolListReports, map[string]any{})
+		require.NoError(t, err)
+
+		page := &filtering.QueryFilteredResult[platformissuereports.Report]{}
+		requireStructuredContent(t, res, page)
 	})
 }

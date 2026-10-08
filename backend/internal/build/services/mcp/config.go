@@ -6,6 +6,7 @@ import (
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/observability"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
+	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	"github.com/samber/do/v2"
 )
@@ -27,5 +28,9 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*routingcfg.Config](i, func(i do.Injector) (*routingcfg.Config, error) {
 		cfg := do.MustInvoke[*config.MCPServiceConfig](i)
 		return &cfg.Routing, nil
+	})
+	do.Provide[*textsearchcfg.Config](i, func(i do.Injector) (*textsearchcfg.Config, error) {
+		cfg := do.MustInvoke[*config.MCPServiceConfig](i)
+		return &cfg.Search, nil
 	})
 }

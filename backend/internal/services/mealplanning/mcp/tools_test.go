@@ -2,43 +2,98 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
+	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 
-	"github.com/modelcontextprotocol/go-sdk/auth"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// toolRequest is a tool call carrying a token issued to an account.
-func toolRequest() *sdkmcp.CallToolRequest {
-	return &sdkmcp.CallToolRequest{Extra: &sdkmcp.RequestExtra{TokenInfo: &auth.TokenInfo{
-		Extra: map[string]any{mcptools.ClaimAccountID: fake.BuildFakeID()},
-	}}}
+// registeredToolCount is how many tools RegisterOn adds. It is counted by hand because the SDK
+// offers no way to ask a server what it holds short of a session, and a tool dropped from
+// RegisterOn would otherwise go unnoticed.
+const registeredToolCount = 47
+
+// everyPermission is every grant the surface's tools can require, for a caller the tests want
+// admitted everywhere.
+func everyPermission() []authorization.Permission {
+	var perms []authorization.Permission
+	for _, required := range methodPermissions {
+		perms = append(perms, required...)
+	}
+
+	return perms
 }
 
-func buildTestTools(t *testing.T) (*Tools, *mealplanningmock.RepositoryMock) {
+// gateAdmitting is a gate whose authenticator puts a caller holding perms on every call.
+func gateAdmitting(t *testing.T, perms ...authorization.Permission) *mcptools.Gate {
 	t.Helper()
 
-	repo := &mealplanningmock.RepositoryMock{}
+	authenticate := func(ctx context.Context, _ *sdkmcp.CallToolRequest) (context.Context, error) {
+		return sessions.AttachToContext(ctx, &sessions.ContextData{
+			Requester: sessions.RequesterInfo{
+				UserID:             fake.BuildFakeID(),
+				ServicePermissions: authorization.NewServiceRolePermissionChecker(nil, perms),
+			},
+			ActiveAccountID: fake.BuildFakeID(),
+		}), nil
+	}
 
-	tools, err := NewTools(repo)
+	gate, err := mcptools.NewGate(authenticate, sessions.PrincipalFromContext, sessions.GrantsFromContext)
 	require.NoError(t, err)
 
-	return tools, repo
+	return gate
 }
 
-// listTools opens an in-memory session against a server carrying only this surface and asks
-// it what it serves.
-func listTools(t *testing.T, tools *Tools) []*sdkmcp.Tool {
+// gateRefusing is a gate whose authenticator finds no credential on any call.
+func gateRefusing(t *testing.T) *mcptools.Gate {
+	t.Helper()
+
+	gate, err := mcptools.NewGate(
+		func(ctx context.Context, _ *sdkmcp.CallToolRequest) (context.Context, error) { return ctx, nil },
+		sessions.PrincipalFromContext,
+		sessions.GrantsFromContext,
+	)
+	require.NoError(t, err)
+
+	return gate
+}
+
+// call is a tool call; what it carries is the gate's to decide.
+func call() *sdkmcp.CallToolRequest {
+	return &sdkmcp.CallToolRequest{}
+}
+
+func buildTestTools(t *testing.T, perms ...authorization.Permission) (*Tools, *mealplanningmock.MealPlanningManagerMock) {
+	t.Helper()
+
+	return buildTestToolsBehind(t, gateAdmitting(t, perms...))
+}
+
+func buildTestToolsBehind(t *testing.T, gate *mcptools.Gate) (*Tools, *mealplanningmock.MealPlanningManagerMock) {
+	t.Helper()
+
+	manager := &mealplanningmock.MealPlanningManagerMock{}
+
+	tools, err := NewTools(manager, gate)
+	require.NoError(t, err)
+
+	return tools, manager
+}
+
+// connect opens an in-memory session against a server carrying only this surface.
+func connect(t *testing.T, tools *Tools) *sdkmcp.ClientSession {
 	t.Helper()
 
 	server := sdkmcp.NewServer(&sdkmcp.Implementation{Name: t.Name(), Version: "test"}, nil)
@@ -56,7 +111,14 @@ func listTools(t *testing.T, tools *Tools) []*sdkmcp.Tool {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = clientSession.Close() })
 
-	listed, err := clientSession.ListTools(t.Context(), &sdkmcp.ListToolsParams{})
+	return clientSession
+}
+
+// listTools asks a server carrying only this surface what it serves.
+func listTools(t *testing.T, tools *Tools) []*sdkmcp.Tool {
+	t.Helper()
+
+	listed, err := connect(t, tools).ListTools(t.Context(), &sdkmcp.ListToolsParams{})
 	require.NoError(t, err)
 
 	return listed.Tools
@@ -65,18 +127,25 @@ func listTools(t *testing.T, tools *Tools) []*sdkmcp.Tool {
 func TestNewTools(T *testing.T) {
 	T.Parallel()
 
-	T.Run("refuses a nil repository", func(t *testing.T) {
+	T.Run("refuses a nil manager", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := NewTools(nil)
-		require.Error(t, err)
+		_, err := NewTools(nil, gateAdmitting(t))
+		require.ErrorIs(t, err, ErrNilManager)
+	})
+
+	T.Run("refuses a nil gate", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := NewTools(&mealplanningmock.MealPlanningManagerMock{}, nil)
+		require.ErrorIs(t, err, ErrNilGate)
 	})
 }
 
 func TestTools_RegisterOn(T *testing.T) {
 	T.Parallel()
 
-	T.Run("registers every tool under a distinct name", func(t *testing.T) {
+	T.Run("registers every tool under a distinct name, read-only, with both schemas", func(t *testing.T) {
 		t.Parallel()
 
 		tools, _ := buildTestTools(t)
@@ -95,67 +164,251 @@ func TestTools_RegisterOn(T *testing.T) {
 
 			assert.NotEmpty(t, tool.Description, tool.Name)
 			assert.NotNil(t, tool.InputSchema, tool.Name)
+			assert.NotNil(t, tool.OutputSchema, tool.Name)
+
+			require.NotNil(t, tool.Annotations, tool.Name)
+			assert.True(t, tool.Annotations.ReadOnlyHint, tool.Name)
 		}
 
 		assert.Len(t, listed, registeredToolCount)
 	})
+
+	T.Run("every tool is a method of the gRPC surface with a declared permission", func(t *testing.T) {
+		t.Parallel()
+
+		tools, _ := buildTestTools(t)
+
+		// A tool is named for its gRPC counterpart, and that is what its permission is read
+		// from. One whose name matches no method would be refused on every call, so the
+		// mismatch is caught here rather than by the first model to try it.
+		for _, tool := range listTools(t, tools) {
+			required, err := permissionsFor(tool)
+			require.NoError(t, err, tool.Name)
+			assert.NotEmpty(t, required, "tool %q requires no permission", tool.Name)
+		}
+	})
+
+	T.Run("the schemas name the properties the wire carries", func(t *testing.T) {
+		t.Parallel()
+
+		tools, _ := buildTestTools(t)
+
+		var getRecipe *sdkmcp.Tool
+		for _, tool := range listTools(t, tools) {
+			if tool.Name == getRecipeTool.Name {
+				getRecipe = tool
+			}
+		}
+		require.NotNil(t, getRecipe)
+
+		// The hand-written schemas this replaced described the output as "ID" and
+		// "CreatedAt" where the type marshals "id" and "createdAt": a model reading the
+		// schema was told last year's names. Reflected off the type, the two cannot differ.
+		input := properties(t, getRecipe.InputSchema)
+		assert.Contains(t, input, "recipeID")
+
+		output := properties(t, getRecipe.OutputSchema)
+		assert.Contains(t, output, "id")
+		assert.Contains(t, output, "createdAt")
+		assert.NotContains(t, output, "ID")
+
+		// The associated recipes are whole recipes one level down, and bare objects below
+		// that: the cycle is unrolled once rather than refused.
+		associated := schemaAt(t, getRecipe.OutputSchema, "properties", "associatedRecipes", "items")
+		assert.Contains(t, properties(t, associated), "id")
+
+		nested := schemaAt(t, associated, "properties", "associatedRecipes", "items")
+		assert.Empty(t, properties(t, nested))
+	})
+
+	T.Run("a page of recipes describes every field of a row", func(t *testing.T) {
+		t.Parallel()
+
+		tools, _ := buildTestTools(t)
+
+		var getRecipes *sdkmcp.Tool
+		for _, tool := range listTools(t, tools) {
+			if tool.Name == getRecipesTool.Name {
+				getRecipes = tool
+			}
+		}
+		require.NotNil(t, getRecipes)
+
+		// A page stores its rows as the same list type a recipe stores its associated
+		// recipes as, which is the type the cycle is cut at. The cut must not take the
+		// rows with it: a row is a whole recipe, and only the list inside it is bare.
+		row := schemaAt(t, getRecipes.OutputSchema, "properties", "data", "items")
+		assert.Contains(t, properties(t, row), "id")
+		assert.Contains(t, properties(t, row), "associatedRecipes")
+
+		nested := schemaAt(t, row, "properties", "associatedRecipes", "items")
+		assert.Empty(t, properties(t, nested))
+	})
 }
 
-// registeredToolCount is how many tools RegisterOn adds. It is counted by hand because the SDK
-// offers no way to ask a server what it holds short of a session, and a tool dropped from
-// RegisterOn would otherwise go unnoticed.
-const registeredToolCount = 47
+// schemaAt is the sub-schema at path, as the client decoded it.
+func schemaAt(t *testing.T, schema any, path ...string) any {
+	t.Helper()
+
+	encoded, err := json.Marshal(schema)
+	require.NoError(t, err)
+
+	var node any
+	require.NoError(t, json.Unmarshal(encoded, &node))
+
+	for _, key := range path {
+		object, ok := node.(map[string]any)
+		require.True(t, ok, "no object at %q", key)
+
+		node, ok = object[key]
+		require.True(t, ok, "no %q", key)
+	}
+
+	return node
+}
+
+// properties is the property names of a schema as the client decoded it.
+func properties(t *testing.T, schema any) []string {
+	t.Helper()
+
+	encoded, err := json.Marshal(schema)
+	require.NoError(t, err)
+
+	var decoded struct {
+		Properties map[string]json.RawMessage `json:"properties"`
+	}
+	require.NoError(t, json.Unmarshal(encoded, &decoded))
+
+	names := make([]string, 0, len(decoded.Properties))
+	for name := range decoded.Properties {
+		names = append(names, name)
+	}
+
+	return names
+}
 
 func TestTools_GetRecipe(T *testing.T) {
 	T.Parallel()
 
-	T.Run("reads the recipe through the repository", func(t *testing.T) {
+	T.Run("reads the recipe through the manager", func(t *testing.T) {
 		t.Parallel()
 
-		tools, repo := buildTestTools(t)
+		tools, manager := buildTestTools(t, authorization.ReadRecipesPermission)
 		expected := mealplanningfakes.BuildFakeRecipe()
 
-		repo.GetRecipeFunc = func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+		manager.ReadRecipeFunc = func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
 			assert.Equal(t, expected.ID, recipeID)
 
 			return expected, nil
 		}
 
-		_, actual, err := tools.GetRecipe()(t.Context(), toolRequest(), &GetRecipeInvocation{RecipeID: expected.ID})
+		_, actual, err := tools.GetRecipe(t.Context(), call(), GetRecipeInput{RecipeID: expected.ID})
 		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	})
 
-	T.Run("refuses a caller with no token", func(t *testing.T) {
+	T.Run("refuses a caller with no token before reading anything", func(t *testing.T) {
 		t.Parallel()
 
-		tools, repo := buildTestTools(t)
+		tools, manager := buildTestToolsBehind(t, gateRefusing(t))
 
-		_, _, err := tools.GetRecipe()(t.Context(), &sdkmcp.CallToolRequest{}, &GetRecipeInvocation{RecipeID: fake.BuildFakeID()})
-		require.Error(t, err)
-		assert.Empty(t, repo.GetRecipeCalls())
+		_, _, err := tools.GetRecipe(t.Context(), call(), GetRecipeInput{RecipeID: fake.BuildFakeID()})
+		require.ErrorIs(t, err, mcptools.ErrNoPrincipal)
+		assert.Empty(t, manager.ReadRecipeCalls())
+	})
+
+	T.Run("refuses a caller without the grant the gRPC method requires", func(t *testing.T) {
+		t.Parallel()
+
+		// Every grant but the one GetRecipe's gRPC counterpart declares.
+		var perms []authorization.Permission
+		for _, perm := range everyPermission() {
+			if perm != authorization.ReadRecipesPermission {
+				perms = append(perms, perm)
+			}
+		}
+
+		tools, manager := buildTestTools(t, perms...)
+
+		_, _, err := tools.GetRecipe(t.Context(), call(), GetRecipeInput{RecipeID: fake.BuildFakeID()})
+		require.ErrorIs(t, err, mcptools.ErrPermissionDenied)
+		assert.Empty(t, manager.ReadRecipeCalls())
+	})
+
+	T.Run("answers the row over the wire under the type's names", func(t *testing.T) {
+		t.Parallel()
+
+		tools, manager := buildTestTools(t, authorization.ReadValidIngredientsPermission)
+		expected := mealplanningfakes.BuildFakeValidIngredient()
+
+		manager.ReadValidIngredientFunc = func(context.Context, string) (*mealplanning.ValidIngredient, error) {
+			return expected, nil
+		}
+
+		// Through a session rather than the handler: the SDK validates the arguments
+		// against the input schema and the answer against the output schema, so this is
+		// what proves the reflected schemas describe what is sent and what comes back.
+		res, err := connect(t, tools).CallTool(t.Context(), &sdkmcp.CallToolParams{
+			Name:      getValidIngredientTool.Name,
+			Arguments: map[string]any{"validIngredientID": expected.ID},
+		})
+		require.NoError(t, err)
+		require.False(t, res.IsError, errorText(res))
+
+		encoded, err := json.Marshal(res.StructuredContent)
+		require.NoError(t, err)
+
+		actual := &mealplanning.ValidIngredient{}
+		require.NoError(t, json.Unmarshal(encoded, actual))
+		assert.Equal(t, expected.ID, actual.ID)
+		assert.Equal(t, expected.Name, actual.Name)
 	})
 }
 
 func TestTools_SearchForRecipes(T *testing.T) {
 	T.Parallel()
 
-	T.Run("searches through the repository with the caller's query", func(t *testing.T) {
+	T.Run("searches the database through the manager with the caller's query", func(t *testing.T) {
 		t.Parallel()
 
-		tools, repo := buildTestTools(t)
+		tools, manager := buildTestTools(t, authorization.ReadRecipesPermission)
 		expected := mealplanningfakes.BuildFakeRecipe()
 		query := fake.BuildFakeID()
 
-		repo.SearchForRecipesFunc = func(_ context.Context, q string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
+		manager.SearchRecipesFunc = func(_ context.Context, q string, useSearchService bool, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
 			assert.Equal(t, query, q)
+			assert.False(t, useSearchService)
 
 			return &filtering.QueryFilteredResult[mealplanning.Recipe]{Data: []*mealplanning.Recipe{expected}}, nil
 		}
 
-		_, actual, err := tools.SearchForRecipes()(t.Context(), toolRequest(), &SearchForRecipesInvocation{Query: query})
+		_, actual, err := tools.SearchForRecipes(t.Context(), call(), SearchInput{Query: query})
 		require.NoError(t, err)
-		require.Len(t, actual.Results, 1)
-		assert.Equal(t, expected, actual.Results[0])
+		require.Len(t, actual.Data, 1)
+		assert.Equal(t, expected, actual.Data[0])
 	})
+}
+
+func TestTools_begin(T *testing.T) {
+	T.Parallel()
+
+	T.Run("refuses a tool the gRPC surface does not declare", func(t *testing.T) {
+		t.Parallel()
+
+		tools, _ := buildTestTools(t, everyPermission()...)
+
+		_, err := tools.begin(t.Context(), call(), &sdkmcp.Tool{Name: "DeleteEverything"})
+		require.ErrorIs(t, err, ErrUndeclaredTool)
+	})
+}
+
+// errorText is what a failed tool call said.
+func errorText(res *sdkmcp.CallToolResult) string {
+	for _, content := range res.Content {
+		if text, ok := content.(*sdkmcp.TextContent); ok {
+			return text.Text
+		}
+	}
+
+	return ""
 }

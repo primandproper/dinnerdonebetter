@@ -80,7 +80,6 @@ func buildTestRouterWithHealth(t *testing.T, subject *oauth2server.Subject, logi
 
 	router, err := buildRouter(ctx, mcpHandler, srv, resourceMetadata, loginThrottle, health, &observability.Pillars{},
 		&routingcfg.Config{Provider: routingcfg.ProviderChi, Chi: &chi.Config{ServiceName: t.Name()}},
-		exampleResource,
 	)
 	require.NoError(t, err)
 

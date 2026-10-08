@@ -20,16 +20,14 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
-
-	"github.com/modelcontextprotocol/go-sdk/auth"
 )
 
 // claimAccountID is the Subject claim carrying the account a token acts on behalf of.
 //
-// It is the one thing beside the user ID that every tool handler needs, and it is
-// resolved once at /authorize rather than per request. Subject.Claims is
-// map[string]string by construction, so it round-trips through the store as the
-// same Go type it went in as.
+// It is resolved once at /authorize rather than per request, and read back by the gate's
+// authenticator on every tool call to name which of the subject's accounts the call is
+// against. Subject.Claims is map[string]string by construction, so it round-trips through
+// the store as the same Go type it went in as.
 const claimAccountID = mcptools.ClaimAccountID
 
 // accessDeniedMessage is what a failed sign-in says, whichever half was wrong.
@@ -225,33 +223,4 @@ func newLoginRenderer(logger logging.Logger) oauth2server.LoginRenderer {
 			logging.EnsureLogger(logger).WithValue("client_name", view.ClientName).Error("rendering MCP login form", err)
 		}
 	})
-}
-
-// newTokenVerifier adapts the authorization server's resource-server half to the MCP SDK's bearer
-// middleware.
-//
-// oauth2server.Verifier makes both checks: the lookup, which is the whole point of an opaque
-// access token — a revoked token stops working on the next request rather than at the end of its
-// lifetime — and the audience, which RFC 8707 leaves to the resource server. It refuses a token
-// with no audience as well as one naming somewhere else, where the check this replaced let the
-// first through: a token minted with no resource indicator is spendable at every resource server
-// sharing this store, the API among them. A client asking for a token for this server names it
-// in the resource parameter, as the MCP specification requires it to.
-//
-// Every refusal is auth.ErrInvalidToken, which the SDK answers 401 with the resource metadata's
-// challenge, so a client whose token stopped working is sent to get another.
-func newTokenVerifier(verifier *oauth2server.Verifier) auth.TokenVerifier {
-	return func(ctx context.Context, token string, _ *http.Request) (*auth.TokenInfo, error) {
-		accessToken, err := verifier.Verify(ctx, token)
-		if err != nil {
-			return nil, errors.Join(auth.ErrInvalidToken, err)
-		}
-
-		return &auth.TokenInfo{
-			UserID:     accessToken.Subject.ID,
-			Scopes:     accessToken.Scopes,
-			Expiration: accessToken.ExpiresAt,
-			Extra:      map[string]any{claimAccountID: accessToken.Subject.Claims[claimAccountID]},
-		}, nil
-	}
 }

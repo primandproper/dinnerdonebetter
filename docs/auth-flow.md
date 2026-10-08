@@ -320,11 +320,13 @@ credential stored as a digest; no password, client-credentials or implicit grant
 minted by the MCP server is in the table this server reads, and what stops it being spent here is
 that its audience names somewhere else.
 
-|                     | API server                         | MCP server                                                                                 |
-|---------------------|------------------------------------|--------------------------------------------------------------------------------------------|
-| Who the subject is  | a sign-in token, or the login form | `signin.Service.AdminAuthenticate` — `service_admin` only, a proven second factor required |
-| Client registration | administered, via the gRPC surface | RFC 7591 dynamic, open, 90-day expiry                                                      |
-| `POST /register`    | not served                         | served                                                                                     |
+|                     | API server                               | MCP server                                                                                 |
+|---------------------|------------------------------------------|--------------------------------------------------------------------------------------------|
+| Who the subject is  | a sign-in token, or the login form       | `signin.Service.AdminAuthenticate` — `service_admin` only, a proven second factor required |
+| Client registration | administered, via the gRPC surface       | RFC 7591 dynamic, open, 90-day expiry                                                      |
+| `POST /register`    | not served                               | served                                                                                     |
+| What a token grants | `service_user` only (ordinary door)      | the operator's own service roles: the form is the administrative door                      |
+| Per-call check      | the method's permission, by the enforcer | the counterpart gRPC method's permission, by `mcptools.Gate` on every tool call            |
 
 The MCP side is documented in [`backend/docs/mcp-usage-guide.md`](../backend/docs/mcp-usage-guide.md).
 

@@ -248,6 +248,10 @@ type (
 		Routing       routingcfg.Config    `envPrefix:"ROUTING_"       json:"routing,omitzero"`
 		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
 		Meta          MetaSettings         `envPrefix:"META_"          json:"meta,omitzero"`
+		// Search is the text index the meal planning manager is built over. The MCP tools
+		// read the database rather than the index, but the manager they read through is the
+		// API's, and it opens its index clients when it is built.
+		Search textsearchcfg.Config `envPrefix:"SEARCH_" json:"search,omitzero"`
 		// RateLimiting throttles the login form's POST /authorize, the one door here that tests
 		// a password, the way the API server throttles its own.
 		RateLimiting ratelimitingcfg.Config `envPrefix:"RATE_LIMITING_" json:"rateLimiting,omitzero"`
@@ -410,6 +414,7 @@ func (cfg *MCPServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"HTTPServer":         cfg.HTTPServer.ValidateWithContext,
 		"OAuth2":             cfg.OAuth2.ValidateWithContext,
 		"RateLimiting":       cfg.RateLimiting.ValidateWithContext,
+		"Search":             cfg.Search.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

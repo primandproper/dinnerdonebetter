@@ -18,7 +18,6 @@ import (
 	identity "github.com/primandproper/platform-go/v15/identity"
 	identitymock "github.com/primandproper/platform-go/v15/identity/mock"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
-	oauth2memory "github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	totpmock "github.com/primandproper/primitives-go/v2/authentication/totp/mock"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -27,7 +26,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/pointer"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
-	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -276,150 +274,6 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 }
 
 const exampleResource = "http://localhost:8888"
-
-// newTestAuthServer builds an authorization server over a memory store, and returns
-// it alongside the store so a test can plant a token in it.
-func newTestAuthServer(t *testing.T) (*oauth2server.Server, oauth2server.Store) {
-	t.Helper()
-
-	store := oauth2memory.NewStore()
-
-	srv, err := oauth2server.NewServer(exampleResource, store, oauth2server.SubjectAuthenticatorFunc(
-		func(context.Context, *http.Request) (*oauth2server.Subject, error) {
-			return nil, oauth2server.ErrLoginFailed
-		},
-	))
-	require.NoError(t, err)
-
-	return srv, store
-}
-
-// plantAccessToken stores an access token and returns the bearer value for it. The
-// store keys on the digest, so the value exists only here — which is the property
-// that makes a database dump hold nothing redeemable.
-func plantAccessToken(t *testing.T, store oauth2server.Store, audience []string) (bearer, userID, accountID string) {
-	t.Helper()
-
-	ctx := t.Context()
-	bearer = "totally-opaque-access-token"
-	exampleUser := identityfakes.BuildFakeUser()
-	exampleAccountID := identityfakes.BuildFakeAccount().ID
-
-	require.NoError(t, store.CreateAccessToken(ctx, &oauth2server.AccessToken{
-		IssuedAt:  time.Now().Add(-time.Minute),
-		ExpiresAt: time.Now().Add(time.Hour),
-		Hash:      oauth2server.Hash(bearer),
-		ClientID:  "example-client",
-		FamilyID:  "example-family",
-		Subject: oauth2server.Subject{
-			ID:     exampleUser.ID,
-			Claims: map[string]string{claimAccountID: exampleAccountID},
-		},
-		Scopes:   []string{"mcp"},
-		Audience: audience,
-	}))
-
-	return bearer, exampleUser.ID, exampleAccountID
-}
-
-// newVerifierForTest is the bearer check the router installs, over srv, for exampleResource.
-func newVerifierForTest(t *testing.T, srv *oauth2server.Server) auth.TokenVerifier {
-	t.Helper()
-
-	metadata, err := oauth2server.NewResourceMetadata(exampleResource, []string{exampleResource})
-	require.NoError(t, err)
-
-	verifier, err := oauth2server.NewVerifier(metadata, srv)
-	require.NoError(t, err)
-
-	return newTokenVerifier(verifier)
-}
-
-func TestNewTokenVerifier(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		srv, store := newTestAuthServer(t)
-		bearer, userID, accountID := plantAccessToken(t, store, []string{exampleResource})
-
-		info, err := newVerifierForTest(t, srv)(ctx, bearer, nil)
-		require.NoError(t, err)
-		require.NotNil(t, info)
-
-		assert.Equal(t, userID, info.UserID)
-		assert.Equal(t, []string{"mcp"}, info.Scopes)
-
-		// The account travels on the token, so a tool call costs no second lookup.
-		assert.Equal(t, accountID, info.Extra[claimAccountID])
-	})
-
-	T.Run("with no audience", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		srv, store := newTestAuthServer(t)
-		bearer, _, _ := plantAccessToken(t, store, nil)
-
-		// A client that sends no RFC 8707 resource parameter gets a token naming no
-		// resource, which every resource server sharing the store would accept — the API
-		// among them. The MCP specification requires a client to name this one.
-		info, err := newVerifierForTest(t, srv)(ctx, bearer, nil)
-		assert.Nil(t, info)
-		require.ErrorIs(t, err, auth.ErrInvalidToken)
-		require.ErrorIs(t, err, oauth2server.ErrTokenAudienceMismatch)
-	})
-
-	T.Run("with audience naming another resource server", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		srv, store := newTestAuthServer(t)
-		bearer, _, _ := plantAccessToken(t, store, []string{"https://somewhere.else.example"})
-
-		// This is the check no authorization server can make for us: the token is
-		// perfectly valid, and it was minted to be spent somewhere else.
-		info, err := newVerifierForTest(t, srv)(ctx, bearer, nil)
-		assert.Nil(t, info)
-		require.ErrorIs(t, err, auth.ErrInvalidToken)
-		require.ErrorIs(t, err, oauth2server.ErrTokenAudienceMismatch)
-	})
-
-	T.Run("with unknown token", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		srv, _ := newTestAuthServer(t)
-
-		info, err := newVerifierForTest(t, srv)(ctx, "nonsense", nil)
-		assert.Nil(t, info)
-		require.ErrorIs(t, err, auth.ErrInvalidToken)
-	})
-
-	T.Run("with expired token", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		srv, store := newTestAuthServer(t)
-
-		bearer := "expired-access-token"
-		require.NoError(t, store.CreateAccessToken(ctx, &oauth2server.AccessToken{
-			IssuedAt:  time.Now().Add(-2 * time.Hour),
-			ExpiresAt: time.Now().Add(-time.Hour),
-			Hash:      oauth2server.Hash(bearer),
-			ClientID:  "example-client",
-			Subject:   oauth2server.Subject{ID: identityfakes.BuildFakeUser().ID},
-		}))
-
-		// Expiry is the store's answer, not one this verifier repeats — a second
-		// clock read here could disagree with the one the store used.
-		info, err := newVerifierForTest(t, srv)(ctx, bearer, nil)
-		assert.Nil(t, info)
-		require.ErrorIs(t, err, auth.ErrInvalidToken)
-	})
-}
 
 // mockDBForTest is a client whose executors are nil, because the store above them is a
 // mock and never sends a statement. A transaction runs its function with no Tx, which is all
