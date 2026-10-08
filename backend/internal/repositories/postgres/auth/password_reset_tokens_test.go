@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
@@ -25,8 +24,7 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo := buildDatabaseClientForTest(t)
 
-	auditRecorder, ok := auditlogentries.RecorderFrom(auditRepo)
-	require.True(t, ok)
+	auditRecorder := auditRepo.Recorder()
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.Writer())
 

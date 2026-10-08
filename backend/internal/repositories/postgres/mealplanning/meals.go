@@ -6,7 +6,6 @@ import (
 	"errors"
 	"sort"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
@@ -16,6 +15,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -268,13 +268,7 @@ func (q *repository) GetMeals(ctx context.Context, filter *filtering.QueryFilter
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*mealplanning.Meal
@@ -374,13 +368,7 @@ func (q *repository) GetMealsCreatedByUser(ctx context.Context, userID string, f
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*mealplanning.Meal
@@ -565,13 +553,7 @@ func (q *repository) SearchForMeals(ctx context.Context, mealNameQuery string, f
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*mealplanning.Meal
@@ -797,8 +779,8 @@ func (q *repository) ArchiveMeal(ctx context.Context, mealID, userID string) err
 	if userID == "" {
 		return platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	if err := q.withEvent(ctx, logger, mealplanning.MealArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealIDKey: mealID,

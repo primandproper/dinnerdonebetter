@@ -53,7 +53,7 @@ func NewMealPlanTaskNotificationWorker(
 ) (worker *mealplantasknotifications.Worker, closeQueue func(context.Context) error, err error) {
 	metricsProvider := metricsnoop.NewMetricsProvider()
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, metricsProvider, databaseClient)
+	auditRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, metricsProvider, databaseClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("building audit log repository: %w", err)
 	}
@@ -79,7 +79,7 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, identityStore, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
 	_, deviceRegistry, err := notificationsstore.ProvideStores(ctx, logger, tracerProvider, metricsProvider, spine.Recorder, databaseClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("building notifications repository: %w", err)

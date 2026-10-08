@@ -9,8 +9,7 @@ import (
 	"os"
 	"testing"
 
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/testutils/containers"
 	"github.com/primandproper/primitives-go/v2/testutils/containers/pgtest"
 
@@ -38,7 +37,7 @@ import (
 // file generalized — pgtest.Start is the container, Instance.NewTemplate is the
 // migrated template, and Template.Clone is the per-test database. What remains here
 // is the part pgtest cannot know: this repo's image and credentials, its wait
-// strategy, its connection budget, and the *dbcfg.Config the repositories are
+// strategy, its connection budget, and the *databasecfg.Config the repositories are
 // configured from.
 const (
 	// sharedContainerName seeds the container's provisioning credentials and names
@@ -176,7 +175,7 @@ func reportTeardown(teardown func() error) {
 // It is the drop-in replacement for BuildDatabaseContainerForTest in suites whose
 // TestMain calls RunTestsWithSharedDatabase — with the difference that the database it
 // returns is already migrated, so callers no longer run the migrator themselves.
-func NewIsolatedDatabaseForTest(t *testing.T) (*sql.DB, *dbcfg.Config) {
+func NewIsolatedDatabaseForTest(t *testing.T) (*sql.DB, *databasecfg.Config) {
 	t.Helper()
 
 	containers.SkipIfNotRunning(t)

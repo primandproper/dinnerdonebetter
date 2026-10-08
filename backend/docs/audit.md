@@ -25,8 +25,10 @@ the log a question and gets an empty answer.
 
 ## Writing an entry
 
-`Record` takes the caller's query executor, which is the whole design. An entry
-commits with the change it describes or not at all:
+Entries are written through platform's `recording.Recorder`, on the caller's transaction,
+which is the whole design. An entry commits with the change it describes or not at all. The
+meal planning repository holds one, and its `recordAuditOnly` helper writes an entry with no
+event beside it:
 
 ```go
 return q.WithTransaction(ctx, func(tx database.Tx) error {
@@ -39,18 +41,20 @@ return q.WithTransaction(ctx, func(tx database.Tx) error {
         return err
     }
 
-    entry := audit.NewEntry(userID, accountID, resourceTypeRecipes, after.ID, platformaudit.EventUpdated)
+    entry := audit.NewEntry("", accountID, resourceTypeRecipes, after.ID, platformaudit.EventUpdated)
     entry.Changes = changes
 
-    return q.auditLogEntryRepo.Record(ctx, tx, entry)
+    return q.recordAuditOnly(ctx, tx, entry)
 })
 ```
 
-An entry is platform-go's `audit.Entry`, and `audit.NewEntry` is how one is built. A
-writer names who did it and the account it happened in — either may be empty — and
-`NewEntry` decides the actor and the chain from those two, which is the one place that
-rule is applied. `Record` refuses an entry with no scope, so an entry assembled by hand
-and missing one fails at the write rather than landing somewhere nothing reads.
+An entry is platform-go's `audit.Entry`, and `audit.NewEntry` is how one is built: it decides
+the chain from the account the write happened in, which is the one place that rule is applied.
+Who did it is not the writer's to say. The Recorder reads the principal off the context, so the
+actor is whoever made the request and an impersonated write names its operator as the entry's
+`Impersonator`; a write with nobody on the context is recorded as `audit.ActorUnattributed`.
+The Recorder refuses an entry with no scope, so an entry assembled by hand and missing one fails
+at the write rather than landing somewhere nothing reads.
 
 There is no way to record outside a transaction by accident: holding a
 `database.Tx` from `WithTransaction` means you are already in one.
@@ -229,13 +233,12 @@ already.
 
 ## Reading it
 
-In Go, the log is read through platform-go's `audit.Reader`, which the repository builds at
+In Go, the log is read through platform-go's `audit.Reader`, which `auditlogentries.Log` builds at
 this application's prefix and exposes (`auditlogentries.RegisterPlatformReader`) so that a
 reader cannot be assembled against a different table than the recorder writes. An account's
 reads name its chain with `List`; a user's entries, and one entry by id, go through
 `ListAcrossScopes` / `GetAcrossScopes`, because a user's entries are filed under whichever
-account they acted in. `Verify` walks a chain and reports the first break. The application's
-own `audit.Repository` is write-only.
+account they acted in. `Verify` walks a chain and reports the first break.
 
 Over the wire it is platform's `audit/grpc`, mounted in `internal/build/auditlog`:
 

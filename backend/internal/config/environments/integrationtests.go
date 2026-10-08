@@ -11,7 +11,6 @@ import (
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
-	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	oauth2database "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore"
@@ -247,9 +246,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 					},
 				},
 			},
-			UploadedMedia: uploadedmediacfg.Config{
-				Uploads: uploadsConfig,
-			},
+			UploadedMedia: uploadsConfig,
 		},
 		PushNotifications: notificationscfg.Config{
 			Provider: notificationscfg.ProviderNoop,

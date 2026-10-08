@@ -86,7 +86,7 @@ func BuildInjector(
 	// is the cost of moving the gather off the message queue and onto a claimed row: the
 	// process that claims has to be able to answer. It is paid once at startup — the pools and
 	// the tracer are constructed here regardless — rather than per request.
-	auditlogentries.RegisterAuditLogRepository(i)
+	auditlogentries.RegisterAuditLog(i)
 	auditlogentries.RegisterPlatformReader(i)
 	// And the recorder, which the recording spine registered below files every write's
 	// entry through.

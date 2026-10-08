@@ -43,8 +43,10 @@ func TestNewRegistry(T *testing.T) {
 			quota, ok := registry.Quota(name)
 			require.True(t, ok, "meter %q has no quota", name)
 
-			assert.Equal(t, platformmetering.BehaviorAllowOverage, quota.Behavior, "meter %q", name)
-			assert.Equal(t, unlimited, quota.Limit, "meter %q", name)
+			meter, ok := registry.Meter(name)
+			require.True(t, ok)
+
+			assert.Equal(t, platformmetering.UnlimitedQuota(name, meter.Period), quota, "meter %q", name)
 		}
 	})
 

@@ -2,7 +2,6 @@ package localdev
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -14,7 +13,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -171,7 +169,7 @@ func oauth2ClientRegistry(pgc database.Client, opts ...platformoauth2clients.Ser
 	return platformoauth2clients.NewService(pgc, store, opts...)
 }
 
-func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (server *apiserver.Server, databaseClient database.Client, dbCfg *dbcfg.Config, err error) {
+func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (server *apiserver.Server, databaseClient database.Client, dbCfg *databasecfg.Config, err error) {
 	pillars, err := cfg.Service.Observability.NewPillars(ctx)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("setting up observability pillars: %w", err)
@@ -214,12 +212,14 @@ func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (se
 		return nil, nil, nil, fmt.Errorf("building API server: %w", err)
 	}
 
-	return server, databaseClient, &dbcfg.Config{Config: *cfg.Service.Database}, nil
+	dbCfg = new(*cfg.Service.Database)
+
+	return server, databaseClient, dbCfg, nil
 }
 
 // DatabaseInitFunc is a function that performs database initialization operations.
 // It receives the database client, config, logger, and tracer to perform arbitrary operations.
-type DatabaseInitFunc func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error
+type DatabaseInitFunc func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error
 
 // WithIdentityDirectory provides the directory for custom operations.
 //
@@ -228,7 +228,7 @@ type DatabaseInitFunc func(ctx context.Context, dbClient database.Client, dbCfg 
 // thing whose hooks record that it happened — and the Store is how a seed asks whether it
 // has run before, which is a read no service method exposes.
 func WithIdentityDirectory(fn func(ctx context.Context, directory *platformidentity.Service, store platformidentity.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
+	return func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		directory, store, err := IdentityDirectory(logger, tracerProvider, dbClient)
 		if err != nil {
 			return err
@@ -281,7 +281,7 @@ func WithOAuth2Registry(
 	generate platformoauth2clients.CredentialGenerator,
 	fn func(ctx context.Context, svc *platformoauth2clients.Service, logger logging.Logger, tracerProvider tracing.Provider) error,
 ) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, _ *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
+	return func(ctx context.Context, dbClient database.Client, _ *databasecfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		svc, err := oauth2ClientRegistry(dbClient,
 			platformoauth2clients.WithCredentialGenerator(generate),
 			platformoauth2clients.WithServiceLogger(logger),
@@ -298,8 +298,8 @@ func WithOAuth2Registry(
 // WithPasswordResetTokenStore provides the password reset token store for custom operations.
 // The provided function receives a fully configured passwordreset.Store along with logger and tracer.
 func WithPasswordResetTokenStore(fn func(ctx context.Context, store passwordreset.Store, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
+	return func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
+		auditLogRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
 		}
@@ -322,16 +322,13 @@ func WithPasswordResetTokenStore(fn func(ctx context.Context, store passwordrese
 // write takes the caller's transaction and there is nowhere else for a seed to
 // get one. WithIdentityRepository already took it for the same reason.
 func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
+	return func(ctx context.Context, dbClient database.Client, dbCfg *databasecfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
+		auditLogRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
 		}
 
-		auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
-		if !ok {
-			return errors.New("the audit log repository exposes no platform recorder")
-		}
+		auditRecorder := auditLogRepo.Recorder()
 
 		// The recording spine the store's hooks write through, built the way a process
 		// does; a seed's writes are recorded like anybody else's.

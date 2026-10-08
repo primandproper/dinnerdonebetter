@@ -51,11 +51,10 @@ func buildDatabaseClientForTest(t *testing.T) (billing.Store, database.Client) {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
+	auditLogEntryRepo, err := auditlogentries.ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
-	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
-	require.True(t, ok)
+	auditRecorder := auditLogEntryRepo.Recorder()
 
 	c, err := ProvidePaymentsRepository(
 		ctx,

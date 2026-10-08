@@ -180,11 +180,10 @@ func buildWebhookHarness(t *testing.T) *webhookHarness {
 	require.NoError(t, err)
 	t.Cleanup(func() { assert.NoError(t, db.Close()) })
 
-	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, metricsProvider, db)
+	auditLog, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, metricsProvider, db)
 	require.NoError(t, err)
 
-	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
-	require.True(t, ok)
+	auditRecorder := auditLog.Recorder()
 
 	store, err := paymentsrepo.ProvidePaymentsRepository(ctx, logger, tracerProvider, metricsProvider,
 		pgtesting.NewRecorderForTest(t, ctx, db, auditRecorder), db)

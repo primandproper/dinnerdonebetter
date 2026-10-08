@@ -159,13 +159,7 @@ func (q *repository) SearchForValidVessels(ctx context.Context, query string, fi
 	logger = logger.WithValue(platformkeys.SearchQueryKey, query)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, query)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -237,13 +231,7 @@ func (q *repository) GetValidVessels(ctx context.Context, filter *filtering.Quer
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

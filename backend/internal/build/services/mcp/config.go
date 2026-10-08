@@ -2,7 +2,6 @@ package mcpbuild
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/observability"
@@ -13,12 +12,9 @@ import (
 
 // RegisterConfigs extracts sub-fields from MCPServiceConfig into the injector.
 func RegisterConfigs(i do.Injector) {
-	do.Provide[*dbcfg.Config](i, func(i do.Injector) (*dbcfg.Config, error) {
+	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
 		cfg := do.MustInvoke[*config.MCPServiceConfig](i)
 		return &cfg.Database, nil
-	})
-	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
-		return &do.MustInvoke[*dbcfg.Config](i).Config, nil
 	})
 	do.Provide[*observability.Config](i, func(i do.Injector) (*observability.Config, error) {
 		cfg := do.MustInvoke[*config.MCPServiceConfig](i)

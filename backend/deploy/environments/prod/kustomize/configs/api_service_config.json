@@ -220,12 +220,10 @@
 			"mobileProvider": "noop"
 		},
 		"uploadedMedia": {
-			"uploads": {
-				"storageConfig": {
-					"bucketPrefix": "avatars/",
-					"bucketName": "media.dinnerdonebetter.com",
-					"provider": "gcp"
-				}
+			"storageConfig": {
+				"bucketPrefix": "avatars/",
+				"bucketName": "media.dinnerdonebetter.com",
+				"provider": "gcp"
 			}
 		},
 		"mealPlanning": {

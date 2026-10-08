@@ -77,6 +77,7 @@ func ProvideOAuth2Server(
 		oauth2server.WithServiceDocumentation(cfg.ServiceDocumentation),
 		oauth2server.WithLoginRenderer(newLoginRenderer(logger)),
 		oauth2server.WithSubjectResolver(resolver),
+		oauth2server.WithDynamicRegistration(false),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("building oauth2 authorization server: %w", err)

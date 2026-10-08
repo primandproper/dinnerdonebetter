@@ -2,9 +2,7 @@ package localdev
 
 import (
 	"context"
-	"errors"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 
@@ -14,10 +12,6 @@ import (
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
-
-// errNoPlatformRecorder is an audit repository this package did not build: platform's recorder
-// is behind the one auditlogentries builds, and nothing else can stand in for it.
-var errNoPlatformRecorder = errors.New("the audit log repository exposes no platform recorder")
 
 // Spine builds the recording spine a process assembled by hand records and publishes through:
 // the local dev server's seeders, the integration suites' fixtures, the one-shot tools.
@@ -29,16 +23,11 @@ var errNoPlatformRecorder = errors.New("the audit log repository exposes no plat
 func Spine(
 	ctx context.Context,
 	databaseClient database.Client,
-	auditRepo audit.Repository,
+	auditLog *auditlogentries.Log,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 ) (*recordingspine.Spine, error) {
-	auditRecorder, ok := auditlogentries.RecorderFrom(auditRepo)
-	if !ok {
-		return nil, errNoPlatformRecorder
-	}
-
-	return recordingspine.New(ctx, databaseClient, auditRecorder, recordingspine.WithPillars(&observability.Pillars{
+	return recordingspine.New(ctx, databaseClient, auditLog.Recorder(), recordingspine.WithPillars(&observability.Pillars{
 		Logger:          logger,
 		TracerProvider:  tracerProvider,
 		MetricsProvider: metricsnoop.NewMetricsProvider(),

@@ -10,11 +10,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	fakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -112,8 +112,8 @@ func credentialsFor(name string) (dbName, username, password string) {
 
 // databaseConfigForConnectionString renders a container's DSN as the database config the
 // repositories expect.
-func databaseConfigForConnectionString(connectionString string) (*dbcfg.Config, error) {
-	dbConfig := &dbcfg.Config{
+func databaseConfigForConnectionString(connectionString string) (*databasecfg.Config, error) {
+	dbConfig := &databasecfg.Config{
 		RunMigrations: false,
 	}
 
@@ -134,14 +134,14 @@ func databaseConfigForConnectionString(connectionString string) (*dbcfg.Config, 
 //
 // The container is gated on RUN_CONTAINER_TESTS=true (see containers.SkipIfNotRunning),
 // which pgtest.Run enforces on the caller's behalf.
-func BuildDatabaseContainerForTest(t *testing.T) (*sql.DB, *dbcfg.Config) {
+func BuildDatabaseContainerForTest(t *testing.T) (*sql.DB, *databasecfg.Config) {
 	t.Helper()
 
 	dbName, username, password := credentialsFor(t.Name())
 
 	var (
 		db       *sql.DB
-		dbConfig *dbcfg.Config
+		dbConfig *databasecfg.Config
 	)
 
 	pgtest.Run(t,
@@ -167,7 +167,7 @@ func BuildDatabaseContainerForTest(t *testing.T) (*sql.DB, *dbcfg.Config) {
 //
 // Extra customizers are applied after the defaults, so a caller can override them —
 // RunTestsWithSharedDatabase uses this to raise the server's connection ceiling.
-func BuildDatabaseContainer(ctx context.Context, dbName string, customizers ...testcontainers.ContainerCustomizer) (*postgres.PostgresContainer, *sql.DB, *dbcfg.Config, error) {
+func BuildDatabaseContainer(ctx context.Context, dbName string, customizers ...testcontainers.ContainerCustomizer) (*postgres.PostgresContainer, *sql.DB, *databasecfg.Config, error) {
 	name, username, password := credentialsFor(dbName)
 
 	options := append([]testcontainers.ContainerCustomizer{

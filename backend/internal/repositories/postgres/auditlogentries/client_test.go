@@ -33,13 +33,13 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-// buildDatabaseClientForTest returns the repository under test and the client it
-// was built over.
+// buildDatabaseClientForTest returns the log under test and the client it was built
+// over.
 //
-// The client is handed back because the repository deliberately holds no database
-// handle — writes take the caller's executor — so a test that wants to record has
-// to open a transaction the same way a repository would.
-func buildDatabaseClientForTest(t *testing.T) (*repository, database.Client) {
+// The client is handed back because the log deliberately holds no database handle —
+// writes take the caller's executor — so a test that wants to record has to open a
+// transaction the same way a repository would.
+func buildDatabaseClientForTest(t *testing.T) (*Log, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -51,8 +51,8 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, database.Client) {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	c, err := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
+	c, err := ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
-	return c.(*repository), pgc
+	return c, pgc
 }

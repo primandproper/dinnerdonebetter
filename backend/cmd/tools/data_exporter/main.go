@@ -107,7 +107,7 @@ func runExport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		}
 	}()
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, client)
+	auditRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, nil, client)
 	if err != nil {
 		return fmt.Errorf("building audit log repository: %w", err)
 	}
@@ -136,7 +136,7 @@ func runExport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		return fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
+	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, identityStore, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
 
 	export := &ExportData{
 		ExportedAt: time.Now().UTC(),

@@ -50,11 +50,10 @@ func TestHooks_Integration(T *testing.T) {
 		db, err := postgres.NewDatabaseClient(ctx, config, postgres.WithLogger(loggingnoop.NewLogger()), postgres.WithTracerProvider(tracingnoop.NewTracerProvider()))
 		require.NoError(t, err)
 
-		auditRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db)
+		auditRepo, err := auditlogentries.ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db)
 		require.NoError(t, err)
 
-		auditRecorder, ok := auditlogentries.RecorderFrom(auditRepo)
-		require.True(t, ok)
+		auditRecorder := auditRepo.Recorder()
 
 		store, err := platformoauth2clients.NewSQLStore(db, platformoauth2clients.WithTablePrefix(branding.TablePrefix))
 		require.NoError(t, err)

@@ -214,16 +214,14 @@
 			"mobileProvider": "noop"
 		},
 		"uploadedMedia": {
-			"uploads": {
-				"storageConfig": {
-					"filesystem": {
-						"rootDirectory": "/uploads"
-					},
-					"bucketName": "avatars",
-					"provider": "filesystem"
+			"storageConfig": {
+				"filesystem": {
+					"rootDirectory": "/uploads"
 				},
-				"debug": true
-			}
+				"bucketName": "avatars",
+				"provider": "filesystem"
+			},
+			"debug": true
 		},
 		"auth": {
 			"tokens": {

@@ -217,13 +217,7 @@ func (q *repository) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context,
 	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

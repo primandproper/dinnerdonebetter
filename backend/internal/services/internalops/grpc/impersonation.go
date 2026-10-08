@@ -16,6 +16,7 @@ import (
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc/codes"
@@ -74,7 +75,7 @@ func (s *serviceImpl) ImpersonateUser(ctx context.Context, request *internalopss
 
 	operatorID := sessionContextData.GetUserID()
 	subjectID := strings.TrimSpace(request.GetSubjectId())
-	logger = logger.WithValue(identitykeys.ImpersonatorIDKey, operatorID).WithValue(identitykeys.UserIDKey, subjectID)
+	logger = logger.WithValue(identitykeys.ImpersonatorIDKey, operatorID).WithValue(platformkeys.UserIDKey, subjectID)
 
 	if subjectID == "" {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(ErrNoSubject, logger, span, codes.InvalidArgument, "impersonating a user")
