@@ -31,7 +31,7 @@ func createValidPreparationVesselWithEntitiesForTest(t *testing.T, preparation *
 	exampleValidPreparationVessel.Vessel = *vessel
 	exampleValidPreparationVessel.Preparation = *preparation
 
-	exampleValidPreparationVesselInput := mealplanningconverters.ConvertCreateValidPreparationVesselRequestToGRPCValidPreparationVesselCreationRequestInput(converters.ConvertValidPreparationVesselToValidPreparationVesselCreationRequestInput(exampleValidPreparationVessel))
+	exampleValidPreparationVesselInput := mealplanningconverters.ConvertValidPreparationVesselCreationRequestInputToGRPCValidPreparationVesselCreationRequestInput(converters.ConvertValidPreparationVesselToValidPreparationVesselCreationRequestInput(exampleValidPreparationVessel))
 	createdValidPreparationVessel, err := adminClient.CreateValidPreparationVessel(ctx, &mealplanningsvc.CreateValidPreparationVesselRequest{Input: exampleValidPreparationVesselInput})
 	require.NoError(t, err)
 	require.NotNil(t, createdValidPreparationVessel)
@@ -59,7 +59,7 @@ func TestValidPreparationVessels_Creating(T *testing.T) {
 		ctx := t.Context()
 
 		exampleValidPreparationVessel := fakes.BuildFakeValidPreparationVessel()
-		exampleValidPreparationVesselInput := mealplanningconverters.ConvertCreateValidPreparationVesselRequestToGRPCValidPreparationVesselCreationRequestInput(converters.ConvertValidPreparationVesselToValidPreparationVesselCreationRequestInput(exampleValidPreparationVessel))
+		exampleValidPreparationVesselInput := mealplanningconverters.ConvertValidPreparationVesselCreationRequestInputToGRPCValidPreparationVesselCreationRequestInput(converters.ConvertValidPreparationVesselToValidPreparationVesselCreationRequestInput(exampleValidPreparationVessel))
 		exampleValidPreparationVesselInput.ValidVesselId = ""
 		exampleValidPreparationVesselInput.ValidPreparationId = ""
 

@@ -12,6 +12,9 @@ import (
 	"github.com/primandproper/primitives-go/v2/errors"
 )
 
+// stringType is Go's string, as a field's type is written.
+const stringType = "string"
+
 // plan is one conversion resolved against the types it reads and writes: every destination field
 // accounted for, every local it needs decided.
 type plan struct {
@@ -258,7 +261,7 @@ func (p *planner) deriveNestedID(source *structType, field structField) (Rule, b
 // its identifier — spelled without the suffix, and the two spellings should not need two answers
 // from a reader.
 func (p *planner) deriveEntityIdentifier(source *structType, field structField) (Rule, bool) {
-	if field.Type != "string" && field.Type != "*string" {
+	if field.Type != stringType && field.Type != "*string" {
 		return Rule{}, false
 	}
 
@@ -318,7 +321,7 @@ func (p *planner) hasIdentifier(nested structField) bool {
 // identifier to give it, so the identifier is minted here. Every other shape either carries an ID
 // the source also has — which the same-name rule already answered — or does not have the field.
 func (p *planner) deriveMintedID(conversion *Conversion, source *structType, field structField) (Rule, bool) {
-	if field.Name != "ID" || field.Type != "string" {
+	if field.Name != "ID" || field.Type != stringType {
 		return Rule{}, false
 	}
 

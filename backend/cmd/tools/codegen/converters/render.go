@@ -93,8 +93,16 @@ func renderConversion(domain string, resolved *plan) string {
 	}
 
 	fmt.Fprintf(&out, "return &%s.%s{\n", domain, conversion.To)
+	renderAssignments(&out, resolved.Assignments)
+	out.WriteString("}\n}\n")
 
-	for i, assigned := range resolved.Assignments {
+	return out.String()
+}
+
+// renderAssignments emits the fields of a generated struct literal, each with its reason above it
+// and each omission as a comment in its place.
+func renderAssignments(out *strings.Builder, assignments []assignment) {
+	for i, assigned := range assignments {
 		// A run of omissions reads as one paragraph without a break between them, and the
 		// field each reason belongs to stops being obvious.
 		if assigned.Skipped && i > 0 {
@@ -103,7 +111,7 @@ func renderConversion(domain string, resolved *plan) string {
 
 		if assigned.Skipped {
 			for _, line := range wrap(assigned.Field+" is left unset. "+assigned.Why, commentWidth) {
-				fmt.Fprintf(&out, "// %s\n", line)
+				fmt.Fprintf(out, "// %s\n", line)
 			}
 
 			continue
@@ -111,16 +119,12 @@ func renderConversion(domain string, resolved *plan) string {
 
 		for paragraph := range strings.SplitSeq(assigned.Why, "\n") {
 			for _, line := range wrap(paragraph, commentWidth) {
-				fmt.Fprintf(&out, "// %s\n", line)
+				fmt.Fprintf(out, "// %s\n", line)
 			}
 		}
 
-		fmt.Fprintf(&out, "%s: %s,\n", assigned.Field, assigned.Expr)
+		fmt.Fprintf(out, "%s: %s,\n", assigned.Field, assigned.Expr)
 	}
-
-	out.WriteString("}\n}\n")
-
-	return out.String()
 }
 
 // commentWidth is how wide a comment inside a struct literal gets before it wraps. The literal
