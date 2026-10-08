@@ -308,7 +308,7 @@ func TestQuerier_CreateMealRecipe(T *testing.T) {
 
 		exampleInput := converters.ConvertMealComponentToMealComponentDatabaseCreationInput(exampleMeal.Components[0])
 
-		err := c.CreateMealComponent(ctx, database.NewTxForTesting(c.writeDB), "", exampleInput)
+		err := c.createMealComponent(ctx, database.NewTxForTesting(c.writeDB), "", exampleInput)
 		assert.Error(t, err)
 	})
 
@@ -320,7 +320,7 @@ func TestQuerier_CreateMealRecipe(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		err := c.CreateMealComponent(ctx, database.NewTxForTesting(c.writeDB), exampleMeal.ID, nil)
+		err := c.createMealComponent(ctx, database.NewTxForTesting(c.writeDB), exampleMeal.ID, nil)
 		assert.Error(t, err)
 	})
 }

@@ -3,6 +3,7 @@ package mealplanning
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
@@ -13,10 +14,8 @@ import (
 	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/database"
-	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -26,9 +25,13 @@ const (
 // repository is the meal planning repository implementation.
 //
 // Every write announces itself through platform's recording spine, on the write's own
-// transaction: emitter for an event alone, recorder for an audit entry and the event describing
-// the same write, and writer's EnqueueDerived for an index event alone. The one thing this
-// application adds to them is the payload, which datachanges.Event builds.
+// transaction: emitter for an event alone (withEvent, emit), recorder for audit entries and the
+// event describing the same write (withRecord, record), and writer's EnqueueDerived for an index
+// event alone (emitIndex). The one thing this application adds to them is the payload, which
+// datachanges.Event builds.
+//
+// TestEveryWriteIsRecorded holds every exported write to that, and names the few that are
+// bookkeeping rather than change — and so deliberately announce nothing — with the reason.
 type repository struct {
 	database.Client
 	tracer           tracing.Tracer
@@ -52,7 +55,8 @@ type repository struct {
 //
 // emitter, recorder and writer are platform's recording spine — see internal/recordingspine for
 // how a process builds them. They are the same three in every process, and a write made through a
-// repository built without them fails rather than writing a row nothing announced.
+// repository built without them fails rather than writing a row nothing announced. The writes
+// exempt from announcing are named, with their reasons, in TestEveryWriteIsRecorded.
 func ProvideMealPlanningRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
@@ -113,71 +117,52 @@ func (q *repository) emit(ctx context.Context, tx database.Tx, logger logging.Lo
 	return q.emitter.Emit(ctx, tx, datachanges.Scope(msg.AccountID), event)
 }
 
-// record writes entry to the audit log and publishes the event describing the same write, both
+// withRecord is withEvent for the writes that are audited as well as announced: the audit entry,
+// the event and the write share one transaction, so none of the three survives without the others.
+func (q *repository) withRecord(
+	ctx context.Context,
+	logger logging.Logger,
+	entry *platformrecording.Entry,
+	eventType, accountID string,
+	metadata map[string]any,
+	write func(tx database.Tx) error,
+) error {
+	return q.WithTransaction(ctx, func(tx database.Tx) error {
+		if err := write(tx); err != nil {
+			return err
+		}
+
+		return q.record(ctx, tx, logger, eventType, accountID, metadata, entry)
+	})
+}
+
+// record writes entries to the audit log and publishes the event describing the same write, all
 // on tx, through platform's Recorder. Who did it is the principal on the context.
 //
-// The entry is one audit.NewEntry built: its Scope is the chain this application's attribution
-// rule chose for it, and the event fans out within that same scope.
+// The event and the entries share one scope, because platform's Recorder takes one: the chain
+// audit.ScopeFor files the event's account and actor under, so an entry lands in the account
+// whose subscribers hear about it, and in the actor's own chain when the write happened in no
+// account. accountID is resolved exactly as emit resolves it; see datachanges.Event.
 func (q *repository) record(
 	ctx context.Context,
 	tx database.Tx,
 	logger logging.Logger,
-	entry *platformaudit.Entry,
 	eventType, accountID string,
 	metadata map[string]any,
+	entries ...*platformrecording.Entry,
 ) error {
 	event, msg := datachanges.Event(ctx, logger, eventType, accountID, metadata)
 
-	scope := entry.Scope
-	if scope == (tenancy.Scope{}) {
-		scope = datachanges.Scope(msg.AccountID)
-	}
-
-	return q.recorder.Record(ctx, tx, scope, event, recordingEntry(entry))
+	return q.recorder.Record(ctx, tx, audit.ScopeFor(msg.AccountID, msg.UserID), event, entries...)
 }
 
-// recordAuditOnly writes entries to the audit log on tx and publishes nothing, through the same
-// platform Recorder record uses, so who did it is still the principal on the context and an
-// impersonated write still names its operator.
-//
-// It is for the writes that are audited and deliberately not announced. The name is the point:
-// a call here is a decision that no event describes the write.
-//
-// One call is one chain: the entries are filed under the scope they were built with, which has
-// to be the same for all of them. Entries bound for different chains are different calls.
-func (q *repository) recordAuditOnly(ctx context.Context, tx database.Tx, entries ...*platformaudit.Entry) error {
-	recorded := make([]*platformrecording.Entry, 0, len(entries))
-	for _, entry := range entries {
-		if entry == nil {
-			return platformrecording.ErrNilEntry
-		}
-
-		if entry.Scope != entries[0].Scope {
-			return errMixedAuditScopes
-		}
-
-		recorded = append(recorded, recordingEntry(entry))
-	}
-
-	if len(recorded) == 0 {
-		return platformrecording.ErrNothingToRecord
-	}
-
-	return q.recorder.Record(ctx, tx, entries[0].Scope, nil, recorded...)
-}
-
-// errMixedAuditScopes is recordAuditOnly's refusal of one call naming two chains.
-var errMixedAuditScopes = platformerrors.New("audit entries recorded together must share a scope")
-
-// recordingEntry is the caller-supplied half of entry, which is all platform's Recorder takes: the
-// actor comes off the context, and the scope off the write.
-func recordingEntry(entry *platformaudit.Entry) *platformrecording.Entry {
+// auditEntry is the caller-supplied half of an audit entry, which is all platform's Recorder
+// takes: the actor comes off the context, and the scope off the event; see record.
+func auditEntry(resourceType, resourceID string, eventType platformaudit.EventType) *platformrecording.Entry {
 	return &platformrecording.Entry{
-		ResourceType: entry.ResourceType,
-		ResourceID:   entry.ResourceID,
-		EventType:    entry.EventType,
-		Changes:      entry.Changes,
-		Metadata:     entry.Metadata,
+		ResourceType: resourceType,
+		ResourceID:   resourceID,
+		EventType:    eventType,
 	}
 }
 

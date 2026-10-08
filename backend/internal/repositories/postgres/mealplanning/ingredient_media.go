@@ -7,6 +7,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
+	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
@@ -29,11 +30,16 @@ func (q *repository) AddIngredientMedia(ctx context.Context, validIngredientID, 
 	logger := q.logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
-	if err := q.generatedQuerier.CreateIngredientMedia(ctx, q.writeDB, &generated.CreateIngredientMediaParams{
-		ID:                identifiers.New(),
-		ValidIngredientID: validIngredientID,
-		UploadedMediaID:   uploadedMediaID,
-		Index:             index,
+	if err := q.withEvent(ctx, logger, mealplanning.IngredientMediaCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientIDKey: validIngredientID,
+		mealplanningkeys.UploadedMediaIDKey:   uploadedMediaID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateIngredientMedia(ctx, tx, &generated.CreateIngredientMediaParams{
+			ID:                identifiers.New(),
+			ValidIngredientID: validIngredientID,
+			UploadedMediaID:   uploadedMediaID,
+			Index:             index,
+		})
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "creating ingredient media")
 	}

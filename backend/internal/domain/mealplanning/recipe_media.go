@@ -10,6 +10,10 @@ import (
 const (
 	// RecipeMediaCreatedServiceEventType indicates recipe media was created.
 	RecipeMediaCreatedServiceEventType = "recipe_media_created"
+	// RecipeMediaUpdatedServiceEventType indicates recipe media was updated.
+	RecipeMediaUpdatedServiceEventType = "recipe_media_updated"
+	// RecipeMediaArchivedServiceEventType indicates recipe media was archived.
+	RecipeMediaArchivedServiceEventType = "recipe_media_archived"
 )
 
 type (

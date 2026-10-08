@@ -168,14 +168,18 @@ func (q *repository) CreateRecipeMedia(ctx context.Context, input *types.RecipeM
 	logger := q.logger.WithValue(mealplanningkeys.RecipeMediaIDKey, input.ID)
 
 	// create the recipe media.
-	if err := q.generatedQuerier.CreateRecipeMedia(ctx, q.writeDB, &generated.CreateRecipeMediaParams{
-		ID:                  input.ID,
-		MimeType:            input.MimeType,
-		InternalPath:        input.InternalPath,
-		ExternalPath:        input.ExternalPath,
-		BelongsToRecipe:     database.NullStringFromStringPointer(input.BelongsToRecipe),
-		BelongsToRecipeStep: database.NullStringFromStringPointer(input.BelongsToRecipeStep),
-		Index:               int32(input.Index),
+	if err := q.withEvent(ctx, logger, types.RecipeMediaCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeMediaIDKey: input.ID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateRecipeMedia(ctx, tx, &generated.CreateRecipeMediaParams{
+			ID:                  input.ID,
+			MimeType:            input.MimeType,
+			InternalPath:        input.InternalPath,
+			ExternalPath:        input.ExternalPath,
+			BelongsToRecipe:     database.NullStringFromStringPointer(input.BelongsToRecipe),
+			BelongsToRecipeStep: database.NullStringFromStringPointer(input.BelongsToRecipeStep),
+			Index:               int32(input.Index),
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing recipe media creation query")
 	}
@@ -208,14 +212,20 @@ func (q *repository) UpdateRecipeMedia(ctx context.Context, updated *types.Recip
 	logger := q.logger.WithValue(mealplanningkeys.RecipeMediaIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeMediaIDKey, updated.ID)
 
-	if _, err := q.generatedQuerier.UpdateRecipeMedia(ctx, q.writeDB, &generated.UpdateRecipeMediaParams{
-		ID:                  updated.ID,
-		BelongsToRecipe:     database.NullStringFromStringPointer(updated.BelongsToRecipe),
-		BelongsToRecipeStep: database.NullStringFromStringPointer(updated.BelongsToRecipeStep),
-		MimeType:            updated.MimeType,
-		InternalPath:        updated.InternalPath,
-		ExternalPath:        updated.ExternalPath,
-		Index:               int32(updated.Index),
+	if err := q.withEvent(ctx, logger, types.RecipeMediaUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeMediaIDKey: updated.ID,
+	}, func(tx database.Tx) error {
+		_, writeErr := q.generatedQuerier.UpdateRecipeMedia(ctx, tx, &generated.UpdateRecipeMediaParams{
+			ID:                  updated.ID,
+			BelongsToRecipe:     database.NullStringFromStringPointer(updated.BelongsToRecipe),
+			BelongsToRecipeStep: database.NullStringFromStringPointer(updated.BelongsToRecipeStep),
+			MimeType:            updated.MimeType,
+			InternalPath:        updated.InternalPath,
+			ExternalPath:        updated.ExternalPath,
+			Index:               int32(updated.Index),
+		})
+
+		return writeErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating recipe media")
 	}
@@ -238,14 +248,18 @@ func (q *repository) ArchiveRecipeMedia(ctx context.Context, recipeMediaID strin
 	logger = logger.WithValue(mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeMedia(ctx, q.writeDB, recipeMediaID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe media")
-	}
+	return q.withEvent(ctx, logger, types.RecipeMediaArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeMediaIDKey: recipeMediaID,
+	}, func(tx database.Tx) error {
+		rowsAffected, writeErr := q.generatedQuerier.ArchiveRecipeMedia(ctx, tx, recipeMediaID)
+		if writeErr != nil {
+			return observability.PrepareAndLogError(writeErr, logger, span, "archiving recipe media")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
 
-	return nil
+		return nil
+	})
 }

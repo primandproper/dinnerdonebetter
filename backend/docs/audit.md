@@ -26,58 +26,37 @@ the log a question and gets an empty answer.
 ## Writing an entry
 
 Entries are written through platform's `recording.Recorder`, on the caller's transaction,
-which is the whole design. An entry commits with the change it describes or not at all. The
-meal planning repository holds one, and its `recordAuditOnly` helper writes an entry with no
-event beside it:
+which is the whole design. An entry commits with the change it describes or not at all.
+
+In the meal planning repository an audited write is always an announced one too, and the
+Recorder writes exactly that pair: the entries and the data change event describing the same
+write. `withRecord` wraps a write in the transaction and records after it; `record` is the same
+call for a transaction that is already open. Both build this application's event payload
+(`datachanges.Event`) for it:
 
 ```go
-return q.WithTransaction(ctx, func(tx database.Tx) error {
-    if err := q.generatedQuerier.UpdateRecipe(ctx, tx, params); err != nil {
-        return err
-    }
-
-    changes, err := platformaudit.Diff(before, after)
-    if err != nil {
-        return err
-    }
-
-    entry := audit.NewEntry("", accountID, resourceTypeRecipes, after.ID, platformaudit.EventUpdated)
-    entry.Changes = changes
-
-    return q.recordAuditOnly(ctx, tx, entry)
-})
+return q.withRecord(ctx, logger,
+    auditEntry(resourceTypeMealPlans, mealPlanID, platformaudit.EventArchived),
+    mealplanning.MealPlanArchivedServiceEventType, accountID, map[string]any{
+        mealplanningkeys.MealPlanIDKey: mealPlanID,
+    },
+    func(tx database.Tx) error {
+        return q.generatedQuerier.ArchiveMealPlan(ctx, tx, params)
+    })
 ```
 
-An entry is platform-go's `audit.Entry`, and `audit.NewEntry` is how one is built: it decides
-the chain from the account the write happened in, which is the one place that rule is applied.
-Who did it is not the writer's to say. The Recorder reads the principal off the context, so the
-actor is whoever made the request and an impersonated write names its operator as the entry's
-`Impersonator`; a write with nobody on the context is recorded as `audit.ActorUnattributed`.
-The Recorder refuses an entry with no scope, so an entry assembled by hand and missing one fails
-at the write rather than landing somewhere nothing reads.
+An entry names only what was done to which resource — `auditEntry` builds one, and a caller
+with a before and after sets its `Changes` from `audit.Diff`. Who did it is not the writer's to
+say. The Recorder reads the principal off the context, so the actor is whoever made the request
+and an impersonated write names its operator as the entry's `Impersonator`; a write with nobody
+on the context is recorded as `audit.ActorUnattributed`. Nor is the chain the writer's to say:
+`record` files the entries under `audit.ScopeFor` of the account and actor the event resolved to,
+so an entry lands in the account whose subscribers heard about the write.
 
 There is no way to record outside a transaction by accident: holding a
 `database.Tx` from `WithTransaction` means you are already in one.
 
-### Almost always, record the entry and the event together
-
-A write that records an entry nearly always owes a data change event too, and platform's
-`recording.Recorder` writes exactly that pair. The meal planning repository holds one, and
-its `record` helper builds this application's event payload (`datachanges.Event`) for it:
-
-```go
-return q.WithTransaction(ctx, func(tx database.Tx) error {
-    if err := q.generatedQuerier.UpdateRecipe(ctx, tx, params); err != nil {
-        return err
-    }
-
-    return q.record(ctx, tx, logger,
-        audit.NewEntry(userID, accountID, resourceTypeRecipes, after.ID, platformaudit.EventUpdated),
-        mealplanning.RecipeUpdatedServiceEventType, accountID, map[string]any{
-        mealplanningkeys.RecipeIDKey: after.ID,
-    })
-})
-```
+### Why the entry and the event go together
 
 The two used to be written out as separate blocks at every write, which made the
 easiest mistake to make the one nothing catches: skip the entry and the row has no
@@ -85,9 +64,11 @@ provenance, and the chain does not notice, because a chain records what it was
 given; skip the event and the search index goes stale and no webhook fires. Neither
 leaves anything behind to find later. One call cannot half-happen.
 
-Reach past it for `Record` alone only where the pair genuinely does not apply — an
-entry with no event of its own, or a transaction recording several entries at once,
-which `Record`'s variadic form handles and `record` deliberately does not.
+The repository used to have an audit-only path as well, and eight writes took it with an
+event emitted separately beside it. Each of them now records the pair in one call. Writes that
+are announced but not audited go through `withEvent`, and `TestEveryWriteIsRecorded` holds every
+exported write in the package to one or the other. The writes it exempts are bookkeeping,
+not change, and it names each with the reason.
 
 There are no exceptions to "in the transaction that performed the write". There used
 to be six, and they were exactly the packages whose writes are an adopted platform
@@ -115,10 +96,10 @@ once per process in `internal/recordingspine` — filed by subject, fanned out o
 application's webhook catalog — and adds nothing to it but the payload its own events carry,
 which `datachanges.Event` builds.
 
-`Record` is variadic. A transaction touching three resources should pass three
-entries to one call rather than making three calls — one chain-head lookup and one
+`Record`, and `record` over it, are variadic. A transaction touching three resources should pass
+three entries to one call rather than making three calls — one chain-head lookup and one
 INSERT instead of three of each, and half the lock hold time on the scope's chain
-row. `SwapMealPlanEvents` and `MarkUserTwoFactorSecretAsUnverified` do this.
+row. `SwapMealPlanEvents` and `CreateMealPlan` (the plan and each of its events) do this.
 
 Prefer platform-go's `audit.Diff(before, after)` to a hand-assembled change map. Hand assembly is
 tedious where it is right and silently incomplete where it is wrong, and the field

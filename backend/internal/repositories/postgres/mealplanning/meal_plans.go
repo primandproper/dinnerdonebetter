@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -370,10 +370,6 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			return observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 		}
 
-		if err = q.recordAuditOnly(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeMealPlans, input.ID, platformaudit.EventCreated)); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
 		x = &types.MealPlan{
 			ID:               input.ID,
 			Notes:            input.Notes,
@@ -385,6 +381,10 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			CreatedByUser:    input.CreatedByUser,
 		}
 
+		// The meal plan's entry, then one per event created with it, as CreateMealPlanEvent
+		// would have recorded each of them.
+		entries := []*platformrecording.Entry{auditEntry(resourceTypeMealPlans, input.ID, platformaudit.EventCreated)}
+
 		logger.WithValue("quantity", len(input.Events)).Info("creating events for meal plan")
 		// Map to track option ID -> meal ID for matching selections
 		optionToMealID := make(map[string]string)
@@ -395,6 +395,7 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 				return observability.PrepareError(createErr, span, "creating meal plan event for meal plan")
 			}
 			x.Events = append(x.Events, opt)
+			entries = append(entries, auditEntry(resourceTypeMealPlanEvents, opt.ID, platformaudit.EventCreated))
 
 			// Track option IDs and their meal IDs for selection matching
 			for _, option := range opt.Options {
@@ -472,12 +473,12 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			}
 		}
 
-		// The event is another statement in this transaction, so it lives or dies with the
-		// meal plan it describes. See internal/recordingspine.
-		if emitErr := q.emit(ctx, tx, logger, types.MealPlanCreatedServiceEventType, input.BelongsToAccount, map[string]any{
+		// The entries and the event are further statements in this transaction, so they live
+		// or die with the meal plan they describe. See internal/recordingspine.
+		if recordErr := q.record(ctx, tx, logger, types.MealPlanCreatedServiceEventType, input.BelongsToAccount, map[string]any{
 			mealplanningkeys.MealPlanIDKey: input.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing meal plan created event")
+		}, entries...); recordErr != nil {
+			return observability.PrepareError(recordErr, span, "recording meal plan creation")
 		}
 
 		return nil
@@ -521,9 +522,9 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 			return sql.ErrNoRows
 		}
 
-		return q.record(ctx, tx, logger, audit.NewEntry("", updated.BelongsToAccount, resourceTypeMealPlans, updated.ID, platformaudit.EventUpdated), types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
+		return q.record(ctx, tx, logger, types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
 			mealplanningkeys.MealPlanIDKey: updated.ID,
-		})
+		}, auditEntry(resourceTypeMealPlans, updated.ID, platformaudit.EventUpdated))
 	}); err != nil {
 		return err
 	}
@@ -567,9 +568,9 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 			return sql.ErrNoRows
 		}
 
-		return q.record(ctx, tx, logger, audit.NewEntry("", accountID, resourceTypeMealPlans, mealPlanID, platformaudit.EventArchived), types.MealPlanArchivedServiceEventType, accountID, map[string]any{
+		return q.record(ctx, tx, logger, types.MealPlanArchivedServiceEventType, accountID, map[string]any{
 			mealplanningkeys.MealPlanIDKey: mealPlanID,
-		})
+		}, auditEntry(resourceTypeMealPlans, mealPlanID, platformaudit.EventArchived))
 	})
 }
 

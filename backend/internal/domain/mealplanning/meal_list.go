@@ -9,6 +9,15 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
+const (
+	// MealListCreatedServiceEventType indicates a meal list was created.
+	MealListCreatedServiceEventType = "meal_list_created"
+	// MealListUpdatedServiceEventType indicates a meal list was updated.
+	MealListUpdatedServiceEventType = "meal_list_updated"
+	// MealListArchivedServiceEventType indicates a meal list was archived.
+	MealListArchivedServiceEventType = "meal_list_archived"
+)
+
 type (
 	// MealList represents a collection of meals belonging to a user.
 	MealList struct {

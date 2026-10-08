@@ -9,6 +9,15 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
+const (
+	// RecipeListCreatedServiceEventType indicates a recipe list was created.
+	RecipeListCreatedServiceEventType = "recipe_list_created"
+	// RecipeListUpdatedServiceEventType indicates a recipe list was updated.
+	RecipeListUpdatedServiceEventType = "recipe_list_updated"
+	// RecipeListArchivedServiceEventType indicates a recipe list was archived.
+	RecipeListArchivedServiceEventType = "recipe_list_archived"
+)
+
 type (
 	// RecipeList represents a collection of recipes belonging to a user.
 	RecipeList struct {

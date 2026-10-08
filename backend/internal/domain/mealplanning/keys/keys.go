@@ -83,6 +83,11 @@ const (
 	// RecipeMediaIDKey is the standard key for referring to a recipe media's ID.
 	RecipeMediaIDKey = RecipeMediaKey + idSuffix
 
+	// UploadedMediaKey is the standard key for referring to an uploaded media object.
+	UploadedMediaKey = "uploaded_media"
+	// UploadedMediaIDKey is the standard key for referring to an uploaded media object's ID.
+	UploadedMediaIDKey = UploadedMediaKey + idSuffix
+
 	// RecipePrepTaskKey is the standard key for referring to a recipe prep task.
 	RecipePrepTaskKey = "recipe_prep_task"
 	// RecipePrepTaskIDKey is the standard key for referring to a recipe prep task's ID.
