@@ -117,7 +117,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 	// before it has already been inserted.
 	doomedTask.MealPlanOptionID = fake.BuildFakeID()
 
-	batched, err := dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, []*types.MealPlanTaskDatabaseCreationInput{goodTaskInput(), doomedTask})
+	batched, err := dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, account.ID, []*types.MealPlanTaskDatabaseCreationInput{goodTaskInput(), doomedTask})
 	require.Error(t, err)
 	assert.Nil(t, batched)
 
@@ -131,7 +131,7 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 
 	// a batch that succeeds writes every task and the flag together.
 	taskBatch := []*types.MealPlanTaskDatabaseCreationInput{goodTaskInput(), goodTaskInput()}
-	batched, err = dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, taskBatch)
+	batched, err = dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, account.ID, taskBatch)
 	require.NoError(t, err)
 	assert.Len(t, batched, len(taskBatch))
 	createdMealPlanTasks = append(createdMealPlanTasks, batched...)
@@ -246,7 +246,7 @@ func TestQuerier_CreateMealPlanTasksForMealPlan(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.CreateMealPlanTasksForMealPlan(ctx, "", nil)
+		actual, err := c.CreateMealPlanTasksForMealPlan(ctx, "", "", nil)
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})

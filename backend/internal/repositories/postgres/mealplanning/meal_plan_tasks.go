@@ -320,7 +320,10 @@ func (q *repository) GetMealPlanTasksForMealPlan(ctx context.Context, mealPlanID
 // caught it. It is now also the finalization saga's idempotency guard for this step: a replay after
 // a crash sees the flag and does nothing, which is a stronger promise than an idempotency key that
 // commits in a different transaction from the work.
-func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPlanID string, inputs []*types.MealPlanTaskDatabaseCreationInput) ([]*types.MealPlanTask, error) {
+//
+// accountID is passed rather than read from the context because this runs in a background job with
+// no session; it is the account the events below are announced to.
+func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPlanID, accountID string, inputs []*types.MealPlanTaskDatabaseCreationInput) ([]*types.MealPlanTask, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -341,10 +344,8 @@ func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPla
 
 			// The events are more statements in this transaction, so they commit with the rows
 			// they describe. This is the only emit for these tasks — the task creator job used to
-			// publish them after the fact, which is exactly the gap the outbox closes. The job
-			// holds no session, and the finalized-plan query it works from does not name an
-			// account, so the event carries none.
-			if emitErr := q.emit(ctx, tx, logger, types.MealPlanTaskCreatedServiceEventType, "", map[string]any{
+			// publish them after the fact, which is exactly the gap the outbox closes.
+			if emitErr := q.emit(ctx, tx, logger, types.MealPlanTaskCreatedServiceEventType, accountID, map[string]any{
 				mealplanningkeys.MealPlanIDKey:     mealPlanID,
 				mealplanningkeys.MealPlanTaskIDKey: mealPlanTask.ID,
 				mealplanningkeys.MealPlanTaskKey:   mealPlanTask,
@@ -380,8 +381,9 @@ func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPla
 // steps that succeeded, so this is called for a Do whose transaction rolled back and left nothing
 // behind — the flag is already FALSE in that case and the update is a no-op, which is what an Undo
 // with nothing to undo is supposed to be. Nor does it announce anything then; when it does delete
-// tasks, it announces their removal as CreateMealPlanTasksForMealPlan announced their creation.
-func (q *repository) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID string, taskIDs []string) error {
+// tasks, it announces their removal as CreateMealPlanTasksForMealPlan announced their creation, to
+// the same account.
+func (q *repository) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID, accountID string, taskIDs []string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -400,7 +402,7 @@ func (q *repository) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID st
 				return observability.PrepareAndLogError(deleteErr, logger, span, "deleting meal plan tasks")
 			}
 
-			if emitErr := q.emit(ctx, tx, logger, types.MealPlanTaskCreationUndoneServiceEventType, "", map[string]any{
+			if emitErr := q.emit(ctx, tx, logger, types.MealPlanTaskCreationUndoneServiceEventType, accountID, map[string]any{
 				mealplanningkeys.MealPlanIDKey: mealPlanID,
 			}); emitErr != nil {
 				return observability.PrepareError(emitErr, span, "enqueuing meal plan task creation undone event")

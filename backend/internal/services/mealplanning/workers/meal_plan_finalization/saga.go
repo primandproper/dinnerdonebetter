@@ -154,7 +154,7 @@ func createTasks(
 		}
 	}
 
-	created, err := dataManager.CreateMealPlanTasksForMealPlan(ctx, state.MealPlanID, inputs)
+	created, err := dataManager.CreateMealPlanTasksForMealPlan(ctx, state.MealPlanID, state.AccountID, inputs)
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func undoCreateTasks(
 		return nil
 	}
 
-	if err := dataManager.UndoMealPlanTaskCreation(ctx, state.MealPlanID, state.CreatedTaskIDs); err != nil {
+	if err := dataManager.UndoMealPlanTaskCreation(ctx, state.MealPlanID, state.AccountID, state.CreatedTaskIDs); err != nil {
 		return err
 	}
 

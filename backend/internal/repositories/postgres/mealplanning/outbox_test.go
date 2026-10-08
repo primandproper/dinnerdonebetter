@@ -546,7 +546,7 @@ func TestQuerier_Integration_FinalizationUndoAnnouncesWhatItRemoved(t *testing.T
 	}
 
 	// An undo that had nothing to undo removed nothing anybody heard about, and says nothing.
-	require.NoError(t, dbc.UndoMealPlanTaskCreation(ctx, mealPlan.ID, nil))
+	require.NoError(t, dbc.UndoMealPlanTaskCreation(ctx, mealPlan.ID, account.ID, nil))
 	require.NoError(t, dbc.UndoMealPlanGroceryListInitialization(ctx, mealPlan.ID, account.ID, nil))
 	assert.Zero(t, countEvents(types.MealPlanTaskCreationUndoneServiceEventType))
 	assert.Zero(t, countEvents(types.MealPlanGroceryListInitializationUndoneServiceEventType))
@@ -568,4 +568,24 @@ func TestQuerier_Integration_FinalizationUndoAnnouncesWhatItRemoved(t *testing.T
 
 	undone := findEvent(decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic)), types.MealPlanGroceryListInitializationUndoneServiceEventType)
 	assert.Equal(t, account.ID, undone.AccountID, "a background job has no session, so the account has to come from the caller")
+
+	// The task step is the same shape: created to the account, undone to the account.
+	tasks, err := dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, account.ID, []*types.MealPlanTaskDatabaseCreationInput{{
+		ID:                  identifiers.New(),
+		MealPlanOptionID:    mealPlan.Events[0].Options[0].ID,
+		CreationExplanation: t.Name(),
+	}})
+	require.NoError(t, err)
+	require.Len(t, tasks, 1)
+
+	createdTask := findEvent(decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic)), types.MealPlanTaskCreatedServiceEventType)
+	require.NotNil(t, createdTask)
+	assert.Equal(t, account.ID, createdTask.AccountID)
+
+	require.NoError(t, dbc.UndoMealPlanTaskCreation(ctx, mealPlan.ID, account.ID, []string{tasks[0].ID}))
+	require.Equal(t, 1, countEvents(types.MealPlanTaskCreationUndoneServiceEventType))
+
+	undoneTask := findEvent(decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic)), types.MealPlanTaskCreationUndoneServiceEventType)
+	require.NotNil(t, undoneTask)
+	assert.Equal(t, account.ID, undoneTask.AccountID, "a background job has no session, so the account has to come from the caller")
 }
