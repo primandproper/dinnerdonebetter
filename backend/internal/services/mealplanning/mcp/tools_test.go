@@ -211,7 +211,60 @@ func TestTools_RegisterOn(T *testing.T) {
 		assert.Contains(t, output, "id")
 		assert.Contains(t, output, "createdAt")
 		assert.NotContains(t, output, "ID")
+
+		// The associated recipes are whole recipes one level down, and bare objects below
+		// that: the cycle is unrolled once rather than refused.
+		associated := schemaAt(t, getRecipe.OutputSchema, "properties", "associatedRecipes", "items")
+		assert.Contains(t, properties(t, associated), "id")
+
+		nested := schemaAt(t, associated, "properties", "associatedRecipes", "items")
+		assert.Empty(t, properties(t, nested))
 	})
+
+	T.Run("a page of recipes describes every field of a row", func(t *testing.T) {
+		t.Parallel()
+
+		tools, _ := buildTestTools(t)
+
+		var getRecipes *sdkmcp.Tool
+		for _, tool := range listTools(t, tools) {
+			if tool.Name == getRecipesTool.Name {
+				getRecipes = tool
+			}
+		}
+		require.NotNil(t, getRecipes)
+
+		// A page stores its rows as the same list type a recipe stores its associated
+		// recipes as, which is the type the cycle is cut at. The cut must not take the
+		// rows with it: a row is a whole recipe, and only the list inside it is bare.
+		row := schemaAt(t, getRecipes.OutputSchema, "properties", "data", "items")
+		assert.Contains(t, properties(t, row), "id")
+		assert.Contains(t, properties(t, row), "associatedRecipes")
+
+		nested := schemaAt(t, row, "properties", "associatedRecipes", "items")
+		assert.Empty(t, properties(t, nested))
+	})
+}
+
+// schemaAt is the sub-schema at path, as the client decoded it.
+func schemaAt(t *testing.T, schema any, path ...string) any {
+	t.Helper()
+
+	encoded, err := json.Marshal(schema)
+	require.NoError(t, err)
+
+	var node any
+	require.NoError(t, json.Unmarshal(encoded, &node))
+
+	for _, key := range path {
+		object, ok := node.(map[string]any)
+		require.True(t, ok, "no object at %q", key)
+
+		node, ok = object[key]
+		require.True(t, ok, "no %q", key)
+	}
+
+	return node
 }
 
 // properties is the property names of a schema as the client decoded it.
