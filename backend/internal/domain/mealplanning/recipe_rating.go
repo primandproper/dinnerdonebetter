@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -24,12 +23,6 @@ const (
 var (
 	errAtLeastOneRatingRequired = errors.New("recipe rating must have at least one rating")
 )
-
-func init() {
-	gob.Register(new(RecipeRating))
-	gob.Register(new(RecipeRatingCreationRequestInput))
-	gob.Register(new(RecipeRatingUpdateRequestInput))
-}
 
 type (
 	// RecipeRating represents a recipe rating.

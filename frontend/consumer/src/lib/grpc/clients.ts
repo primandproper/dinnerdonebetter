@@ -6,62 +6,23 @@
  */
 
 import { env } from '$env/dynamic/private';
-import { redirect } from '@sveltejs/kit';
-import { CHANGE_PASSWORD_PATH, mustChangePassword } from '$lib/auth/required-actions';
-import { MealPlanningServiceService, QueryFilter, createPlatformTransport } from '@dinnerdonebetter/api-client';
-import {
-  type CredentialStore,
-  type Metadata,
-  redirectOnNotSignedIn,
-  Session,
-  type UnaryMethod,
-} from '@primandproper/platform-client';
+import { MealPlanningServiceService, createPlatformTransport } from '@dinnerdonebetter/api-client';
+import { QueryFilter } from '@primandproper/platform-client/filtering/v1';
+import type { Session, UnaryMethod } from '@primandproper/platform-client';
+import { createCaller } from '@dinnerdonebetter/session';
 import { IdentityServiceService } from '@primandproper/platform-client/identity/v1';
 import { PasskeysServiceService } from '@primandproper/platform-client/passkeys/v1';
 import { SignInServiceService } from '@primandproper/platform-client/signin/v1';
 import { SettingsServiceService } from '@primandproper/platform-client/settings/v1';
 
-const transport = createPlatformTransport({
-  serverUrl: env.GRPC_API_SERVER_URL ?? 'localhost:50051',
-  insecure: env.DEVELOPING_LOCALLY === 'true',
-});
+const { newSession, call, authed } = createCaller(
+  createPlatformTransport({
+    serverUrl: env.GRPC_API_SERVER_URL ?? 'localhost:50051',
+    insecure: env.DEVELOPING_LOCALLY === 'true',
+  }),
+);
 
-/**
- * newSession is a Session over `store`. Sessions built per request share the process's
- * exchange coordinator, so concurrent requests carrying the same cookie present its refresh
- * token once between them. That holds within one process only: more than one replica needs a
- * SharedExchangeCoordinator.
- *
- * `metadata` rides on every call the Session makes; see clientMetadata in $lib/auth/session.
- */
-export function newSession(store: CredentialStore, metadata: Metadata = {}): Session {
-  return new Session({ transport, store, metadata });
-}
-
-/**
- * call makes an authenticated call. A login that is over by the time it is made — never
- * held, lapsed, or refused a refresh — sends the person to sign in again; the Session has
- * already cleared the cookie by then. One refused because they owe a password change sends
- * them to the form for it.
- */
-async function call<Req, Res>(session: Session, method: UnaryMethod<Req, Res>, request: Req): Promise<Res> {
-  try {
-    return await redirectOnNotSignedIn(
-      session,
-      () => session.call(method, request),
-      () => redirect(302, '/login'),
-    );
-  } catch (err) {
-    if (mustChangePassword(err)) {
-      redirect(302, CHANGE_PASSWORD_PATH);
-    }
-    throw err;
-  }
-}
-
-function authed<Req, Res>(method: UnaryMethod<Req, Res>) {
-  return (session: Session, request: Req) => call(session, method, request);
-}
+export { newSession };
 
 // QueryFilter is platform's schema, and its four timestamp windows are message fields
 // rather than `optional` scalars, so a bare object literal is not one. The generated

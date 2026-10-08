@@ -6,8 +6,8 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { Object } from '@primandproper/platform-client/mediaregistry/v1';
 import { Timestamp } from '../google/protobuf/timestamp';
-import { Object } from '../primandproper/platform/mediaregistry/v1/mediaregistry';
 
 export const protobufPackage = 'mealplanning';
 

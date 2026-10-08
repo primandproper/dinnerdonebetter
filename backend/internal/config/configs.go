@@ -2,16 +2,12 @@ package config
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
-	"runtime/debug"
 	"strings"
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
@@ -23,6 +19,7 @@ import (
 	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	platformconfig "github.com/primandproper/primitives-go/v2/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
 	httpclientcfg "github.com/primandproper/primitives-go/v2/httpclient"
 	idempotencycfg "github.com/primandproper/primitives-go/v2/idempotency/config"
@@ -255,36 +252,10 @@ type (
 		// a password, the way the API server throttles its own.
 		RateLimiting ratelimitingcfg.Config `envPrefix:"RATE_LIMITING_" json:"rateLimiting,omitzero"`
 		OAuth2       oauth2servercfg.Config `envPrefix:"OAUTH2_"        json:"oauth2,omitzero"`
-		Database     dbcfg.Config           `envPrefix:"DATABASE_"      json:"database,omitzero"`
+		Database     databasecfg.Config     `envPrefix:"DATABASE_"      json:"database,omitzero"`
 		HTTPServer   http.Config            `envPrefix:"HTTP_"          json:"http,omitzero"`
 	}
 )
-
-// EncodeToFile renders your config to a file given your favorite encoder.
-func (cfg *APIServiceConfig) EncodeToFile(path string, marshaller func(v any) ([]byte, error)) error {
-	if cfg == nil {
-		return errors.New("nil config")
-	}
-
-	byteSlice, err := marshaller(*cfg)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(path, byteSlice, 0o600)
-}
-
-func (cfg *APIServiceConfig) Commit() string {
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for i := range info.Settings {
-			if info.Settings[i].Key == "vcs.revision" {
-				return info.Settings[i].Value
-			}
-		}
-	}
-
-	return ""
-}
 
 var _ validation.ValidatableWithContext = (*APIServiceConfig)(nil)
 
@@ -461,9 +432,10 @@ func (cfg *MCPServiceConfig) ValidateWithContext(ctx context.Context) error {
 //     - anything else → .env  (covers "production" and the unset case)
 //  3. If the derived file does not exist under baseDir, return "" so the
 //     caller can skip loading without treating a missing file as an error.
-func resolveDotEnvFilePathFromDir(baseDir string) string {
+//     Any other failure to stat it is an error.
+func resolveDotEnvFilePathFromDir(baseDir string) (string, error) {
 	if explicit := os.Getenv(DotEnvFilePathEnvVarKey); explicit != "" {
-		return explicit
+		return explicit, nil
 	}
 
 	var filename string
@@ -476,19 +448,15 @@ func resolveDotEnvFilePathFromDir(baseDir string) string {
 		filename = ".env"
 	}
 
-	path := filepath.Join(baseDir, filename)
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return ""
-	}
-	return path
+	return platformconfig.ResolveDotEnvPath(baseDir, filename)
 }
 
 // resolveDotEnvFilePath is the production entry point for resolveDotEnvFilePathFromDir,
 // using the process's current working directory as the base.
-func resolveDotEnvFilePath() string {
+func resolveDotEnvFilePath() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("reading working directory: %w", err)
 	}
 	return resolveDotEnvFilePathFromDir(dir)
 }
@@ -497,8 +465,12 @@ func LoadConfigFromEnvironment[T configurations]() (*T, error) {
 	// Resolve and load the appropriate .env file before applying env var overrides.
 	// godotenv.Load does not override env vars already set in the process, so
 	// priority order is: JSON config < .env file < actual process environment.
-	if dotEnvPath := resolveDotEnvFilePath(); dotEnvPath != "" {
-		if err := godotenv.Load(dotEnvPath); err != nil {
+	dotEnvPath, err := resolveDotEnvFilePath()
+	if err != nil {
+		return nil, fmt.Errorf("resolving .env file: %w", err)
+	}
+	if dotEnvPath != "" {
+		if err = godotenv.Load(dotEnvPath); err != nil {
 			return nil, fmt.Errorf("loading .env file: %w", err)
 		}
 	}
@@ -521,8 +493,12 @@ func LoadConfigFromPath[T configurations](configurationFilepath string) (*T, err
 	// Resolve and load the appropriate .env file before applying env var overrides.
 	// godotenv.Load does not override env vars already set in the process, so
 	// priority order is: JSON config < .env file < actual process environment.
-	if dotEnvPath := resolveDotEnvFilePath(); dotEnvPath != "" {
-		if err := godotenv.Load(dotEnvPath); err != nil {
+	dotEnvPath, err := resolveDotEnvFilePath()
+	if err != nil {
+		return nil, fmt.Errorf("resolving .env file: %w", err)
+	}
+	if dotEnvPath != "" {
+		if err = godotenv.Load(dotEnvPath); err != nil {
 			return nil, fmt.Errorf("loading .env file: %w", err)
 		}
 	}
@@ -534,24 +510,6 @@ func LoadConfigFromPath[T configurations](configurationFilepath string) (*T, err
 	cfg, err := platformconfig.LoadFromJSONFile[T](context.Background(), configurationFilepath, envVarOptions()...)
 	if err != nil {
 		return nil, fmt.Errorf("loading config from path: %w", err)
-	}
-
-	return cfg, nil
-}
-
-// LoadConfigFromDotEnvFile loads a configuration entirely from a .env file, with no JSON config file baseline.
-// Because there is no JSON baseline to fall back on, the resulting config is validated to ensure
-// the caller provided enough values to produce a usable configuration.
-// godotenv.Load does not override env vars already set in the process, so actual process env vars
-// still take precedence over values in the file.
-func LoadConfigFromDotEnvFile[T configurations](ctx context.Context, dotEnvFilepath string) (*T, error) {
-	cfg, err := platformconfig.LoadFromDotEnvFile[T](dotEnvFilepath, envVarOptions()...)
-	if err != nil {
-		return nil, fmt.Errorf("loading config from .env file: %w", err)
-	}
-
-	if err = platformconfig.Validate(ctx, cfg); err != nil {
-		return nil, fmt.Errorf("validating config loaded from .env file: %w", err)
 	}
 
 	return cfg, nil

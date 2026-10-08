@@ -21,28 +21,14 @@ const (
 	ServiceAdminRoleName = "service_admin"
 	// ServiceDataAdminRoleName administers the service's reference data.
 	ServiceDataAdminRoleName = "service_data_admin"
-
-	invalidServiceRoleWarning = "INVALID_SERVICE_ROLE"
-
-	// invalidServiceRole is a service role to apply for non-admin users to have one.
-	invalidServiceRole ServiceRole = iota
-	// ServiceUserRole is a service role to apply for non-admin users to have one.
-	ServiceUserRole ServiceRole = iota
-	// ServiceAdminRole is a role that allows a user to do basically anything.
-	ServiceAdminRole ServiceRole = iota
 )
 
 type (
-	// ServiceRole describes a role a user has for the Service context.
-	ServiceRole role
-
 	// ServiceRolePermissionChecker checks permissions for one or more service Roles.
 	ServiceRolePermissionChecker interface {
 		HasPermission(Permission) bool
 
-		AsAccountRolePermissionChecker() AccountRolePermissionsChecker
 		IsServiceAdmin() bool
-		CanUpdateUserAccountStatuses() bool
 		CanImpersonateUsers() bool
 	}
 
@@ -53,19 +39,6 @@ type (
 		RoleNames   []string
 	}
 )
-
-func (r ServiceRole) String() string {
-	switch r {
-	case invalidServiceRole:
-		return invalidServiceRoleWarning
-	case ServiceUserRole:
-		return ServiceUserRoleName
-	case ServiceAdminRole:
-		return ServiceAdminRoleName
-	default:
-		return ""
-	}
-}
 
 // NewServiceRolePermissionChecker returns a new checker from role names and a set of permissions.
 func NewServiceRolePermissionChecker(roleNames []string, perms []Permission) ServiceRolePermissionChecker {
@@ -86,10 +59,6 @@ func NewServiceRolePermissionCheckerFromSet(roleNames []string, perms *platforma
 	}
 }
 
-func (r serviceRoleCollection) AsAccountRolePermissionChecker() AccountRolePermissionsChecker {
-	return NewAccountRolePermissionCheckerFromSet(r.RoleNames, r.Permissions)
-}
-
 // HasPermission returns whether a user can do something or not.
 func (r serviceRoleCollection) HasPermission(p Permission) bool {
 	return r.Permissions.Has(p)
@@ -98,11 +67,6 @@ func (r serviceRoleCollection) HasPermission(p Permission) bool {
 // IsServiceAdmin returns if a role is an admin.
 func (r serviceRoleCollection) IsServiceAdmin() bool {
 	return slices.Contains(r.RoleNames, ServiceAdminRoleName)
-}
-
-// CanUpdateUserAccountStatuses returns whether a user can update user account statuses.
-func (r serviceRoleCollection) CanUpdateUserAccountStatuses() bool {
-	return r.HasPermission(PermissionUpdateUserStatus)
 }
 
 // CanImpersonateUsers returns whether a user can impersonate others.

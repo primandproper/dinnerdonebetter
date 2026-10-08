@@ -413,27 +413,15 @@ func (m *Migrator) seedPolicy(ctx context.Context, db *sql.DB) error {
 }
 
 // renderAuthorizationDDL renders the four policy tables — roles, permissions,
-// the grants between them, and the inheritance edges — dropping the four that
-// 00019_rbac.sql created, and re-creating the one foreign key the platform
-// cannot ship.
+// the grants between them, and the inheritance edges — and the foreign keys
+// the platform cannot ship.
 //
-// What this deletes is not a table so much as a second copy of the policy. The
-// permissions a role holds were declared twice: as the slices in
-// internal/authorization, which the method table and the platform policy are
-// written from, and as ~600 lines of INSERT statements across 00019 and 00021,
-// which is what authorization actually read. The only thing holding them
-// together was a test that string-matched permission names against the
-// concatenated migration text, so it could see a name that was never seeded and
-// could not see a mapping that was wrong. They had drifted on three of five
-// roles. The seed now runs from PlatformPolicy() — see Migrator.Migrate — and
-// there is one declaration.
+// The tables hold no hand-written policy. The permissions a role holds are
+// declared once, as the slices in internal/authorization, and seeded from
+// PlatformPolicy() — see Migrator.Migrate. A seed written as INSERT statements
+// beside them would be a second declaration, and the two would drift.
 //
-// The drop order is the reference order: the two mapping tables and the
-// assignment's constraint go before the tables they point at. user_roles takes
-// CASCADE because user_role_assignments.role_id referenced it, and that column
-// is being replaced by role_name in the same migration sequence.
-//
-// The foreign key targets ddb_authz_roles(name) rather than its primary key.
+// The foreign keys target ddb_authz_roles(name) rather than its primary key.
 // That is legal because the platform indexes name uniquely — deliberately, since
 // "reusing the name of an archived role would silently re-grant its authority to
 // everyone still assigned it" — and it is what an assignment has to reference,
@@ -446,13 +434,6 @@ func (m *Migrator) seedPolicy(ctx context.Context, db *sql.DB) error {
 // naming an archived role resolves to nothing, because the resolution query
 // applies the archived predicate at every join — which is fail-closed, and the
 // behavior we want.
-//
-// user_roles.scope, which constrained a role to 'service' or 'account', has no
-// platform counterpart and is not re-created. Nothing read it: no query filtered
-// on it, and the one place it should have mattered — ModifyUserPermissions,
-// which writes a caller-supplied role name into an account-scoped assignment —
-// never consulted it. That is now an allow-list on the input, which is enforced
-// where the column was not.
 func renderAuthorizationDDL() (string, error) {
 	schema, err := authzmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
@@ -463,11 +444,10 @@ func renderAuthorizationDDL() (string, error) {
 
 	body := &strings.Builder{}
 	body.WriteString(schema)
-	// The key follows the assignments, which are platform's now: a service role is a row
-	// in identity_user_roles and a membership role is one in identity_membership_roles,
-	// where both used to be user_role_assignments. Two constraints where there was one,
-	// because platform keeps the two apart — they are granted by different people and
-	// answer different questions.
+	// The key follows the assignments, which are platform's: a service role is a row in
+	// identity_user_roles and a membership role is one in identity_membership_roles. Two
+	// constraints rather than one, because platform keeps the two apart — they are granted
+	// by different people and answer different questions.
 	body.WriteString("\n\nALTER TABLE " + identityUserRoles + "\n\tADD CONSTRAINT " + identityUserRoles + "_role_fk\n\tFOREIGN KEY (role) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
 	body.WriteString("\nALTER TABLE " + identityMembershipRoles + "\n\tADD CONSTRAINT " + identityMembershipRoles + "_role_fk\n\tFOREIGN KEY (role) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
 
@@ -483,43 +463,25 @@ var billingTablesOwnedByAccounts = []string{
 }
 
 // renderBillingDDL renders the four billing tables — the catalog, the
-// subscriptions, the one-time purchases and the ledger — dropping the four
-// 00011_payments.sql created first along with the three enums it defined, and
-// re-creating the foreign key that kept an erased account's billing from
-// outliving it.
-//
-// Nothing is carried across, and the schemas could not carry it anyway. The
-// platform's amounts are BIGINT where the old ones were INTEGER, its three
-// provider-side ids are nullable and unique within the scope where the old ones
-// defaulted to the empty string and were unique nowhere, its ledger carries the
-// last_updated_at and archived_at the old one lacked, and every table adds the
-// tenancy column every one of its reads filters on. The subscription status is
-// capitalism's vocabulary rather than a five-value enum of this application's,
-// and one word differs: the platform writes "canceled".
-//
-// The old tables are dropped rather than left in place because nothing reads
-// them once the store is platform's. The enums go with them: nothing else in
-// this schema uses them, and a type left behind by the table that defined it is
-// a name the next migration has to work around. The drop order is the reference
-// order — the ledger points at subscriptions and purchases, both point at
-// products — because Postgres will not drop a table out from under a foreign key.
+// subscriptions, the one-time purchases and the ledger — and the foreign key
+// that keeps an erased account's billing from outliving it. The subscription
+// status is capitalism's vocabulary, which spells it "canceled".
 //
 // # The foreign key, and what it decides
 //
-// belongs_to_account named an account in every row of the three old tables, with
-// ON DELETE CASCADE, and that key is re-created here on each of the three new
-// ones. It is what keeps the single identity eraser in
-// internal/build/dataprivacy covering billing: an erased user's accounts take
-// their subscriptions, purchases and ledger rows with them.
+// belongs_to_account names an account in every row of the three account-owned
+// tables, and each gets a key to the accounts table with ON DELETE CASCADE. It is
+// what keeps the single identity eraser in internal/build/dataprivacy covering
+// billing: an erased user's accounts take their subscriptions, purchases and
+// ledger rows with them.
 //
-// That is the behavior this schema had, preserved rather than decided. Platform's
+// That cascade is preserved behavior rather than a decision. Platform's
 // billing/privacy ships a collector and deliberately no eraser, on the grounds
 // that financial records carry a statutory retention that outranks a right to
-// erasure — and docs/data-privacy.md has named payments as the likeliest first
-// domain to need retention rather than a cascade since before this store was
-// adopted. Making that call means dropping this key and registering an eraser
-// that anonymizes rather than deletes, which is a policy decision this migration
-// does not take on anybody's behalf.
+// erasure — and docs/data-privacy.md names payments as the likeliest first domain
+// to need retention rather than a cascade. Making that call means dropping
+// this key and registering an eraser that anonymizes rather than deletes, which is
+// a policy decision this migration does not take on anybody's behalf.
 //
 // Platform cannot ship the key either way. It does not know that a consumer's
 // accounts are rows in a table at all.
@@ -542,27 +504,11 @@ func renderBillingDDL() (string, error) {
 	return body.String(), nil
 }
 
-// renderIssueReportsDDL renders the issue report table, dropping the one
-// 00009_issue_reports.sql created first, and re-creating the two foreign keys
-// that table carried.
+// renderIssueReportsDDL renders the issue report table and the reporter's
+// foreign key, which is something platform could not ship: it does not know which
+// of a consumer's tables holds a principal.
 //
-// Nothing is carried across, and the two tables could not carry it anyway: the
-// platform's names the columns differently (reporter, kind, subject_type,
-// subject_id), swaps belongs_to_account for the tenancy column every one of its
-// reads filters on, and adds the three columns this package was adopted for —
-// status, resolution and closed_at, which are what turn a pile of submissions
-// into a queue somebody can work.
-//
-// The old table is dropped rather than left in place because its name is the one
-// the platform's default prefix would render, and its DDL says CREATE TABLE IF
-// NOT EXISTS — so a deployment that kept it would eventually get a silent no-op
-// followed by a store reading columns that are not there. This renders
-// ddb_issue_reports; see branding.TablePrefix.
-//
-// The reporter's foreign key is re-created, which is something platform could not
-// ship: it does not know which of a consumer's tables holds a principal.
-//
-// It is what keeps the single identity eraser in internal/build/dataprivacy
+// The key is what keeps the single identity eraser in internal/build/dataprivacy
 // covering issue reports — the details are free text somebody typed, so a report
 // that outlived its reporter would be personal data no erasure reaches. Without it
 // this domain would rely on the eraser platform ships (issuereports/privacy) alone.
@@ -570,8 +516,8 @@ func renderBillingDDL() (string, error) {
 // The scope column carries no key. Every report is filed under the global scope
 // (see ddbissuereports.Scope), whose stored identifier is the empty string and
 // names no account, so a key to the accounts table would refuse every report
-// anybody filed. Reports used to be filed per account, behind exactly that key; a
-// report is the reporter's and the service's administrators', not a household's.
+// anybody filed. A report is the reporter's and the service's administrators',
+// not a household's.
 func renderIssueReportsDDL() (string, error) {
 	schema, err := issuereportsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
@@ -587,34 +533,18 @@ func renderIssueReportsDDL() (string, error) {
 	return body.String(), nil
 }
 
-// renderWaitlistsDDL renders the two waitlist tables, dropping the ones
-// 00008_waitlists.sql created first.
+// renderWaitlistsDDL renders the two waitlist tables.
 //
-// Nothing is carried across, and the two schemas could not carry it anyway. The
-// platform's list names the closing time closes_at rather than valid_until and
-// adds the tenancy column every one of its reads filters on. Its signup replaces
-// belongs_to_user/belongs_to_account with a subject pair, and adds the three
-// columns this package was adopted for — contact, contact_digest and status,
-// which are what turn a pile of opt-ins into a queue somebody can work and a
-// withdrawal somebody can rely on.
+// # No foreign key, and that is not an oversight
 //
-// The old tables are dropped rather than left in place because their names are
-// the ones the platform's default prefix would render, and its DDL says CREATE
-// TABLE IF NOT EXISTS — so a deployment that kept them would get a silent no-op
-// followed by a store reading columns that are not there. This renders
-// ddb_waitlists and ddb_waitlist_signups; see branding.TablePrefix.
+// A signup's subject_id names a user, and a key to the users table with ON DELETE
+// CASCADE would be what kept the single identity eraser covering signups. It
+// cannot be added, and the reason is the feature this store was adopted for: a
+// withdrawal blanks subject_id to the empty string, which is the column's NOT NULL
+// default and names no user. A foreign key there would refuse every withdrawal —
+// turning the one write somebody has a right to demand into a constraint violation.
 //
-// # No foreign key is re-created, and that is not an oversight
-//
-// The old waitlist_signups carried belongs_to_user REFERENCES users ON DELETE
-// CASCADE, which is what kept the single identity eraser covering signups. The
-// new table cannot carry its equivalent, and the reason is the feature this
-// adoption was for: a withdrawal blanks subject_id to the empty string, which is
-// the column's NOT NULL default and names no user. A foreign key there would
-// refuse every withdrawal — turning the one write somebody has a right to demand
-// into a constraint violation.
-//
-// What replaces the cascade is the waitlists eraser, registered in
+// What does the cascade's job is the waitlists eraser, registered in
 // internal/build/dataprivacy. See internal/domain/waitlists/privacy for what it
 // erases and what it deliberately keeps.
 func renderWaitlistsDDL() (string, error) {
@@ -623,35 +553,18 @@ func renderWaitlistsDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering waitlists migration")
 	}
 
-	// Signups first: the old signup table references the old list table, and
-	// Postgres will not drop a table out from under a foreign key.
 	return schema, nil
 }
 
-// renderSettingsDDL renders the three settings tables, dropping the two
-// 00005_settings.sql created first along with the enum it defined, and
-// re-creating the foreign key that kept an erased user's settings from
-// outliving them.
-//
-// Nothing is carried across, and the schemas could not carry it anyway. The
-// platform's definition names the value's data type `kind` — string, boolean,
-// integer, float — where the old `type` named the sort of principal a setting
-// was for, and it holds the enumeration as rows in a child table rather than as
-// a pipe-delimited string in a column. Its value replaces
-// belongs_to_user/belongs_to_account with a subject pair, and adds the tenancy
-// column every one of its reads filters on.
-//
-// The old tables are dropped rather than left in place because nothing reads
-// them once the store is platform's, and the seeded setting they held is
-// re-seeded below against the new schema. The enum type goes with them: nothing
-// else in this schema uses setting_type, and a type left behind by the table
-// that defined it is a name the next migration has to work around.
+// renderSettingsDDL renders the three settings tables, the foreign key that keeps
+// an erased user's settings from outliving them, and the one setting this
+// application ships with.
 //
 // # The foreign key, and what it is holding
 //
 // ddb_settings_values.subject_id names a user in every row this application
 // writes — see internal/domain/settings for why there is only one subject type —
-// so the key belongs_to_user carried is re-creatable, and it is what keeps the
+// so it can carry a key to the users table, and that key is what keeps the
 // single identity eraser in internal/build/dataprivacy covering settings. A
 // preference somebody chose is a fact about them, and a value that outlived its
 // user would be personal data no erasure reaches.
@@ -678,20 +591,12 @@ func renderSettingsDDL() (string, error) {
 
 	body := &strings.Builder{}
 
-	// Configurations first: the old configuration table references the old
-	// settings table, and Postgres will not drop a table out from under a
-	// foreign key. The enum follows both, for the same reason.
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE " + values + "\n\tADD CONSTRAINT " + values + "_subject_fk\n\tFOREIGN KEY (subject_id) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
 
-	// The one setting this application ships with, re-seeded against the new
-	// schema. 00021_mealplanning.sql wrote it into the table dropped above, and
-	// the id is carried across so that a client holding it still resolves.
-	//
-	// Its kind is `string` rather than the old `user`: what a setting is for is
-	// no longer a property of the definition, and what it holds is. The two
-	// units become rows in the options table, which is where an enumeration
-	// lives now.
+	// The one setting this application ships with. Its kind is what it holds, a
+	// string, and the two units it may hold are rows in the options table, which
+	// is where an enumeration lives.
 	body.WriteString("\nINSERT INTO " + definitions + " (id, scope, name, description, kind, default_value, admin_only)\n")
 	body.WriteString("VALUES (\n\t'd6me6i4n9qd3gcf5j1p0',\n\t'',\n\t'user_temperature_unit',\n\t'Preferred unit for displaying temperatures (e.g. oven, storage)',\n\t'string',\n\t'fahrenheit',\n\tFALSE\n);\n")
 	body.WriteString("\nINSERT INTO " + options + " (definition_id, value)\nVALUES\n\t('d6me6i4n9qd3gcf5j1p0', 'celsius'),\n\t('d6me6i4n9qd3gcf5j1p0', 'fahrenheit');\n")
@@ -699,29 +604,17 @@ func renderSettingsDDL() (string, error) {
 	return body.String(), nil
 }
 
-// renderCommentsDDL renders the comment table, dropping the one 00012_comments.sql
-// created first, along with the enum that migration and 00021_mealplanning.sql
-// between them defined.
+// renderCommentsDDL renders the comment table.
 //
-// Nothing is carried across, and the two tables could not carry it anyway: the
-// platform's names the columns differently (body, author, target_id, parent_id),
-// adds the tenancy column every one of its reads filters on, and drops both
-// foreign keys. The foreign keys are the substantive loss and they are lost by
-// construction rather than by choice — a comment's target lives in a table the
-// platform's store has never seen, so there is no column it could point at. What
-// replaced the belongs_to_user cascade is the comments eraser, registered in
-// internal/build/dataprivacy; what replaced the target cascade is nothing, which
-// is the ruling platform's package documentation states plainly.
+// It carries no foreign keys, by construction rather than by choice: a comment's
+// target lives in a table the platform's store has never seen, so there is no
+// column it could point at. What erases an author's comments is the comments
+// eraser, registered in internal/build/dataprivacy; what removes a deleted
+// target's comments is nothing, which is the ruling platform's package
+// documentation states plainly.
 //
-// The enum goes with the table because the platform stores target_type as text.
-// That is the right shape here regardless: adding a target type was an ALTER TYPE
-// in a migration, and it is now a line in the catalog that a compiler checks.
-//
-// The old table is dropped rather than left in place because its name is the one
-// the platform's default prefix would render, and its DDL says CREATE TABLE IF
-// NOT EXISTS — so a deployment that kept it would eventually get a silent no-op
-// followed by a store reading columns that are not there. This renders
-// ddb_comments; see branding.TablePrefix.
+// target_type is text rather than an enum, so adding a target type is a line in
+// the catalog that a compiler checks rather than an ALTER TYPE in a migration.
 func renderCommentsDDL() (string, error) {
 	schema, err := commentsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
@@ -743,11 +636,6 @@ func renderCommentsDDL() (string, error) {
 //
 // The registry of OAuth2 clients looks like a third and is not; renderOAuth2ClientsDDL says
 // why, and what erases one instead.
-//
-// The webauthn one is a regression rather than an omission. 00024's hand-written
-// webauthn_credentials carried REFERENCES users(id) ON DELETE CASCADE, and adopting
-// platform's passkeys schema dropped it along with the table. The other two were never
-// re-pointed when passwordreset and oauth2clients were adopted.
 //
 // This is the same statement uploads/registry, issuereports and notifications each write by
 // hand; it is a function because there are now five of them and the argument is identical.
@@ -802,19 +690,11 @@ func renderOAuth2ClientsDDL() (string, error) {
 	return schema, nil
 }
 
-// renderPasswordResetDDL renders the password reset token table, dropping the one
-// 00003_auth.sql created first.
+// renderPasswordResetDDL renders the password reset token table, keyed to the
+// user each token was issued to.
 //
-// The drop is not a migration of the old table, and nothing is carried across. A row is
-// one outstanding reset link, the links last thirty minutes, and the column the old table
-// stored the token in held the token itself — so there is nothing to translate into the
-// new digest column that would not amount to writing the secrets back down. The worst
-// case at deploy is a handful of people clicking "email me a link" again.
-//
-// The old table is dropped rather than left in place because it is dead weight holding
-// live credentials: a table of plaintext reset tokens that nothing reads, and that no
-// sweeper empties, is a backup waiting to leak. Its name is also the platform schema's,
-// which is why the new table carries branding.TablePrefix — see that constant.
+// See userCascade: a reset token is a credential, and one that outlived the
+// erasure of the person it resets would be personal data no erasure reaches.
 func renderPasswordResetDDL() (string, error) {
 	schema, err := passwordresetmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
@@ -906,17 +786,8 @@ func renderActionLinksDDL() (string, error) {
 	return schema, nil
 }
 
-// renderWebAuthnDDL renders the passkey ceremony session table.
-//
-// The hazard this used to claim to handle is real and is already handled by absence. 00017
-// created webauthn_sessions with a JSONB session_data column where the platform's schema
-// stores BYTEA, and the platform's DDL says CREATE TABLE IF NOT EXISTS — so an old table
-// left standing would be silently kept and the store would read columns that are not
-// there. No statement here ever dropped it; the squash that produced the one remaining
-// hand-written migration simply did not carry it forward, and nothing has created a
-// webauthn_sessions of the old shape since. Nothing is lost either way: a row is one passkey
-// ceremony in flight, a ceremony lasts a minute, and the worst case at deploy is a handful
-// of users pressing the passkey prompt again.
+// renderWebAuthnDDL renders the passkey ceremony session table. It carries no
+// key: a row is one ceremony in flight, and a ceremony lasts a minute.
 func renderWebAuthnDDL() (string, error) {
 	schema, err := webauthnmigrations.SQL(dialect.Postgres, webauthndatabase.DefaultTablePrefix)
 	if err != nil {
@@ -966,47 +837,24 @@ func renderAuditDDL() (string, error) {
 	return body.String(), nil
 }
 
-// renderUploadsRegistryDDL renders the upload registry table, dropping the
-// uploaded_media table 00010_uploaded_media.sql created first, and re-pointing
-// this application's foreign keys at what replaced it.
+// renderUploadsRegistryDDL renders the upload registry table and the owner's
+// foreign key.
 //
-// Nothing is carried across, and the two tables could not carry it anyway: the
-// platform's names the columns differently (object_key, content_type,
-// owner_id), adds the tenancy column every one of its reads filters on, and
-// adds the size that was actually stored — a number the old table never held
-// and that cannot be recovered from a row, only from the bucket.
+// A content type is text rather than an enum. The set of types this application
+// accepts is a rule about what it is willing to store, checked before the bytes
+// are written — uploadedmedia.IsValidMimeType, which a compiler checks and a test
+// can cover — rather than a column domain that is widened by an ALTER TYPE.
 //
-// The MIME type enum goes with the table because the registry stores a content
-// type as text. That is the right shape regardless of who owns the table: the
-// set of types this application accepts is a rule about what it is willing to
-// store, checked before the bytes are written, and expressing it as a column
-// domain meant that widening it was an ALTER TYPE in a migration. It is now
-// uploadedmedia.IsValidMimeType, which a compiler checks and a test can cover.
+// The owner key is the one that matters. Every read of an upload is answered from
+// its owner, and this application's owners are all users, so a deleted user whose
+// rows outlived them would leave objects nobody can name and nothing will erase.
+// The platform ships no such key — it cannot, because it does not know which of a
+// consumer's tables holds a principal — and leaves it to the consumer, which is
+// here. It is what keeps the single identity eraser in internal/build/dataprivacy
+// covering uploads.
 //
-// The DROP is CASCADE because six of this application's tables reference the
-// old one, and Postgres will not drop a table out from under a foreign key.
-// CASCADE drops those constraints — not the tables, and not the
-// uploaded_media_id columns, which still name exactly what they named before.
-// The ALTERs below then re-point them at the new table, so the referential
-// integrity the old schema had survives the swap rather than quietly becoming
-// six columns of unchecked text.
-//
-// The owner cascade is re-created for the same reason and is the more important
-// of the two. Every read of an upload is answered from its owner, and this
-// application's owners are all users, so a deleted user whose rows outlived them
-// would leave objects nobody can name and nothing will erase. The platform ships
-// no such key — it cannot, because it does not know which of a consumer's tables
-// holds a principal — and leaves it to the consumer, which is here. It is what
-// keeps the single identity eraser in internal/build/dataprivacy covering
-// uploads; adopting a platform store is exactly where that stops being true by
-// default.
-// The registry has no update, so update.uploaded_media went with the RPC when
-// this table was adopted. Removing it used to need a DELETE here against the
-// permissions table, because the seed was hand-written SQL and nothing
-// reconciled it with the Go declaration. The policy is seeded from
-// PlatformPolicy() now and Seed rewrites each role's grants rather than adding
-// to them, so a permission dropped in Go is a grant that disappears on the next
-// migration. See renderAuthorizationDDL.
+// This application's own tables that name an upload carry their keys to this one
+// in 00026_dinnerdonebetter.sql; see the version constants for why it runs last.
 func renderUploadsRegistryDDL() (string, error) {
 	schema, err := uploadsregistrymigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
@@ -1023,28 +871,19 @@ func renderUploadsRegistryDDL() (string, error) {
 	return body.String(), nil
 }
 
-// renderNotificationsDDL renders the inbox and the device registry, dropping the
-// two tables 00006_notifications.sql and 00015_user_device_tokens.sql created
-// first, along with the enum the former defined.
+// renderNotificationsDDL renders the inbox and the device registry, and the two
+// foreign keys that tie each row to the user it belongs to.
 //
-// Nothing is carried across and the schemas could not carry it anyway. The
-// platform's inbox replaces belongs_to_user with a principal and the tenancy
-// column every one of its reads filters on; it says when a notification was read
-// rather than whether, which is strictly more and is what an unread count is
-// derived from; and it adds the title, topic and link a notification needs to be
-// rendered as anything but a line of text. The device registry loses
-// last_updated_at and archived_at and gains last_seen_at, because a device is
-// revoked by removal rather than retired in place — see the two file comments in
-// platform's notifications/grpc for why a Device has no archived dimension to
-// rule about.
+// A device has no archived dimension: it is revoked by removal rather than
+// retired in place — see the two file comments in platform's notifications/grpc.
 //
-// # The two foreign keys, re-created
+// # The two foreign keys
 //
 // Both principal columns name a user in every row this application writes: an
 // inbox belongs to a person and so does a handset, and this deployment has no
-// other kind of principal. So the keys belongs_to_user carried are re-creatable,
-// and re-creating them is what keeps the single identity eraser in
-// internal/build/dataprivacy covering both tables.
+// other kind of principal. So each can carry a key to the users table, and that
+// is what keeps the single identity eraser in internal/build/dataprivacy
+// covering both tables.
 //
 // platform's notifications/privacy erasers are registered as well, and the two
 // are not alternatives here. A deployment with non-user principals has only the

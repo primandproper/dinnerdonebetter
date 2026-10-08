@@ -1,7 +1,6 @@
 package mealplanning
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	domainmealplanning "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
 	"github.com/primandproper/platform-go/v15/mediaregistry"
@@ -21,7 +20,6 @@ func RegisterMealPlanningRepository(i do.Injector) {
 		return ProvideMealPlanningRepository(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[*webhooks.Emitter](i),
 			do.MustInvoke[*platformrecording.Recorder](i),

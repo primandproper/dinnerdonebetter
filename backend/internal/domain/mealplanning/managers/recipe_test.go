@@ -788,3 +788,90 @@ func TestRecipeManager_CloneRecipe(T *testing.T) {
 		assert.Empty(t, db.CreateRecipeCalls())
 	})
 }
+
+func TestRecipeManager_AddRecipeImage(T *testing.T) {
+	T.Parallel()
+
+	T.Run("attaches for the author", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+		exampleUploadedMediaID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
+			AddRecipeImageFunc: func(_ context.Context, recipeID, uploadedMediaID, uploadedByUser string) error {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleUploadedMediaID, uploadedMediaID)
+				assert.Equal(t, exampleOwnerID, uploadedByUser)
+
+				return nil
+			},
+		}
+		attachRepositoryToManager(rm, db)
+
+		require.NoError(t, rm.AddRecipeImage(ctx, exampleRecipeID, exampleUploadedMediaID, exampleOwnerID))
+		assert.Len(t, db.AddRecipeImageCalls(), 1)
+	})
+
+	T.Run("with a caller who does not own the recipe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		err := rm.AddRecipeImage(ctx, exampleRecipeID, fake.BuildFakeID(), exampleOwnerID)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+		assert.Empty(t, db.AddRecipeImageCalls())
+	})
+}
+
+func TestRecipeManager_AuthorizeRecipeImageUpload(T *testing.T) {
+	T.Parallel()
+
+	T.Run("allows the author", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
+		}
+		attachRepositoryToManager(rm, db)
+
+		require.NoError(t, rm.AuthorizeRecipeImageUpload(ctx, exampleRecipeID, exampleOwnerID))
+	})
+
+	T.Run("with a caller who does not own the recipe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		require.ErrorIs(t, rm.AuthorizeRecipeImageUpload(ctx, exampleRecipeID, exampleOwnerID), sql.ErrNoRows)
+	})
+}

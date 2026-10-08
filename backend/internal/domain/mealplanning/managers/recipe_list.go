@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -12,6 +11,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -97,10 +97,10 @@ func (m *mealPlanningManager) UpdateRecipeList(ctx context.Context, recipeListID
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.RecipeListIDKey: recipeListID,
-		identitykeys.UserIDKey:           userID,
+		platformkeys.UserIDKey:           userID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, recipeListID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	if input == nil {
 		return platformerrors.ErrNilInputParameter

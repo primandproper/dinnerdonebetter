@@ -2,13 +2,12 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/config/envvars"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	meteringcfg "github.com/primandproper/platform-go/v15/metering/config"
@@ -33,71 +32,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPIServiceConfig_EncodeToFile(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &APIServiceConfig{
-			Service: service.Config{
-				HTTPServer: &http.Config{
-					Port:            1234,
-					StartupDeadline: time.Minute,
-				},
-				Encoding: &encoding.Config{
-					ContentType: "application/json",
-				},
-				Database: &databasecfg.Config{
-					Debug:         true,
-					RunMigrations: true,
-					ReadConnection: databasecfg.ConnectionDetails{
-						Username:   "username",
-						Password:   "password",
-						Database:   "table",
-						Host:       "host",
-						DisableSSL: true,
-					},
-				},
-			},
-			Meta: MetaSettings{
-				RunMode: DevelopmentRunMode,
-			},
-			Services: ServicesConfig{},
-		}
-
-		f, err := os.CreateTemp("", "")
-		require.NoError(t, err)
-
-		assert.NoError(t, cfg.EncodeToFile(f.Name(), json.Marshal))
-	})
-
-	T.Run("with error marshaling", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &APIServiceConfig{}
-
-		f, err := os.CreateTemp("", "")
-		require.NoError(t, err)
-
-		assert.Error(t, cfg.EncodeToFile(f.Name(), func(any) ([]byte, error) {
-			return nil, errors.New("blah")
-		}))
-	})
-
-	T.Run("with nil config", func(t *testing.T) {
-		t.Parallel()
-
-		var cfg *APIServiceConfig
-
-		f, err := os.CreateTemp("", "")
-		require.NoError(t, err)
-
-		err = cfg.EncodeToFile(f.Name(), json.Marshal)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "nil config")
-	})
-}
+// The variables these tests set, spelled out: the generated constants that once named them had no
+// other reader.
+const (
+	metaDebugEnvVar               = EnvVarPrefix + "META_DEBUG"
+	revenueCatWebhookSecretEnvVar = EnvVarPrefix + "SERVICE_PAYMENTS_CAPITALISM_REVENUECAT_WEBHOOK_SECRET"
+	httpServerPortEnvVar          = EnvVarPrefix + "HTTP_SERVER_PORT"
+	baseURLEnvVar                 = EnvVarPrefix + "BASE_URL"
+)
 
 //nolint:paralleltest // because we set env vars for this, we can't
 func TestLoadConfigFromEnvironment(T *testing.T) {
@@ -140,7 +82,7 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		require.NoError(t, os.WriteFile(configFilepath, cfgBytes, 0o0644))
 
 		t.Setenv(ConfigurationFilePathEnvVarKey, configFilepath)
-		t.Setenv(envvars.MetaDebugEnvVarKey, strconv.FormatBool(false))
+		t.Setenv(metaDebugEnvVar, strconv.FormatBool(false))
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
 		require.NoError(t, err)
@@ -162,7 +104,7 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		require.NoError(t, os.WriteFile(configFilepath, cfgBytes, 0o0644))
 
 		t.Setenv(ConfigurationFilePathEnvVarKey, configFilepath)
-		t.Setenv(envvars.ServicePaymentsCapitalismRevenuecatWebhookSecretEnvVarKey, "example_webhook_secret")
+		t.Setenv(revenueCatWebhookSecretEnvVar, "example_webhook_secret")
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
 		require.NoError(t, err)
@@ -201,7 +143,7 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 
 		t.Setenv(ConfigurationFilePathEnvVarKey, configFilepath)
 		// Set an invalid environment variable that would cause parsing to fail
-		t.Setenv(envvars.HTTPServerPortEnvVarKey, "invalid_port")
+		t.Setenv(httpServerPortEnvVar, "invalid_port")
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
 		require.Error(t, err)
@@ -221,7 +163,7 @@ func TestLoadConfigFromEnvironment_WithDotEnv(T *testing.T) {
 		configFilepath := dir + "/config.json"
 		require.NoError(t, os.WriteFile(configFilepath, cfgBytes, 0o0644))
 
-		dotEnvContent := envvars.BaseURLEnvVarKey + "=https://from-dotenv.example.com\n"
+		dotEnvContent := baseURLEnvVar + "=https://from-dotenv.example.com\n"
 		dotEnvFilepath := dir + "/.env"
 		require.NoError(t, os.WriteFile(dotEnvFilepath, []byte(dotEnvContent), 0o0644))
 
@@ -245,14 +187,14 @@ func TestLoadConfigFromEnvironment_WithDotEnv(T *testing.T) {
 		configFilepath := dir + "/config.json"
 		require.NoError(t, os.WriteFile(configFilepath, cfgBytes, 0o0644))
 
-		dotEnvContent := envvars.BaseURLEnvVarKey + "=https://from-dotenv.example.com\n"
+		dotEnvContent := baseURLEnvVar + "=https://from-dotenv.example.com\n"
 		dotEnvFilepath := dir + "/.env"
 		require.NoError(t, os.WriteFile(dotEnvFilepath, []byte(dotEnvContent), 0o0644))
 
 		t.Setenv(ConfigurationFilePathEnvVarKey, configFilepath)
 		t.Setenv(DotEnvFilePathEnvVarKey, dotEnvFilepath)
 		// actual process env var wins over .env
-		t.Setenv(envvars.BaseURLEnvVarKey, "https://from-actual-env.example.com")
+		t.Setenv(baseURLEnvVar, "https://from-actual-env.example.com")
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
 		require.NoError(t, err)
@@ -268,74 +210,6 @@ func TestLoadConfigFromEnvironment_WithDotEnv(T *testing.T) {
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
 		require.Error(t, err)
 		assert.Nil(t, actual)
-	})
-}
-
-//nolint:paralleltest // because we set env vars for this, we can't
-func TestLoadConfigFromDotEnvFile(T *testing.T) {
-	T.Run("loads minimal valid config from .env file", func(t *testing.T) {
-		ctx := t.Context()
-
-		// DBCleanerConfig has a simpler validation surface: just Database and Observability.
-		dotEnvContent := envvars.DatabaseReadConnectionHostEnvVarKey + "=localhost\n" +
-			envvars.DatabaseReadConnectionUsernameEnvVarKey + "=user\n" +
-			envvars.DatabaseReadConnectionPasswordEnvVarKey + "=pass\n" +
-			envvars.DatabaseReadConnectionDatabaseEnvVarKey + "=dbname\n"
-
-		dir := t.TempDir()
-		dotEnvFilepath := dir + "/.env"
-		require.NoError(t, os.WriteFile(dotEnvFilepath, []byte(dotEnvContent), 0o0644))
-
-		actual, err := LoadConfigFromDotEnvFile[DBCleanerConfig](ctx, dotEnvFilepath)
-		// Validation may fail for other required fields, but env parsing must succeed.
-		// The important thing is that environment variables are applied from the file.
-		if err == nil {
-			require.NotNil(t, actual)
-			assert.Equal(t, "localhost", actual.Service.Database.ReadConnection.Host)
-			assert.Equal(t, "user", actual.Service.Database.ReadConnection.Username)
-		} else {
-			// If validation fails it must be a validation error, not a file-loading error.
-			assert.NotContains(t, err.Error(), "loading .env file")
-			assert.NotContains(t, err.Error(), "applying environment variables")
-		}
-	})
-
-	T.Run("with nonexistent file", func(t *testing.T) {
-		ctx := t.Context()
-
-		actual, err := LoadConfigFromDotEnvFile[DBCleanerConfig](ctx, "/nonexistent/.env")
-		require.Error(t, err)
-		assert.Nil(t, actual)
-		assert.Contains(t, err.Error(), "loading .env file")
-	})
-
-	T.Run("validates result", func(t *testing.T) {
-		ctx := t.Context()
-
-		// Intentionally empty .env — APIServiceConfig has strict multi-field validation
-		// that fails on a zero-value config (Meta, Encoding, HTTPServer, Routing, etc.),
-		// so it reliably fails even if DB-related env vars leaked from a previous subtest.
-		dir := t.TempDir()
-		dotEnvFilepath := dir + "/.env"
-		require.NoError(t, os.WriteFile(dotEnvFilepath, []byte(""), 0o0644))
-
-		actual, err := LoadConfigFromDotEnvFile[APIServiceConfig](ctx, dotEnvFilepath)
-		require.Error(t, err)
-		assert.Nil(t, actual)
-		assert.Contains(t, err.Error(), "validating config loaded from .env file")
-	})
-}
-
-func TestAPIServiceConfig_Commit(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &APIServiceConfig{}
-		commit := cfg.Commit()
-		// The commit may or may not be empty depending on build info
-		assert.IsType(t, "", commit)
 	})
 }
 
@@ -523,4 +397,66 @@ func validAPIServiceBlocksForTest() service.Config {
 		FeatureFlags: &featureflagscfg.Config{Provider: featureflagscfg.ProviderNoop},
 		HTTPClient:   &httpclientcfg.Config{Timeout: time.Minute},
 	}
+}
+
+//nolint:paralleltest // because we set env vars for this, we can't
+func TestResolveDotEnvFilePathFromDir(T *testing.T) {
+	T.Run("with an explicit path", func(t *testing.T) {
+		explicit := filepath.Join(t.TempDir(), "explicit.env")
+		t.Setenv(DotEnvFilePathEnvVarKey, explicit)
+
+		// Returned as given, whether or not it exists: loading it is what reports a bad one.
+		actual, err := resolveDotEnvFilePathFromDir(t.TempDir())
+		require.NoError(t, err)
+		assert.Equal(t, explicit, actual)
+	})
+
+	T.Run("picks the file for the run mode", func(t *testing.T) {
+		t.Setenv(DotEnvFilePathEnvVarKey, "")
+		t.Setenv(EnvVarPrefix+"META_RUN_MODE", string(DevelopmentRunMode))
+
+		dir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, ".env"), nil, 0o0644))
+		require.NoError(t, os.WriteFile(filepath.Join(dir, ".env.dev"), nil, 0o0644))
+
+		actual, err := resolveDotEnvFilePathFromDir(dir)
+		require.NoError(t, err)
+		assert.Equal(t, filepath.Join(dir, ".env.dev"), actual)
+	})
+
+	T.Run("with no run mode", func(t *testing.T) {
+		t.Setenv(DotEnvFilePathEnvVarKey, "")
+		t.Setenv(EnvVarPrefix+"META_RUN_MODE", "")
+
+		dir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, ".env"), nil, 0o0644))
+
+		actual, err := resolveDotEnvFilePathFromDir(dir)
+		require.NoError(t, err)
+		assert.Equal(t, filepath.Join(dir, ".env"), actual)
+	})
+
+	T.Run("with no file for the run mode", func(t *testing.T) {
+		t.Setenv(DotEnvFilePathEnvVarKey, "")
+		t.Setenv(EnvVarPrefix+"META_RUN_MODE", string(TestingRunMode))
+
+		// A missing file is "skip loading", not a failure.
+		actual, err := resolveDotEnvFilePathFromDir(t.TempDir())
+		require.NoError(t, err)
+		assert.Empty(t, actual)
+	})
+
+	T.Run("with a base directory that cannot be read", func(t *testing.T) {
+		t.Setenv(DotEnvFilePathEnvVarKey, "")
+		t.Setenv(EnvVarPrefix+"META_RUN_MODE", "")
+
+		// A file standing where the directory should be is a stat error other than "does not
+		// exist", which is reported rather than read as no file.
+		notADir := filepath.Join(t.TempDir(), "file")
+		require.NoError(t, os.WriteFile(notADir, nil, 0o0644))
+
+		actual, err := resolveDotEnvFilePathFromDir(notADir)
+		require.Error(t, err)
+		assert.Empty(t, actual)
+	})
 }

@@ -117,7 +117,7 @@ func runImport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		}
 	}()
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, client)
+	auditRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, nil, client)
 	if err != nil {
 		return fmt.Errorf("building audit log repository: %w", err)
 	}
@@ -138,7 +138,7 @@ func runImport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		return fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
+	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
 
 	log.Println("Importing base enumerations...")
 	if err = importBaseEnumerations(ctx, repo, &export.Enumerations); err != nil {

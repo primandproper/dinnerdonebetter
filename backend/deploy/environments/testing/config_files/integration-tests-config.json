@@ -166,20 +166,10 @@
 			},
 			"mobileProvider": "noop"
 		},
-		"users": {
-			"uploads": {
-				"storageConfig": {
-					"bucketName": "avatars",
-					"provider": "memory"
-				}
-			}
-		},
 		"uploadedMedia": {
-			"uploads": {
-				"storageConfig": {
-					"bucketName": "avatars",
-					"provider": "memory"
-				}
+			"storageConfig": {
+				"bucketName": "avatars",
+				"provider": "memory"
 			}
 		},
 		"auth": {

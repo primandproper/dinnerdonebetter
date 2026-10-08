@@ -158,7 +158,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 		}
 	}()
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, client)
+	auditRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, nil, client)
 	if err != nil {
 		return fmt.Errorf("building audit log repository: %w", err)
 	}
@@ -188,7 +188,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 		return fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
 
 	searchCfg := &textsearchcfg.Config{
 		Provider: searchProvider,

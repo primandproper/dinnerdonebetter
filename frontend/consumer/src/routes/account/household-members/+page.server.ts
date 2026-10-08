@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { QueryFilter } from '@primandproper/platform-client/filtering/v1';
 import { holds, Permission } from '$lib/auth/permissions';
 import {
   getActiveAccount,

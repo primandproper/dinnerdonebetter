@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -46,7 +45,7 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
+func buildDatabaseClientForTest(t *testing.T) (*repository, *auditlogentries.Log) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -58,7 +57,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
+	auditLogEntryRepo, err := auditlogentries.ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
 	require.NoError(t, err)
 	// A real registry store over the same database, so the media hydration these
 	// tests exercise reads the table a request would.
@@ -67,15 +66,13 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 
 	// The real recording spine, so the tests exercise the same path production does: the
 	// event and the entry are further statements in the repository's transaction.
-	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
-	require.True(t, ok)
+	auditRecorder := auditLogEntryRepo.Recorder()
 
 	spine := pgtesting.NewSpineForTest(t, ctx, pgc, auditRecorder)
 
 	c := ProvideMealPlanningRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
-		auditLogEntryRepo,
 		pgc,
 		spine.Emitter,
 		spine.Recorder,
@@ -89,7 +86,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, nil, nil, &registrymock.StoreMock{})
+	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, nil, nil, &registrymock.StoreMock{})
 
 	return c.(*repository)
 }

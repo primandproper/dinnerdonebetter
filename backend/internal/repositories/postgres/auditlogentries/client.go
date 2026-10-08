@@ -2,7 +2,6 @@ package auditlogentries
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -12,27 +11,21 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
-const (
-	o11yName = "audit_log_entries_db_client"
-)
-
-// repository is the audit log entry repository implementation.
+// Log is this application's audit log: platform's Recorder and Reader, built together over this
+// application's table prefix.
 //
-// Writes take the caller's executor, so an entry commits with the change it
-// describes or not at all. Reads take this repository's own read executor: as
-// of v14 the platform Reader holds no handle either, so the client is held
-// here to supply one. The schema belongs to the platform as
-// well — the uniqueness constraint that makes a forked chain unrepresentable is
-// the guarantee rather than an incidental storage detail — so there is no
-// generated querier here and no SQL in this package.
-type repository struct {
-	tracer   tracing.Tracer
-	logger   logging.Logger
+// It holds no database handle and records nothing of its own. Writes go through the Recorder on
+// the caller's transaction — in a repository, through platform's recording.Recorder, which reads
+// the actor and any impersonator off the context and groups entries by chain — so an entry
+// commits with the change it describes or not at all. The schema belongs to the platform as well:
+// the uniqueness constraint that makes a forked chain unrepresentable is the guarantee rather than
+// an incidental storage detail, so there is no generated querier here and no SQL in this package.
+type Log struct {
 	recorder platformaudit.Recorder
 	reader   platformaudit.Reader
 }
 
-// ProvideAuditLogRepository provides a new repository.
+// ProvideAuditLog builds the audit log.
 //
 // The Recorder and Reader are built here rather than injected, so that the
 // redaction policy and the table prefix are applied to every audit log in the
@@ -44,12 +37,12 @@ type repository struct {
 // Pass the metrics provider. audit_chain_breaks is the instrument to alert on —
 // everything else this package emits describes throughput, but a non-zero break
 // count means the log has stopped being evidence.
-func ProvideAuditLogRepository(
+func ProvideAuditLog(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
 	client database.Client,
-) (audit.Repository, error) {
+) (*Log, error) {
 	if client == nil {
 		return nil, platformaudit.ErrNilDatabaseClient
 	}
@@ -81,54 +74,21 @@ func ProvideAuditLogRepository(
 		return nil, platformerrors.Wrap(err, "building audit reader")
 	}
 
-	return &repository{
-		tracer:   tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:   logging.NewNamedLogger(logger, o11yName),
+	return &Log{
 		recorder: recorder,
 		reader:   reader,
 	}, nil
 }
 
-// PlatformReader is the reader this repository built, for the surfaces that read
-// the log directly.
+// Reader is the reader this log built, for the surfaces that read the log directly.
 //
 // It is exposed rather than rebuilt because rebuilding is the failure this
 // package's construction exists to prevent: a Reader assembled elsewhere could
 // be assembled with a different table prefix, and would then answer "no entries"
 // about a log that is full. platform's audit/grpc takes an audit.Reader, so this
 // is how it gets the one whose prefix matches the Recorder's.
-func (q *repository) PlatformReader() platformaudit.Reader { return q.reader }
+func (l *Log) Reader() platformaudit.Reader { return l.reader }
 
-// PlatformRecorder is the recorder this repository built, for the surfaces that
-// record into the log directly — for the same reason PlatformReader exists.
-func (q *repository) PlatformRecorder() platformaudit.Recorder { return q.recorder }
-
-// RecorderFrom answers with the platform recorder behind an audit.Repository,
-// on the same terms as ReaderFrom.
-func RecorderFrom(repo audit.Repository) (platformaudit.Recorder, bool) {
-	exposer, ok := repo.(interface {
-		PlatformRecorder() platformaudit.Recorder
-	})
-	if !ok {
-		return nil, false
-	}
-
-	return exposer.PlatformRecorder(), true
-}
-
-// ReaderFrom answers with the platform reader behind an audit.Repository.
-//
-// The assertion cannot fail for a repository this package built, and a
-// repository it did not build is a caller who has substituted the audit log —
-// in which case there is no platform reader and the surfaces that need one
-// should not be mounted.
-func ReaderFrom(repo audit.Repository) (platformaudit.Reader, bool) {
-	exposer, ok := repo.(interface {
-		PlatformReader() platformaudit.Reader
-	})
-	if !ok {
-		return nil, false
-	}
-
-	return exposer.PlatformReader(), true
-}
+// Recorder is the recorder this log built, for the recording spine and the surfaces that record
+// into the log directly — for the same reason Reader exists.
+func (l *Log) Recorder() platformaudit.Recorder { return l.recorder }

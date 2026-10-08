@@ -5,8 +5,6 @@ import (
 )
 
 type (
-	role int
-
 	// Permission names an action a principal may be authorized to perform.
 	//
 	// It is an alias for the platform's type rather than a defined type of its

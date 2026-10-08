@@ -235,6 +235,124 @@ func TestRepository_record(T *testing.T) {
 	})
 }
 
+func TestRepository_recordAuditOnly(T *testing.T) {
+	T.Parallel()
+
+	T.Run("files the entry on its chain under the session's principal, and announces nothing", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+		requesterID, accountID := fake.BuildFakeID(), fake.BuildFakeID()
+		entry := audit.NewEntry("", accountID, resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventCreated)
+
+		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: requesterID},
+			ActiveAccountID: accountID,
+		})
+
+		require.NoError(t, h.repo.recordAuditOnly(ctx, txForRecordingTest(), entry))
+
+		require.Len(t, h.recorded, 1)
+		require.Len(t, h.chains, 1)
+		assert.Equal(t, tenancy.Of(accountID), h.chains[0])
+		assert.Equal(t, entry.ResourceType, h.recorded[0].ResourceType)
+		assert.Equal(t, entry.ResourceID, h.recorded[0].ResourceID)
+		assert.Equal(t, platformaudit.EventCreated, h.recorded[0].EventType)
+		assert.Equal(t, requesterID, h.recorded[0].Actor.ID)
+		assert.Empty(t, h.recorded[0].Actor.Impersonator)
+
+		assert.Empty(t, h.enqueued)
+		assert.Empty(t, h.dispatched)
+	})
+
+	T.Run("names the operator on an impersonated write", func(t *testing.T) {
+		t.Parallel()
+
+		// The entry stays the subject's — it is their data — and the operator is the
+		// second slot that stops it saying they did it.
+		h := buildRecordingHarness(t)
+		subjectID, operatorID, accountID := fake.BuildFakeID(), fake.BuildFakeID(), fake.BuildFakeID()
+		entry := audit.NewEntry("", accountID, resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventUpdated)
+
+		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: subjectID},
+			ActiveAccountID: accountID,
+			ImpersonatorID:  operatorID,
+		})
+
+		require.NoError(t, h.repo.recordAuditOnly(ctx, txForRecordingTest(), entry))
+
+		require.Len(t, h.recorded, 1)
+		assert.Equal(t, subjectID, h.recorded[0].Actor.ID)
+		assert.Equal(t, operatorID, h.recorded[0].Actor.Impersonator)
+	})
+
+	T.Run("records entries sharing a chain in one call", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+		first := audit.NewEntry("", "", resourceTypeMealPlanEvents, fake.BuildFakeID(), platformaudit.EventUpdated)
+		second := audit.NewEntry("", "", resourceTypeMealPlanEvents, fake.BuildFakeID(), platformaudit.EventUpdated)
+
+		require.NoError(t, h.repo.recordAuditOnly(t.Context(), txForRecordingTest(), first, second))
+
+		require.Len(t, h.chains, 1)
+		assert.True(t, h.chains[0].IsGlobal())
+		require.Len(t, h.recorded, 2)
+		assert.Equal(t, first.ResourceID, h.recorded[0].ResourceID)
+		assert.Equal(t, second.ResourceID, h.recorded[1].ResourceID)
+		assert.Equal(t, platformaudit.ActorUnattributed, h.recorded[0].Actor.ID)
+	})
+
+	T.Run("refuses entries bound for different chains", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+		first := audit.NewEntry("", fake.BuildFakeID(), resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventUpdated)
+		second := audit.NewEntry("", fake.BuildFakeID(), resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventUpdated)
+
+		err := h.repo.recordAuditOnly(t.Context(), txForRecordingTest(), first, second)
+		require.ErrorIs(t, err, errMixedAuditScopes)
+
+		assert.Empty(t, h.recorded)
+	})
+
+	T.Run("refuses an entry that names no chain", func(t *testing.T) {
+		t.Parallel()
+
+		// Every read refuses the zero scope, so recording one would write an entry nothing
+		// can find. audit.NewEntry always sets one; an entry built by hand may not.
+		h := buildRecordingHarness(t)
+
+		err := h.repo.recordAuditOnly(t.Context(), txForRecordingTest(), &platformaudit.Entry{
+			ResourceType: resourceTypeMealPlans,
+			ResourceID:   fake.BuildFakeID(),
+			EventType:    platformaudit.EventCreated,
+		})
+		require.ErrorIs(t, err, tenancy.ErrNoScope)
+
+		assert.Empty(t, h.recorded)
+	})
+
+	T.Run("with a nil entry", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+
+		err := h.repo.recordAuditOnly(t.Context(), txForRecordingTest(), nil)
+		require.ErrorIs(t, err, platformrecording.ErrNilEntry)
+	})
+
+	T.Run("with no entries", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+
+		err := h.repo.recordAuditOnly(t.Context(), txForRecordingTest())
+		require.ErrorIs(t, err, platformrecording.ErrNothingToRecord)
+	})
+}
+
 func TestRepository_emitIndex(T *testing.T) {
 	T.Parallel()
 

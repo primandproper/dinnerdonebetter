@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -36,12 +35,6 @@ var (
 	errInvalidVotingDeadline    = errors.New("invalid voting deadline")
 	errVotingDeadlineAfterStart = errors.New("voting deadline must be before all event start times")
 )
-
-func init() {
-	gob.Register(new(MealPlan))
-	gob.Register(new(MealPlanCreationRequestInput))
-	gob.Register(new(MealPlanUpdateRequestInput))
-}
 
 type (
 	// MealPlanStatus is the type to use/compare against when checking meal plan status.

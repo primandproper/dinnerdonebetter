@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
@@ -13,6 +12,7 @@ import (
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -36,8 +36,8 @@ func (q *repository) RecipeListExists(ctx context.Context, recipeListID, userID 
 	if userID == "" {
 		return false, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	result, err := q.generatedQuerier.CheckRecipeListExistence(ctx, q.readDB, &generated.CheckRecipeListExistenceParams{
 		ID:            recipeListID,
@@ -60,16 +60,10 @@ func (q *repository) GetRecipeLists(ctx context.Context, userID string, filter *
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*types.RecipeList
@@ -213,8 +207,8 @@ func (q *repository) ArchiveRecipeList(ctx context.Context, recipeListID, userID
 	if userID == "" {
 		return platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	if recipeListID == "" {
 		return platformerrors.ErrInvalidIDProvided

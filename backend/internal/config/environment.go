@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
@@ -734,7 +733,7 @@ func (s *EnvironmentConfigSet) Derive() *DerivedConfigs {
 	mcpHTTPServer.AppleAppSiteAssociation = nil
 
 	mcpConfig := &MCPServiceConfig{
-		Database:      dbcfg.Config{Config: *databaseConfigForService(root.Database, s.ServiceDatabaseUsers, mcpConfigObservabilityServiceName)},
+		Database:      *databaseConfigForService(root.Database, s.ServiceDatabaseUsers, mcpConfigObservabilityServiceName),
 		Observability: mcpObservability,
 		Routing:       mcpRouting,
 		Meta:          s.RootConfig.Meta,

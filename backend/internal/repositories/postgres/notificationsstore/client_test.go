@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -15,6 +14,7 @@ import (
 	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/fake"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
@@ -52,11 +52,10 @@ func buildStoresForTest(t *testing.T) (platformnotifications.Inbox, platformnoti
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
+	auditLogEntryRepo, err := auditlogentries.ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
-	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
-	require.True(t, ok)
+	auditRecorder := auditLogEntryRepo.Recorder()
 
 	inbox, registry, err := ProvideStores(
 		ctx,
@@ -83,7 +82,7 @@ func TestRepository_Integration_InboxWritesAreRecorded(t *testing.T) {
 	created, err := writeT(ctx, db, func(tx database.Tx) (*platformnotifications.Notification, error) {
 		return inbox.CreateNotification(ctx, tx, scope, &platformnotifications.Notification{
 			Principal: userID,
-			Topic:     ddbnotifications.DefaultTopic,
+			Topic:     fake.BuildFakeID(),
 			Title:     "Your meal plan is ready",
 		})
 	})

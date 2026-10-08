@@ -160,8 +160,8 @@ which returns a fifteen-minute token with no refresh token, minted by
   operator as its `Impersonator`, the event's `actorID` is the operator — written by platform's
   recording hook through `RecordAs`, since the request that mints the token carries no principal
   yet; and every audit entry the request then writes as the subject names the operator as its
-  impersonator — DDB's own repositories through `auditlogentries.attachImpersonator`, platform's
-  surfaces through `callers.Delegated` on the session's principal.
+  impersonator, through `callers.Delegated` on the session's principal, which platform's
+  `recording.Recorder` reads for DDB's repositories and platform's surfaces alike.
 - **Ending it**: it expires, or the subject ends it from `ListSignIns`, where it appears with the
   operator named. Suspending the operator stops it on their next request.
 

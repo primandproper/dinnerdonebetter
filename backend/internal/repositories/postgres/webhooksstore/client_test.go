@@ -68,11 +68,10 @@ func TestStore_Integration(T *testing.T) {
 		db, err := postgres.NewDatabaseClient(ctx, config, postgres.WithLogger(loggingnoop.NewLogger()), postgres.WithTracerProvider(tracingnoop.NewTracerProvider()))
 		require.NoError(t, err)
 
-		auditRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db)
+		auditRepo, err := auditlogentries.ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db)
 		require.NoError(t, err)
 
-		auditRecorder, ok := auditlogentries.RecorderFrom(auditRepo)
-		require.True(t, ok)
+		auditRecorder := auditRepo.Recorder()
 
 		store, err := ProvideStore(ctx, &webhookscfg.Config{}, db, pgtesting.NewRecorderForTest(t, ctx, db, auditRecorder))
 		require.NoError(t, err)

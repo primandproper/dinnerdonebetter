@@ -117,13 +117,7 @@ func (q *repository) GetAccountInstrumentOwnerships(ctx context.Context, account
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -203,7 +197,7 @@ func (q *repository) CreateAccountInstrumentOwnership(ctx context.Context, input
 			return err
 		}
 
-		return q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeAccountInstrumentOwnerships, input.ID, platformaudit.EventCreated))
+		return q.recordAuditOnly(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeAccountInstrumentOwnerships, input.ID, platformaudit.EventCreated))
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account instrument ownership creation query")
 	}
@@ -246,7 +240,7 @@ func (q *repository) UpdateAccountInstrumentOwnership(ctx context.Context, updat
 			return updateErr
 		}
 
-		return q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", updated.BelongsToAccount, resourceTypeAccountInstrumentOwnerships, updated.ID, platformaudit.EventUpdated))
+		return q.recordAuditOnly(ctx, tx, audit.NewEntry("", updated.BelongsToAccount, resourceTypeAccountInstrumentOwnerships, updated.ID, platformaudit.EventUpdated))
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating account instrument ownership")
 	}
@@ -292,7 +286,7 @@ func (q *repository) ArchiveAccountInstrumentOwnership(ctx context.Context, acco
 
 		// The audit log entry belongs in this transaction too: it describes the same
 		// write, and half of a write is not something to record.
-		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", accountID, resourceTypeAccountInstrumentOwnerships, accountInstrumentOwnershipID, platformaudit.EventArchived)); auditErr != nil {
+		if auditErr := q.recordAuditOnly(ctx, tx, audit.NewEntry("", accountID, resourceTypeAccountInstrumentOwnerships, accountInstrumentOwnershipID, platformaudit.EventArchived)); auditErr != nil {
 			return observability.PrepareError(auditErr, span, "creating audit log entry")
 		}
 

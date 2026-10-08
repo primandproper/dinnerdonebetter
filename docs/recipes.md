@@ -701,6 +701,9 @@ methods that write to a recipe or its children take the caller's user ID as `own
 - Writes to a recipe's steps, prep tasks, and the ingredients, instruments, vessels, products and
   completion conditions of its steps ask the database first (`RecipeIsOwnedBy`, and for anything
   beneath a step, that the step is the recipe's).
+- Image uploads ask twice: `AuthorizeRecipeImageUpload` / `AuthorizeRecipeStepImageUpload` before
+  the RPC reads a byte of the image, so a refusal costs the client one message rather than the
+  object, and `AddRecipeImage` / `AddRecipeStepImage` again when the upload is attached.
 
 Either way a caller who does not own the recipe gets `sql.ErrNoRows`, which reaches a gRPC client
 as `NotFound`. The gRPC handlers read the caller from the session and pass it down; they do not

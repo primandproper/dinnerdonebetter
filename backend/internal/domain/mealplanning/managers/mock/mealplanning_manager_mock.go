@@ -9,7 +9,6 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
-
 	"github.com/primandproper/primitives-go/v2/filtering"
 )
 
@@ -35,10 +34,10 @@ var _ managers.MealPlanningManager = &MealPlanningManagerMock{}
 //			AddPreparationMediaFunc: func(ctx context.Context, validPreparationID string, forIngredientID *string, uploadedMediaID string, index int32) error {
 //				panic("mock out the AddPreparationMedia method")
 //			},
-//			AddRecipeImageFunc: func(ctx context.Context, recipeID string, uploadedMediaID string, uploadedByUser string) error {
+//			AddRecipeImageFunc: func(ctx context.Context, recipeID string, uploadedMediaID string, ownerID string) error {
 //				panic("mock out the AddRecipeImage method")
 //			},
-//			AddRecipeStepImageFunc: func(ctx context.Context, recipeStepID string, uploadedMediaID string, uploadedByUser string) error {
+//			AddRecipeStepImageFunc: func(ctx context.Context, recipeID string, recipeStepID string, uploadedMediaID string, ownerID string) error {
 //				panic("mock out the AddRecipeStepImage method")
 //			},
 //			AddRecipeToRecipeListFunc: func(ctx context.Context, recipeListID string, userID string, recipeID string, notes string) (*types.RecipeListItem, error) {
@@ -148,6 +147,12 @@ var _ managers.MealPlanningManager = &MealPlanningManagerMock{}
 //			},
 //			ArchiveValidVesselFunc: func(ctx context.Context, validVesselID string) error {
 //				panic("mock out the ArchiveValidVessel method")
+//			},
+//			AuthorizeRecipeImageUploadFunc: func(ctx context.Context, recipeID string, ownerID string) error {
+//				panic("mock out the AuthorizeRecipeImageUpload method")
+//			},
+//			AuthorizeRecipeStepImageUploadFunc: func(ctx context.Context, recipeID string, recipeStepID string, ownerID string) error {
+//				panic("mock out the AuthorizeRecipeStepImageUpload method")
 //			},
 //			CloneRecipeFunc: func(ctx context.Context, recipeID string, newOwnerID string) (*types.Recipe, error) {
 //				panic("mock out the CloneRecipe method")
@@ -494,14 +499,8 @@ var _ managers.MealPlanningManager = &MealPlanningManagerMock{}
 //			RecipeEstimatedPrepStepsFunc: func(ctx context.Context, recipeID string) ([]*types.MealPlanTaskDatabaseCreationEstimate, error) {
 //				panic("mock out the RecipeEstimatedPrepSteps method")
 //			},
-//			RecipeImageUploadFunc: func(ctx context.Context) error {
-//				panic("mock out the RecipeImageUpload method")
-//			},
 //			RecipeMermaidFunc: func(ctx context.Context, recipeID string) (string, error) {
 //				panic("mock out the RecipeMermaid method")
-//			},
-//			RecipeStepImageUploadFunc: func(ctx context.Context) error {
-//				panic("mock out the RecipeStepImageUpload method")
 //			},
 //			RemoveMealFromMealListFunc: func(ctx context.Context, mealListID string, mealListItemID string) error {
 //				panic("mock out the RemoveMealFromMealList method")
@@ -724,10 +723,10 @@ type MealPlanningManagerMock struct {
 	AddPreparationMediaFunc func(ctx context.Context, validPreparationID string, forIngredientID *string, uploadedMediaID string, index int32) error
 
 	// AddRecipeImageFunc mocks the AddRecipeImage method.
-	AddRecipeImageFunc func(ctx context.Context, recipeID string, uploadedMediaID string, uploadedByUser string) error
+	AddRecipeImageFunc func(ctx context.Context, recipeID string, uploadedMediaID string, ownerID string) error
 
 	// AddRecipeStepImageFunc mocks the AddRecipeStepImage method.
-	AddRecipeStepImageFunc func(ctx context.Context, recipeStepID string, uploadedMediaID string, uploadedByUser string) error
+	AddRecipeStepImageFunc func(ctx context.Context, recipeID string, recipeStepID string, uploadedMediaID string, ownerID string) error
 
 	// AddRecipeToRecipeListFunc mocks the AddRecipeToRecipeList method.
 	AddRecipeToRecipeListFunc func(ctx context.Context, recipeListID string, userID string, recipeID string, notes string) (*types.RecipeListItem, error)
@@ -836,6 +835,12 @@ type MealPlanningManagerMock struct {
 
 	// ArchiveValidVesselFunc mocks the ArchiveValidVessel method.
 	ArchiveValidVesselFunc func(ctx context.Context, validVesselID string) error
+
+	// AuthorizeRecipeImageUploadFunc mocks the AuthorizeRecipeImageUpload method.
+	AuthorizeRecipeImageUploadFunc func(ctx context.Context, recipeID string, ownerID string) error
+
+	// AuthorizeRecipeStepImageUploadFunc mocks the AuthorizeRecipeStepImageUpload method.
+	AuthorizeRecipeStepImageUploadFunc func(ctx context.Context, recipeID string, recipeStepID string, ownerID string) error
 
 	// CloneRecipeFunc mocks the CloneRecipe method.
 	CloneRecipeFunc func(ctx context.Context, recipeID string, newOwnerID string) (*types.Recipe, error)
@@ -1182,14 +1187,8 @@ type MealPlanningManagerMock struct {
 	// RecipeEstimatedPrepStepsFunc mocks the RecipeEstimatedPrepSteps method.
 	RecipeEstimatedPrepStepsFunc func(ctx context.Context, recipeID string) ([]*types.MealPlanTaskDatabaseCreationEstimate, error)
 
-	// RecipeImageUploadFunc mocks the RecipeImageUpload method.
-	RecipeImageUploadFunc func(ctx context.Context) error
-
 	// RecipeMermaidFunc mocks the RecipeMermaid method.
 	RecipeMermaidFunc func(ctx context.Context, recipeID string) (string, error)
-
-	// RecipeStepImageUploadFunc mocks the RecipeStepImageUpload method.
-	RecipeStepImageUploadFunc func(ctx context.Context) error
 
 	// RemoveMealFromMealListFunc mocks the RemoveMealFromMealList method.
 	RemoveMealFromMealListFunc func(ctx context.Context, mealListID string, mealListItemID string) error
@@ -1448,19 +1447,21 @@ type MealPlanningManagerMock struct {
 			RecipeID string
 			// UploadedMediaID is the uploadedMediaID argument value.
 			UploadedMediaID string
-			// UploadedByUser is the uploadedByUser argument value.
-			UploadedByUser string
+			// OwnerID is the ownerID argument value.
+			OwnerID string
 		}
 		// AddRecipeStepImage holds details about calls to the AddRecipeStepImage method.
 		AddRecipeStepImage []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
 			// RecipeStepID is the recipeStepID argument value.
 			RecipeStepID string
 			// UploadedMediaID is the uploadedMediaID argument value.
 			UploadedMediaID string
-			// UploadedByUser is the uploadedByUser argument value.
-			UploadedByUser string
+			// OwnerID is the ownerID argument value.
+			OwnerID string
 		}
 		// AddRecipeToRecipeList holds details about calls to the AddRecipeToRecipeList method.
 		AddRecipeToRecipeList []struct {
@@ -1805,6 +1806,26 @@ type MealPlanningManagerMock struct {
 			Ctx context.Context
 			// ValidVesselID is the validVesselID argument value.
 			ValidVesselID string
+		}
+		// AuthorizeRecipeImageUpload holds details about calls to the AuthorizeRecipeImageUpload method.
+		AuthorizeRecipeImageUpload []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
+			// OwnerID is the ownerID argument value.
+			OwnerID string
+		}
+		// AuthorizeRecipeStepImageUpload holds details about calls to the AuthorizeRecipeStepImageUpload method.
+		AuthorizeRecipeStepImageUpload []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// RecipeID is the recipeID argument value.
+			RecipeID string
+			// RecipeStepID is the recipeStepID argument value.
+			RecipeStepID string
+			// OwnerID is the ownerID argument value.
+			OwnerID string
 		}
 		// CloneRecipe holds details about calls to the CloneRecipe method.
 		CloneRecipe []struct {
@@ -2833,22 +2854,12 @@ type MealPlanningManagerMock struct {
 			// RecipeID is the recipeID argument value.
 			RecipeID string
 		}
-		// RecipeImageUpload holds details about calls to the RecipeImageUpload method.
-		RecipeImageUpload []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-		}
 		// RecipeMermaid holds details about calls to the RecipeMermaid method.
 		RecipeMermaid []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// RecipeID is the recipeID argument value.
 			RecipeID string
-		}
-		// RecipeStepImageUpload holds details about calls to the RecipeStepImageUpload method.
-		RecipeStepImageUpload []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
 		}
 		// RemoveMealFromMealList holds details about calls to the RemoveMealFromMealList method.
 		RemoveMealFromMealList []struct {
@@ -3622,6 +3633,8 @@ type MealPlanningManagerMock struct {
 	lockArchiveValidPreparationInstrument                      sync.RWMutex
 	lockArchiveValidPreparationVessel                          sync.RWMutex
 	lockArchiveValidVessel                                     sync.RWMutex
+	lockAuthorizeRecipeImageUpload                             sync.RWMutex
+	lockAuthorizeRecipeStepImageUpload                         sync.RWMutex
 	lockCloneRecipe                                            sync.RWMutex
 	lockCreateAccountInstrumentOwnership                       sync.RWMutex
 	lockCreateMeal                                             sync.RWMutex
@@ -3737,9 +3750,7 @@ type MealPlanningManagerMock struct {
 	lockReadValidPreparationVessel                             sync.RWMutex
 	lockReadValidVessel                                        sync.RWMutex
 	lockRecipeEstimatedPrepSteps                               sync.RWMutex
-	lockRecipeImageUpload                                      sync.RWMutex
 	lockRecipeMermaid                                          sync.RWMutex
-	lockRecipeStepImageUpload                                  sync.RWMutex
 	lockRemoveMealFromMealList                                 sync.RWMutex
 	lockRemoveRecipeFromRecipeList                             sync.RWMutex
 	lockSearchForMealEligibleRecipes                           sync.RWMutex
@@ -3990,7 +4001,7 @@ func (mock *MealPlanningManagerMock) AddPreparationMediaCalls() []struct {
 }
 
 // AddRecipeImage calls AddRecipeImageFunc.
-func (mock *MealPlanningManagerMock) AddRecipeImage(ctx context.Context, recipeID string, uploadedMediaID string, uploadedByUser string) error {
+func (mock *MealPlanningManagerMock) AddRecipeImage(ctx context.Context, recipeID string, uploadedMediaID string, ownerID string) error {
 	if mock.AddRecipeImageFunc == nil {
 		panic("MealPlanningManagerMock.AddRecipeImageFunc: method is nil but MealPlanningManager.AddRecipeImage was just called")
 	}
@@ -3998,17 +4009,17 @@ func (mock *MealPlanningManagerMock) AddRecipeImage(ctx context.Context, recipeI
 		Ctx             context.Context
 		RecipeID        string
 		UploadedMediaID string
-		UploadedByUser  string
+		OwnerID         string
 	}{
 		Ctx:             ctx,
 		RecipeID:        recipeID,
 		UploadedMediaID: uploadedMediaID,
-		UploadedByUser:  uploadedByUser,
+		OwnerID:         ownerID,
 	}
 	mock.lockAddRecipeImage.Lock()
 	mock.calls.AddRecipeImage = append(mock.calls.AddRecipeImage, callInfo)
 	mock.lockAddRecipeImage.Unlock()
-	return mock.AddRecipeImageFunc(ctx, recipeID, uploadedMediaID, uploadedByUser)
+	return mock.AddRecipeImageFunc(ctx, recipeID, uploadedMediaID, ownerID)
 }
 
 // AddRecipeImageCalls gets all the calls that were made to AddRecipeImage.
@@ -4019,13 +4030,13 @@ func (mock *MealPlanningManagerMock) AddRecipeImageCalls() []struct {
 	Ctx             context.Context
 	RecipeID        string
 	UploadedMediaID string
-	UploadedByUser  string
+	OwnerID         string
 } {
 	var calls []struct {
 		Ctx             context.Context
 		RecipeID        string
 		UploadedMediaID string
-		UploadedByUser  string
+		OwnerID         string
 	}
 	mock.lockAddRecipeImage.RLock()
 	calls = mock.calls.AddRecipeImage
@@ -4034,25 +4045,27 @@ func (mock *MealPlanningManagerMock) AddRecipeImageCalls() []struct {
 }
 
 // AddRecipeStepImage calls AddRecipeStepImageFunc.
-func (mock *MealPlanningManagerMock) AddRecipeStepImage(ctx context.Context, recipeStepID string, uploadedMediaID string, uploadedByUser string) error {
+func (mock *MealPlanningManagerMock) AddRecipeStepImage(ctx context.Context, recipeID string, recipeStepID string, uploadedMediaID string, ownerID string) error {
 	if mock.AddRecipeStepImageFunc == nil {
 		panic("MealPlanningManagerMock.AddRecipeStepImageFunc: method is nil but MealPlanningManager.AddRecipeStepImage was just called")
 	}
 	callInfo := struct {
 		Ctx             context.Context
+		RecipeID        string
 		RecipeStepID    string
 		UploadedMediaID string
-		UploadedByUser  string
+		OwnerID         string
 	}{
 		Ctx:             ctx,
+		RecipeID:        recipeID,
 		RecipeStepID:    recipeStepID,
 		UploadedMediaID: uploadedMediaID,
-		UploadedByUser:  uploadedByUser,
+		OwnerID:         ownerID,
 	}
 	mock.lockAddRecipeStepImage.Lock()
 	mock.calls.AddRecipeStepImage = append(mock.calls.AddRecipeStepImage, callInfo)
 	mock.lockAddRecipeStepImage.Unlock()
-	return mock.AddRecipeStepImageFunc(ctx, recipeStepID, uploadedMediaID, uploadedByUser)
+	return mock.AddRecipeStepImageFunc(ctx, recipeID, recipeStepID, uploadedMediaID, ownerID)
 }
 
 // AddRecipeStepImageCalls gets all the calls that were made to AddRecipeStepImage.
@@ -4061,15 +4074,17 @@ func (mock *MealPlanningManagerMock) AddRecipeStepImage(ctx context.Context, rec
 //	len(mockedMealPlanningManager.AddRecipeStepImageCalls())
 func (mock *MealPlanningManagerMock) AddRecipeStepImageCalls() []struct {
 	Ctx             context.Context
+	RecipeID        string
 	RecipeStepID    string
 	UploadedMediaID string
-	UploadedByUser  string
+	OwnerID         string
 } {
 	var calls []struct {
 		Ctx             context.Context
+		RecipeID        string
 		RecipeStepID    string
 		UploadedMediaID string
-		UploadedByUser  string
+		OwnerID         string
 	}
 	mock.lockAddRecipeStepImage.RLock()
 	calls = mock.calls.AddRecipeStepImage
@@ -5554,6 +5569,90 @@ func (mock *MealPlanningManagerMock) ArchiveValidVesselCalls() []struct {
 	mock.lockArchiveValidVessel.RLock()
 	calls = mock.calls.ArchiveValidVessel
 	mock.lockArchiveValidVessel.RUnlock()
+	return calls
+}
+
+// AuthorizeRecipeImageUpload calls AuthorizeRecipeImageUploadFunc.
+func (mock *MealPlanningManagerMock) AuthorizeRecipeImageUpload(ctx context.Context, recipeID string, ownerID string) error {
+	if mock.AuthorizeRecipeImageUploadFunc == nil {
+		panic("MealPlanningManagerMock.AuthorizeRecipeImageUploadFunc: method is nil but MealPlanningManager.AuthorizeRecipeImageUpload was just called")
+	}
+	callInfo := struct {
+		Ctx      context.Context
+		RecipeID string
+		OwnerID  string
+	}{
+		Ctx:      ctx,
+		RecipeID: recipeID,
+		OwnerID:  ownerID,
+	}
+	mock.lockAuthorizeRecipeImageUpload.Lock()
+	mock.calls.AuthorizeRecipeImageUpload = append(mock.calls.AuthorizeRecipeImageUpload, callInfo)
+	mock.lockAuthorizeRecipeImageUpload.Unlock()
+	return mock.AuthorizeRecipeImageUploadFunc(ctx, recipeID, ownerID)
+}
+
+// AuthorizeRecipeImageUploadCalls gets all the calls that were made to AuthorizeRecipeImageUpload.
+// Check the length with:
+//
+//	len(mockedMealPlanningManager.AuthorizeRecipeImageUploadCalls())
+func (mock *MealPlanningManagerMock) AuthorizeRecipeImageUploadCalls() []struct {
+	Ctx      context.Context
+	RecipeID string
+	OwnerID  string
+} {
+	var calls []struct {
+		Ctx      context.Context
+		RecipeID string
+		OwnerID  string
+	}
+	mock.lockAuthorizeRecipeImageUpload.RLock()
+	calls = mock.calls.AuthorizeRecipeImageUpload
+	mock.lockAuthorizeRecipeImageUpload.RUnlock()
+	return calls
+}
+
+// AuthorizeRecipeStepImageUpload calls AuthorizeRecipeStepImageUploadFunc.
+func (mock *MealPlanningManagerMock) AuthorizeRecipeStepImageUpload(ctx context.Context, recipeID string, recipeStepID string, ownerID string) error {
+	if mock.AuthorizeRecipeStepImageUploadFunc == nil {
+		panic("MealPlanningManagerMock.AuthorizeRecipeStepImageUploadFunc: method is nil but MealPlanningManager.AuthorizeRecipeStepImageUpload was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		RecipeID     string
+		RecipeStepID string
+		OwnerID      string
+	}{
+		Ctx:          ctx,
+		RecipeID:     recipeID,
+		RecipeStepID: recipeStepID,
+		OwnerID:      ownerID,
+	}
+	mock.lockAuthorizeRecipeStepImageUpload.Lock()
+	mock.calls.AuthorizeRecipeStepImageUpload = append(mock.calls.AuthorizeRecipeStepImageUpload, callInfo)
+	mock.lockAuthorizeRecipeStepImageUpload.Unlock()
+	return mock.AuthorizeRecipeStepImageUploadFunc(ctx, recipeID, recipeStepID, ownerID)
+}
+
+// AuthorizeRecipeStepImageUploadCalls gets all the calls that were made to AuthorizeRecipeStepImageUpload.
+// Check the length with:
+//
+//	len(mockedMealPlanningManager.AuthorizeRecipeStepImageUploadCalls())
+func (mock *MealPlanningManagerMock) AuthorizeRecipeStepImageUploadCalls() []struct {
+	Ctx          context.Context
+	RecipeID     string
+	RecipeStepID string
+	OwnerID      string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		RecipeID     string
+		RecipeStepID string
+		OwnerID      string
+	}
+	mock.lockAuthorizeRecipeStepImageUpload.RLock()
+	calls = mock.calls.AuthorizeRecipeStepImageUpload
+	mock.lockAuthorizeRecipeStepImageUpload.RUnlock()
 	return calls
 }
 
@@ -10141,38 +10240,6 @@ func (mock *MealPlanningManagerMock) RecipeEstimatedPrepStepsCalls() []struct {
 	return calls
 }
 
-// RecipeImageUpload calls RecipeImageUploadFunc.
-func (mock *MealPlanningManagerMock) RecipeImageUpload(ctx context.Context) error {
-	if mock.RecipeImageUploadFunc == nil {
-		panic("MealPlanningManagerMock.RecipeImageUploadFunc: method is nil but MealPlanningManager.RecipeImageUpload was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockRecipeImageUpload.Lock()
-	mock.calls.RecipeImageUpload = append(mock.calls.RecipeImageUpload, callInfo)
-	mock.lockRecipeImageUpload.Unlock()
-	return mock.RecipeImageUploadFunc(ctx)
-}
-
-// RecipeImageUploadCalls gets all the calls that were made to RecipeImageUpload.
-// Check the length with:
-//
-//	len(mockedMealPlanningManager.RecipeImageUploadCalls())
-func (mock *MealPlanningManagerMock) RecipeImageUploadCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockRecipeImageUpload.RLock()
-	calls = mock.calls.RecipeImageUpload
-	mock.lockRecipeImageUpload.RUnlock()
-	return calls
-}
-
 // RecipeMermaid calls RecipeMermaidFunc.
 func (mock *MealPlanningManagerMock) RecipeMermaid(ctx context.Context, recipeID string) (string, error) {
 	if mock.RecipeMermaidFunc == nil {
@@ -10206,38 +10273,6 @@ func (mock *MealPlanningManagerMock) RecipeMermaidCalls() []struct {
 	mock.lockRecipeMermaid.RLock()
 	calls = mock.calls.RecipeMermaid
 	mock.lockRecipeMermaid.RUnlock()
-	return calls
-}
-
-// RecipeStepImageUpload calls RecipeStepImageUploadFunc.
-func (mock *MealPlanningManagerMock) RecipeStepImageUpload(ctx context.Context) error {
-	if mock.RecipeStepImageUploadFunc == nil {
-		panic("MealPlanningManagerMock.RecipeStepImageUploadFunc: method is nil but MealPlanningManager.RecipeStepImageUpload was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	mock.lockRecipeStepImageUpload.Lock()
-	mock.calls.RecipeStepImageUpload = append(mock.calls.RecipeStepImageUpload, callInfo)
-	mock.lockRecipeStepImageUpload.Unlock()
-	return mock.RecipeStepImageUploadFunc(ctx)
-}
-
-// RecipeStepImageUploadCalls gets all the calls that were made to RecipeStepImageUpload.
-// Check the length with:
-//
-//	len(mockedMealPlanningManager.RecipeStepImageUploadCalls())
-func (mock *MealPlanningManagerMock) RecipeStepImageUploadCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	mock.lockRecipeStepImageUpload.RLock()
-	calls = mock.calls.RecipeStepImageUpload
-	mock.lockRecipeStepImageUpload.RUnlock()
 	return calls
 }
 

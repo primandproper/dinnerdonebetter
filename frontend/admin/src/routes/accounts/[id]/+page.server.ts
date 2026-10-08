@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { EntryQuery } from '@primandproper/platform-client/audit/v1';
 import { getAccount, listAccountMembers, listAuditEntries } from '$lib/grpc/clients';
-import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { QueryFilter } from '@primandproper/platform-client/filtering/v1';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const session = locals.session;

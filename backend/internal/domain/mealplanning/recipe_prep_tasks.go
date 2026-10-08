@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -28,12 +27,6 @@ const (
 	// RecipePrepTaskArchivedServiceEventType indicates a recipe prep task was archived.
 	RecipePrepTaskArchivedServiceEventType = "recipe_prep_task_archived"
 )
-
-func init() {
-	gob.Register(new(RecipePrepTask))
-	gob.Register(new(RecipePrepTaskCreationRequestInput))
-	gob.Register(new(RecipePrepTaskUpdateRequestInput))
-}
 
 type (
 	// RecipePrepTask represents a recipe prep task.

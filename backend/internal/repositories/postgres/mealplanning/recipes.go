@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"maps"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
@@ -17,6 +16,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/pointer"
 )
@@ -52,7 +52,7 @@ func (q *repository) RecipeIsOwnedBy(ctx context.Context, recipeID, userID strin
 		return false, platformerrors.ErrInvalidIDProvided
 	}
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	result, err := q.generatedQuerier.CheckRecipeOwnership(ctx, q.readDB, &generated.CheckRecipeOwnershipParams{
 		ID:            recipeID,
@@ -405,13 +405,7 @@ func (q *repository) GetRecipes(ctx context.Context, status string, filter *filt
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	if status == "" {
 		status = mealplanning.RecipeStatusApproved
@@ -474,19 +468,13 @@ func (q *repository) GetRecipesCreatedByUser(ctx context.Context, userID string,
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -688,13 +676,7 @@ func (q *repository) SearchForRecipes(ctx context.Context, recipeNameQuery strin
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -753,13 +735,7 @@ func (q *repository) SearchForMealEligibleRecipes(ctx context.Context, recipeNam
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -818,13 +794,7 @@ func (q *repository) SearchForRecipesWithInstrumentOwnership(ctx context.Context
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -1147,9 +1117,9 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 		return platformerrors.ErrInvalidIDProvided
 	}
 
-	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, updated.ID).WithValue(identitykeys.UserIDKey, ownerID)
+	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, updated.ID).WithValue(platformkeys.UserIDKey, ownerID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, updated.ID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	return q.withEvent(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: updated.ID,
@@ -1255,8 +1225,8 @@ func (q *repository) ArchiveRecipe(ctx context.Context, recipeID, userID string)
 	if userID == "" {
 		return platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	return q.withEvent(ctx, logger, mealplanning.RecipeArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,

@@ -114,9 +114,6 @@ var (
 		PermissionOperatorRead,
 		PermissionOperatorAct,
 	}
-
-	// IdentityPermissions contains all identity-related permissions.
-	IdentityPermissions = append(append([]Permission{}, IdentityAccountPermissions...), IdentityOperatorPermissions...)
 )
 
 // The self-service grants, which are this application's rather than platform's.

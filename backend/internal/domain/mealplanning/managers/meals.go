@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -143,10 +142,10 @@ func (m *mealPlanningManager) ArchiveMeal(ctx context.Context, mealID, ownerID s
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealIDKey: mealID,
-		identitykeys.UserIDKey:     ownerID,
+		platformkeys.UserIDKey:     ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	if err := m.db.ArchiveMeal(ctx, mealID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal")

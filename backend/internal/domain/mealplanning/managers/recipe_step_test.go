@@ -282,3 +282,97 @@ func TestRecipeManager_ArchiveRecipeStep(T *testing.T) {
 		assert.Empty(t, db.ArchiveRecipeStepCalls())
 	})
 }
+
+func TestRecipeManager_AddRecipeStepImage(T *testing.T) {
+	T.Parallel()
+
+	T.Run("attaches for the author", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+		exampleUploadedMediaID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc:  recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
+			RecipeStepExistsFunc: recipeStepExistsStub(t, exampleRecipeID, exampleRecipeStepID, true),
+			AddRecipeStepImageFunc: func(_ context.Context, recipeStepID, uploadedMediaID, uploadedByUser string) error {
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUploadedMediaID, uploadedMediaID)
+				assert.Equal(t, exampleOwnerID, uploadedByUser)
+
+				return nil
+			},
+		}
+		attachRepositoryToManager(rm, db)
+
+		require.NoError(t, rm.AddRecipeStepImage(ctx, exampleRecipeID, exampleRecipeStepID, exampleUploadedMediaID, exampleOwnerID))
+		assert.Len(t, db.AddRecipeStepImageCalls(), 1)
+	})
+
+	T.Run("with a step that is not the recipe's", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc:  recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
+			RecipeStepExistsFunc: recipeStepExistsStub(t, exampleRecipeID, exampleRecipeStepID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		err := rm.AddRecipeStepImage(ctx, exampleRecipeID, exampleRecipeStepID, fake.BuildFakeID(), exampleOwnerID)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+		assert.Empty(t, db.AddRecipeStepImageCalls())
+	})
+}
+
+func TestRecipeManager_AuthorizeRecipeStepImageUpload(T *testing.T) {
+	T.Parallel()
+
+	T.Run("allows the author for the recipe's own step", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleRecipeStepID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc:  recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
+			RecipeStepExistsFunc: recipeStepExistsStub(t, exampleRecipeID, exampleRecipeStepID, true),
+		}
+		attachRepositoryToManager(rm, db)
+
+		require.NoError(t, rm.AuthorizeRecipeStepImageUpload(ctx, exampleRecipeID, exampleRecipeStepID, exampleOwnerID))
+	})
+
+	T.Run("with a caller who does not own the recipe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		err := rm.AuthorizeRecipeStepImageUpload(ctx, exampleRecipeID, fake.BuildFakeID(), exampleOwnerID)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+	})
+}

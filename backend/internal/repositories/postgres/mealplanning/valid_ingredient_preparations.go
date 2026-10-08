@@ -140,13 +140,7 @@ func (q *repository) GetValidIngredientPreparations(ctx context.Context, filter 
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -261,13 +255,7 @@ func (q *repository) GetValidIngredientPreparationsForPreparation(ctx context.Co
 	logger = logger.WithValue(mealplanningkeys.ValidPreparationIDKey, preparationID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientPreparationIDKey, preparationID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -383,13 +371,7 @@ func (q *repository) GetValidIngredientPreparationsForIngredient(ctx context.Con
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, ingredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientPreparationIDKey, ingredientID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

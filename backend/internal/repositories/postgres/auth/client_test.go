@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -35,11 +34,11 @@ func TestMain(m *testing.M) {
 }
 
 // buildDatabaseClientForTest hands back a client over a database of this test's own, and the
-// audit repository the stores under test are wrapped with.
+// audit log the stores under test are wrapped with.
 //
 // There is no repository type of this package's own any more: both stores here are
 // platform-go's, built over the client directly.
-func buildDatabaseClientForTest(t *testing.T) (database.Client, audit.Repository) {
+func buildDatabaseClientForTest(t *testing.T) (database.Client, *auditlogentries.Log) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -51,7 +50,7 @@ func buildDatabaseClientForTest(t *testing.T) (database.Client, audit.Repository
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
+	auditLogRepo, err := auditlogentries.ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
 	require.NoError(t, err)
 
 	return pgc, auditLogRepo

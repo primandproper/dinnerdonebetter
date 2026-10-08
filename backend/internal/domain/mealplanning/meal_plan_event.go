@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -36,12 +35,6 @@ const (
 var (
 	errStartsAfterItEnds = errors.New("invalid start and end dates")
 )
-
-func init() {
-	gob.Register(new(MealPlanEvent))
-	gob.Register(new(MealPlanEventCreationRequestInput))
-	gob.Register(new(MealPlanEventUpdateRequestInput))
-}
 
 type (
 	// MealPlanEvent represents a meal plan event.

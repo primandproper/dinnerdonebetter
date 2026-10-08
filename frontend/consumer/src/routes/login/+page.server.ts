@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { isTransient, PlatformError, SignInReason, signIn } from '@primandproper/platform-client';
-import { landingAfterSignIn } from '$lib/auth/required-actions';
+import { landingAfterSignIn } from '@dinnerdonebetter/session';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {

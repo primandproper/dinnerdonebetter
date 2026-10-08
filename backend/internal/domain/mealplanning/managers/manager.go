@@ -122,12 +122,12 @@ type (
 		UpdateRecipe(ctx context.Context, recipeID, ownerID string, input *types.RecipeUpdateRequestInput) error
 		UpdateRecipeStatus(ctx context.Context, recipeID, newStatus string) error
 		ArchiveRecipe(ctx context.Context, recipeID, ownerID string) error
-		AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, uploadedByUser string) error
+		AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, ownerID string) error
 		RecipeEstimatedPrepSteps(ctx context.Context, recipeID string) ([]*types.MealPlanTaskDatabaseCreationEstimate, error)
 		MealMermaid(ctx context.Context, meal *types.Meal) (string, error)
 		RecipeMermaid(ctx context.Context, recipeID string) (string, error)
 		CloneRecipe(ctx context.Context, recipeID, newOwnerID string) (*types.Recipe, error)
-		RecipeImageUpload(ctx context.Context) error
+		AuthorizeRecipeImageUpload(ctx context.Context, recipeID, ownerID string) error
 
 		// Recipe lists
 		ListRecipeLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error)
@@ -145,8 +145,8 @@ type (
 		ReadRecipeStep(ctx context.Context, recipeID, recipeStepID string) (*types.RecipeStep, error)
 		UpdateRecipeStep(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepUpdateRequestInput) error
 		ArchiveRecipeStep(ctx context.Context, recipeID, recipeStepID, ownerID string) error
-		AddRecipeStepImage(ctx context.Context, recipeStepID, uploadedMediaID, uploadedByUser string) error
-		RecipeStepImageUpload(ctx context.Context) error
+		AddRecipeStepImage(ctx context.Context, recipeID, recipeStepID, uploadedMediaID, ownerID string) error
+		AuthorizeRecipeStepImageUpload(ctx context.Context, recipeID, recipeStepID, ownerID string) error
 
 		// Recipe step products
 		ListRecipeStepProducts(ctx context.Context, recipeID, recipeStepID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeStepProduct], error)

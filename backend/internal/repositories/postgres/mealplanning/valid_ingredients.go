@@ -170,13 +170,7 @@ func (q *repository) SearchForValidIngredients(ctx context.Context, query string
 	logger = logger.WithValue(platformkeys.SearchQueryKey, query)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, query)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -268,13 +262,7 @@ func (q *repository) SearchForValidIngredientsForPreparation(ctx context.Context
 	logger = logger.WithValue(platformkeys.SearchQueryKey, query)
 	tracing.AttachToSpan(span, platformkeys.SearchQueryKey, query)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
-	logger = filter.AttachToLogger(logger)
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	results, err := q.generatedQuerier.SearchValidIngredientsByPreparationAndIngredientName(ctx, q.readDB, &generated.SearchValidIngredientsByPreparationAndIngredientNameParams{
 		ValidPreparationID: preparationID,
@@ -347,13 +335,7 @@ func (q *repository) GetValidIngredients(ctx context.Context, filter *filtering.
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

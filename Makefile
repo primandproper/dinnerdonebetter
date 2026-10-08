@@ -14,8 +14,7 @@ PROTOBUF_FORMAT       := yoheimuta/protolint:0.57.0
 FORMAT_PROTOBUFS      := $(RUN_CONTAINER_AS_USER) $(PROTOBUF_FORMAT)
 ARTIFACTS_DIR         := artifacts
 
-# Exclude monolithic proto/X/X.proto files (they're duplicates of the split files)
-PROTO_FILES_PATH          := $(shell find proto -name "*.proto" -type f ! -regex "proto/\([^/]*\)/\1\.proto")
+PROTO_FILES_PATH          := $(shell find proto -name "*.proto" -type f)
 
 # filtering's schema is not ours to keep a copy of: primitives-go ships the .proto
 # inside the published module, so go.mod already pins which version we build
@@ -26,22 +25,14 @@ PLATFORM_FILTERING_PROTO  := primandproper/platform/filtering/v1/filtering.proto
 # Go links against the bindings platform already generated rather than making a
 # second copy, because the page-size clamp and the default are server-side rules
 # and a second copy of one can be wrong in a way nothing reports. Swift and
-# TypeScript generate the file: a QueryFilter there is a data class with eight
-# fields and no rules to restate.
+# TypeScript import it from their client libraries, which ship it generated from
+# the same schema (see PROTO_SWIFT_MODULE_MAPPINGS and PROTO_TS_IMPORT_MAPPINGS).
 PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandproper/primitives-go/v2/filtering/filteringpb
 
-# identity's schema arrives the same way, from platform-go rather than
-# primitives-go, because the directory is a service and filtering is a value
-# type. No proto here imports it since AuthService was retired, but the
-# TypeScript api-client is still generated from it, so its messages come from the
-# module that defines them rather than from a copy that could disagree with the server.
-PLATFORM_IDENTITY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v15)/identity/proto
-PLATFORM_IDENTITY_PROTO      := primandproper/platform/identity/v1/identity.proto
-PROTO_GO_IDENTITY_MAP        := M$(PLATFORM_IDENTITY_PROTO)=github.com/primandproper/platform-go/v15/identity/identitypb
-
 # mediaregistry's schema too: mealplanning's media are the registry's objects, and its uploads
-# are the registry's upload stream. The client libraries ship the stubs, so Swift maps the file
-# to PlatformClient (see PROTO_SWIFT_MODULE_MAPPINGS) and Go links against platform's bindings.
+# are the registry's upload stream. The client libraries ship the stubs, so Swift and TypeScript
+# map the file to them (see PROTO_SWIFT_MODULE_MAPPINGS and PROTO_TS_IMPORT_MAPPINGS) and Go
+# links against platform's bindings.
 PLATFORM_MEDIAREGISTRY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v15)/mediaregistry/proto
 PLATFORM_MEDIAREGISTRY_PROTO      := primandproper/platform/mediaregistry/v1/mediaregistry.proto
 PROTO_GO_MEDIAREGISTRY_MAP        := M$(PLATFORM_MEDIAREGISTRY_PROTO)=github.com/primandproper/platform-go/v15/mediaregistry/mediaregistrypb
@@ -259,13 +250,10 @@ proto_golang: ensure_protoc_installed ensure_protoc-gen-go_installed ensure_prot
 		--go-grpc_opt=module=$(BACKEND_REPO_NAME) \
 		--go_opt=$(PROTO_GO_FILTERING_MAP) \
 		--go-grpc_opt=$(PROTO_GO_FILTERING_MAP) \
-		--go_opt=$(PROTO_GO_IDENTITY_MAP) \
-		--go-grpc_opt=$(PROTO_GO_IDENTITY_MAP) \
 		--go_opt=$(PROTO_GO_MEDIAREGISTRY_MAP) \
 		--go-grpc_opt=$(PROTO_GO_MEDIAREGISTRY_MAP) \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
-		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
 		--proto_path $(PLATFORM_MEDIAREGISTRY_PROTO_PATH) \
 		$(PROTO_FILES_PATH);
 	rm -rf $(PROTO_OUTPUT_BACKEND_PATH)/generated
@@ -296,10 +284,14 @@ PROTO_TS_HANDWRITTEN := index.ts platform.ts
 
 # The web apps call platform's services through @primandproper/platform-client, whose
 # stubs are generated from the platform-go tag it pins, so nothing platform owns is
-# generated or preserved here any more. Whatever of platform's this repository's own protos
-# import is still generated, because ts-proto cannot point an import at a package; those
-# copies exist for this repository's stubs to compile against, and the apps import
-# platform's types from the library rather than from them.
+# generated here. ts-proto's import mappings send every platform proto this repository's
+# own protos import to the library's export for it, and ts-proto generates no file for a
+# mapped proto, so the apps and these stubs hold one copy of each platform type, the
+# library's. A platform proto newly imported here needs a mapping, or it is generated
+# into the tree again.
+PROTO_TS_IMPORT_MAPPINGS := \
+	--ts_proto_opt=M$(PLATFORM_FILTERING_PROTO)=@primandproper/platform-client/filtering/v1 \
+	--ts_proto_opt=M$(PLATFORM_MEDIAREGISTRY_PROTO)=@primandproper/platform-client/mediaregistry/v1
 
 # The iOS app calls platform's services through platform-client-swift, which generates their
 # stubs from the platform-go tag it pins, so nothing platform owns is generated here. Unlike
@@ -316,11 +308,11 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 		--ts_proto_out=$(ARTIFACTS_DIR)/proto_typescript \
 		--ts_proto_opt=outputServices=grpc-js \
 		--ts_proto_opt=esModuleInterop=true \
+		$(PROTO_TS_IMPORT_MAPPINGS) \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
-		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
 		--proto_path $(PLATFORM_MEDIAREGISTRY_PROTO_PATH) \
-		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO) $(PLATFORM_IDENTITY_PROTO_PATH)/$(PLATFORM_IDENTITY_PROTO)
+		$(PROTO_FILES_PATH)
 	mkdir -p $(ARTIFACTS_DIR)/proto_ts_handwritten
 	for f in $(PROTO_TS_HANDWRITTEN); do \
 		if [ -f $(PROTO_TS_OUTPUT_PATH)/$$f ]; then \

@@ -113,12 +113,12 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	migrator, err := repositories.ProvideMigrator(&cfg.Database.Config, pillars.Logger)
+	migrator, err := repositories.ProvideMigrator(&cfg.Database, pillars.Logger)
 	if err != nil {
 		return nil, err
 	}
 
-	databaseClient, err := databasecfg.NewDatabase(ctx, &cfg.Database.Config, migrator,
+	databaseClient, err := databasecfg.NewDatabase(ctx, &cfg.Database, migrator,
 		databasecfg.WithLogger(pillars.Logger),
 		databasecfg.WithTracerProvider(pillars.TracerProvider),
 	)
@@ -126,7 +126,7 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(pillars.Logger, pillars.TracerProvider, nil, databaseClient)
+	auditRepo, err := auditlogentries.ProvideAuditLog(pillars.Logger, pillars.TracerProvider, nil, databaseClient)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
 
 	seededIngredient, err = mealPlanningRepo.CreateValidIngredient(ctx,
 		mealplanningconverters.ConvertValidIngredientToValidIngredientDatabaseCreationInput(mealplanningfakes.BuildFakeValidIngredient()))

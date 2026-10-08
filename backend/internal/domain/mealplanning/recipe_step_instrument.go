@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -24,12 +23,6 @@ const (
 var (
 	errValidPreparationInstrumentIDRequired = errors.New("validPreparationInstrumentID is required when not referencing a recipe step product")
 )
-
-func init() {
-	gob.Register(new(RecipeStepInstrument))
-	gob.Register(new(RecipeStepInstrumentCreationRequestInput))
-	gob.Register(new(RecipeStepInstrumentUpdateRequestInput))
-}
 
 type (
 	// RecipeStepInstrument represents a recipe step instrument.

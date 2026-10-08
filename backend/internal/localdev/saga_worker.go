@@ -47,7 +47,7 @@ func StartSagaWorker(
 		return nil, fmt.Errorf("building outbox writer: %w", err)
 	}
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, metricsnoop.NewMetricsProvider(), databaseClient)
+	auditRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, metricsnoop.NewMetricsProvider(), databaseClient)
 	if err != nil {
 		return nil, fmt.Errorf("building audit log repository: %w", err)
 	}
@@ -74,7 +74,7 @@ func StartSagaWorker(
 	registry := saga.NewRegistry()
 	if err = mealplanfinalization.Register(
 		registry,
-		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads),
+		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads),
 		ddbidentity.NewAccountRoster(identityStore, databaseClient.Reader()),
 		clock.NewClock(),
 		recipeanalysis.NewRecipeAnalyzer(logger, tracerProvider),

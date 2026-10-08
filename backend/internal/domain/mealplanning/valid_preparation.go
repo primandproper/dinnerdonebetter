@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/platform-go/v15/mediaregistry"
@@ -19,12 +18,6 @@ const (
 	// ValidPreparationArchivedServiceEventType indicates a valid preparation was archived.
 	ValidPreparationArchivedServiceEventType = "valid_preparation_archived"
 )
-
-func init() {
-	gob.Register(new(ValidPreparation))
-	gob.Register(new(ValidPreparationCreationRequestInput))
-	gob.Register(new(ValidPreparationUpdateRequestInput))
-}
 
 type (
 	// ValidPreparation represents a valid preparation.

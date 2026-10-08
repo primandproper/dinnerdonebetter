@@ -4,7 +4,7 @@ import { isRedirect } from '@sveltejs/kit';
 import { Code, Session, SignInReason } from '@primandproper/platform-client';
 import { FakeTransport, MemoryCredentialStore, fakeIssuedToken, refusal } from '@primandproper/platform-client/testing';
 import { SignInServiceService } from '@primandproper/platform-client/signin/v1';
-import { CHANGE_PASSWORD_PATH } from '$lib/auth/required-actions';
+import { CHANGE_PASSWORD_PATH } from '@dinnerdonebetter/session';
 
 const transport = vi.hoisted(() => ({ current: undefined as FakeTransport | undefined }));
 

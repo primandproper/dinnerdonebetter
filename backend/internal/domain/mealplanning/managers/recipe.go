@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -269,10 +268,10 @@ func (m *mealPlanningManager) ArchiveRecipe(ctx context.Context, recipeID, owner
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,
-		identitykeys.UserIDKey:       ownerID,
+		platformkeys.UserIDKey:       ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	if err := m.db.ArchiveRecipe(ctx, recipeID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe")
@@ -281,14 +280,20 @@ func (m *mealPlanningManager) ArchiveRecipe(ctx context.Context, recipeID, owner
 	return nil
 }
 
-func (m *mealPlanningManager) AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, uploadedByUser string) error {
+// AddRecipeImage attaches an upload to a recipe. Only the recipe's author may, so the uploader
+// is also the owner the write is checked against.
+func (m *mealPlanningManager) AddRecipeImage(ctx context.Context, recipeID, uploadedMediaID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
-	if err := m.db.AddRecipeImage(ctx, recipeID, uploadedMediaID, uploadedByUser); err != nil {
+	if err := m.requireRecipeOwnership(ctx, recipeID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
+
+	if err := m.db.AddRecipeImage(ctx, recipeID, uploadedMediaID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "adding recipe image")
 	}
 
@@ -322,9 +327,18 @@ func (m *mealPlanningManager) RecipeEstimatedPrepSteps(ctx context.Context, reci
 	return responseEvents, nil
 }
 
-func (m *mealPlanningManager) RecipeImageUpload(ctx context.Context) error {
-	_, span := m.tracer.StartSpan(ctx)
+// AuthorizeRecipeImageUpload is asked by the upload RPC before it reads a byte of the image: a
+// refusal then costs the client one message rather than the object. AddRecipeImage asks the same
+// question again when it attaches the upload.
+func (m *mealPlanningManager) AuthorizeRecipeImageUpload(ctx context.Context, recipeID, ownerID string) error {
+	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
+
+	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
+
+	if err := m.requireRecipeOwnership(ctx, recipeID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	return nil
 }
@@ -359,7 +373,7 @@ func (m *mealPlanningManager) CloneRecipe(ctx context.Context, recipeID, newOwne
 		mealplanningkeys.RecipeIDKey: recipeID,
 		"new_owner":                  newOwnerID,
 	})
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, newOwnerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, newOwnerID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	original, err := m.db.GetRecipe(ctx, recipeID)

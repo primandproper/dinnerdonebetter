@@ -87,13 +87,7 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 	logger = logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -144,13 +138,7 @@ func (q *repository) GetSelectionsForMealPlan(ctx context.Context, mealPlanID st
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
-	logger = filter.AttachToLogger(logger)
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	if mealPlanID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided

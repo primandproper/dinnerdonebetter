@@ -88,13 +88,7 @@ func (q *repository) SearchForValidIngredientStates(ctx context.Context, query s
 	logger = logger.WithValue(platformkeys.SearchQueryKey, query)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIDKey, query)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -145,13 +139,7 @@ func (q *repository) GetValidIngredientStates(ctx context.Context, filter *filte
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

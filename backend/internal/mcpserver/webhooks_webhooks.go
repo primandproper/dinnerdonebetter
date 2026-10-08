@@ -3,9 +3,10 @@ package mcpserver
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
 	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
+	webhooksmcp "github.com/primandproper/platform-go/v15/webhooks/mcp"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
@@ -44,9 +45,11 @@ var webhookEndpointSchema = map[string]any{
 	fieldArchivedAt:    timestampField("When the endpoint was archived"),
 }
 
+// webhookEventTypeSchema is platform's webhooksmcp.EventTypeDefinition, which names its fields
+// in camelCase where this server's own types do not.
 var webhookEventTypeSchema = map[string]any{
-	"Type":           stringField("The event type, as it appears in a webhook subscription"),
-	fieldDescription: stringField("Prose explaining when the event fires"),
+	"eventType":   stringField("The event type, as it appears in a webhook subscription"),
+	"description": stringField("Prose explaining when the event fires"),
 }
 
 var getWebhookTool = &mcp.Tool{
@@ -123,25 +126,31 @@ var getWebhookEventTypesTool = &mcp.Tool{
 	Description: "Get the event types a webhook can subscribe to",
 	InputSchema: schemaObject(map[string]any{}),
 	OutputSchema: schemaObject(map[string]any{
-		fieldResults: arrayType(schemaObject(webhookEventTypeSchema)),
+		"results": arrayType(schemaObject(webhookEventTypeSchema)),
 	}),
 }
 
-type (
-	GetWebhookEventTypesInvocation struct{}
+type GetWebhookEventTypesInvocation struct{}
 
-	GetWebhookEventTypesResult struct {
-		Results []*webhooks.WebhookEventType
-	}
-)
-
-// GetWebhookEventTypes reads the generated catalog rather than the database.
+// GetWebhookEventTypes reads the generated catalog rather than the database, and answers in the
+// shape platform's own list_webhook_event_types tool does.
 //
 // It takes no filter because there is nothing to filter against: the catalog is Go, identical
-// for every account, and constant for the lifetime of the deployment. It survives the store
-// migration for that reason — the catalog is this application's, not platform's.
-func (h *mcpToolManager) GetWebhookEventTypes() mcp.ToolHandlerFor[*GetWebhookEventTypesInvocation, *GetWebhookEventTypesResult] {
-	return func(context.Context, *mcp.CallToolRequest, *GetWebhookEventTypesInvocation) (*mcp.CallToolResult, *GetWebhookEventTypesResult, error) {
-		return nil, &GetWebhookEventTypesResult{Results: webhooks.EventTypeCatalog()}, nil
+// for every account, and constant for the lifetime of the deployment. The events it lists are the
+// subscribable ones — an Internal event is in the catalog so that it can be published, and
+// offering it here would be offering a subscription Subscribe refuses.
+func (h *mcpToolManager) GetWebhookEventTypes() mcp.ToolHandlerFor[*GetWebhookEventTypesInvocation, *webhooksmcp.EventTypes] {
+	return func(context.Context, *mcp.CallToolRequest, *GetWebhookEventTypesInvocation) (*mcp.CallToolResult, *webhooksmcp.EventTypes, error) {
+		known := catalog.Catalog()
+
+		out := &webhooksmcp.EventTypes{Results: make([]webhooksmcp.EventTypeDefinition, 0, len(known))}
+		for _, eventType := range known.SubscribableEventTypes() {
+			out.Results = append(out.Results, webhooksmcp.EventTypeDefinition{
+				EventType:   eventType,
+				Description: known[eventType].Description,
+			})
+		}
+
+		return nil, out, nil
 	}
 }
