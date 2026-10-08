@@ -8,47 +8,30 @@ an option is one a call site can forget. A repository method that omitted it com
 clean, and left the index stale until the next scheduled rebuild, with no test that would catch
 it and no metric that would show it.
 
-So the obligation is no longer a parameter. The rules below are registered on the outbox Writer
-once, as platform's searchsync side effect, which runs inside every Enqueue and derives the index
-events from the data change messages the caller was already sending. The table is the whole of
-what it knows, and it is the one place to edit when an entity becomes indexed.
+So the obligation is no longer a parameter. The rules are registered on the outbox Writer once,
+as platform's searchsync side effect, which runs inside every Enqueue and derives the index
+events from the data change messages the caller was already sending.
 
 The matching, the refusal of a message with no document ID, and the per-document ordering key
 are platform's (searchsync.NewSideEffect). What is this application's is the table: which of its
-event types feed which index, and under which key the document's ID travels.
+event types feed which index, and under which key the document's ID travels. And the table is
+not written here. Each domain keeps its own rows beside its index names — identity's in
+internal/services/identity/indexing, the meal planning domain's in
+internal/domain/mealplanning/searchindex — and this package is the list that merges them. Adding
+an indexed entity to a domain means adding rows to that domain's table; adding a domain means one
+entry in the list below.
 
-# What the table says
-
-Each row maps an event type to the index it feeds, whether the document is written or removed,
-and the key that holds the document's ID. Everything a row needs is already in the event: the
-event type says what happened, and the payload carries the ID. This application's own events
-are datachanges.Message, which answers searchsync.Change and reads the key from its context
-map; platform's are its own payload types, which platform's envelope reads by JSON field name.
-
-An event type absent from the table produces no index event, which is right — most of them
-should not.
-
-# Two things that are easy to get wrong
-
-Archiving a *sub-entity* of an indexed document is an upsert, not a delete. Archiving a recipe
-step leaves the recipe indexed and changes what it says, so RecipeStepArchived upserts the
-recipe. Only archiving the indexed entity itself is a delete.
-
-The document ID is not always the ID of the thing that changed. Every recipe step, ingredient,
-instrument and vessel write reindexes its parent *recipe*, because the indexed recipe document
-embeds their names — so those rows read the recipe's ID out of the context, not the sub-entity's.
+An event type absent from the merged table produces no index event, which is right — most of
+them should not.
 */
 package indexevents
 
 import (
 	"slices"
 
-	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/searchsync"
 )
@@ -57,95 +40,20 @@ import (
 // nil registration is refused with.
 const SideEffectName = "search-index"
 
-// RecipeStepCreatedIndexTrigger stands in for an event type that does not exist.
-//
-// Creating a recipe step reindexes its recipe but announces nothing: there is no
-// recipe_step_created data change event, and there deliberately is not one. The constant existed
-// once and put the event in the generated webhook catalog, where it was subscribable and could
-// never fire; it was removed rather than made to fire, because a step creation reaches
-// subscribers as the recipe event that accompanies it.
-//
-// That decision stands, so this is a trigger rather than an event type: Emitter.EmitIndex passes
-// it to derive the index event without putting anything on the wire. It is not in the webhook
-// catalog, and nothing publishes it.
-const RecipeStepCreatedIndexTrigger = "recipe_step_created.index_only"
-
-// rule is one row: the index an event feeds, where to find the document's ID, and what to do to
-// the document. The index's name is the rule's topic, because platform says which index an event
-// belongs to by where it arrived.
-func rule(eventType, index, idKey string, op searchsync.Op) searchsync.Rule {
-	return searchsync.Rule{EventType: eventType, Topic: index, IDKey: idKey, Op: op}
+// tables is every domain's rows, in the order they are merged. Order carries no meaning:
+// platform refuses a rule registered twice, so no row can shadow another.
+func tables() [][]searchsync.Rule {
+	return [][]searchsync.Rule{
+		identityindexing.IndexRules(),
+		// Domain: mealplanning
+		searchindex.IndexRules(),
+	}
 }
 
-// rules is the table. Adding an indexed entity means adding rows here and nothing in the
-// repository layer.
-var rules = []searchsync.Rule{
-	// Users, on platform's event names. Both handle doors on sign-in write through the
-	// profile operation, so a username or email change is a profile update here. The ID key
-	// is a field of platform's identity.UserEvent rather than a context key: a payload that
-	// does not answer for itself is read by its JSON field names (see searchsync's doc).
-	rule(identity.EventUserRegistered.String(), identityindexing.IndexTypeUsers, "userID", searchsync.OpUpsert),
-	rule(identity.EventUserProfileUpdated.String(), identityindexing.IndexTypeUsers, "userID", searchsync.OpUpsert),
-	rule(identity.EventUserArchived.String(), identityindexing.IndexTypeUsers, "userID", searchsync.OpDelete),
-
-	// Meals.
-	rule(types.MealCreatedServiceEventType, searchindex.IndexTypeMeals, mealplanningkeys.MealIDKey, searchsync.OpUpsert),
-	rule(types.MealArchivedServiceEventType, searchindex.IndexTypeMeals, mealplanningkeys.MealIDKey, searchsync.OpDelete),
-
-	// Recipes, and everything under them. The indexed recipe document embeds each step's
-	// preparation name and the names of its ingredients, instruments and vessels, so a write to
-	// any of those reindexes the recipe — which is why every row here reads RecipeIDKey, and why
-	// archiving a sub-entity is an upsert.
-	rule(types.RecipeCreatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpDelete),
-
-	rule(RecipeStepCreatedIndexTrigger, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-
-	rule(types.RecipeStepIngredientCreatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepIngredientUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepIngredientArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-
-	rule(types.RecipeStepInstrumentCreatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepInstrumentUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepInstrumentArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-
-	rule(types.RecipeStepVesselCreatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepVesselUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepVesselArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-
-	// The catalog entities, each its own index and its own document.
-	rule(types.ValidIngredientCreatedServiceEventType, searchindex.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpUpsert),
-	rule(types.ValidIngredientUpdatedServiceEventType, searchindex.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpUpsert),
-	rule(types.ValidIngredientArchivedServiceEventType, searchindex.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpDelete),
-
-	rule(types.ValidIngredientStateCreatedServiceEventType, searchindex.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpUpsert),
-	rule(types.ValidIngredientStateUpdatedServiceEventType, searchindex.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpUpsert),
-	rule(types.ValidIngredientStateArchivedServiceEventType, searchindex.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpDelete),
-
-	rule(types.ValidInstrumentCreatedServiceEventType, searchindex.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpUpsert),
-	rule(types.ValidInstrumentUpdatedServiceEventType, searchindex.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpUpsert),
-	rule(types.ValidInstrumentArchivedServiceEventType, searchindex.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpDelete),
-
-	rule(types.ValidMeasurementUnitCreatedServiceEventType, searchindex.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpUpsert),
-	rule(types.ValidMeasurementUnitUpdatedServiceEventType, searchindex.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpUpsert),
-	rule(types.ValidMeasurementUnitArchivedServiceEventType, searchindex.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpDelete),
-
-	rule(types.ValidPreparationCreatedServiceEventType, searchindex.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpUpsert),
-	rule(types.ValidPreparationUpdatedServiceEventType, searchindex.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpUpsert),
-	rule(types.ValidPreparationArchivedServiceEventType, searchindex.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpDelete),
-
-	rule(types.ValidVesselCreatedServiceEventType, searchindex.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpUpsert),
-	rule(types.ValidVesselUpdatedServiceEventType, searchindex.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpUpsert),
-	rule(types.ValidVesselArchivedServiceEventType, searchindex.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpDelete),
-}
-
-// Rules is the table, as a fresh slice: platform validates and keeps what it is handed, and a
-// shared slice would let one caller's mutation change what every other caller registered.
+// Rules is the merged table, as a fresh slice: platform validates and keeps what it is handed,
+// and a shared slice would let one caller's mutation change what every other caller registered.
 func Rules() []searchsync.Rule {
-	return slices.Clone(rules)
+	return slices.Concat(tables()...)
 }
 
 // NewSideEffect builds the outbox side effect that derives this application's index events.
@@ -163,6 +71,8 @@ func NewSideEffect() (outbox.SideEffect, error) {
 // RulesFor returns the rows for an event type, in table order. An untabled event type has none.
 func RulesFor(eventType string) []searchsync.Rule {
 	var matched []searchsync.Rule
+
+	rules := Rules()
 	for i := range rules {
 		if rules[i].EventType == eventType {
 			matched = append(matched, rules[i])
@@ -172,9 +82,11 @@ func RulesFor(eventType string) []searchsync.Rule {
 	return matched
 }
 
-// EventTypes reports every event type the table covers, each once, for tests and for anything
-// that wants to assert the set rather than read it.
+// EventTypes reports every event type the merged table covers, each once, for tests and for
+// anything that wants to assert the set rather than read it.
 func EventTypes() []string {
+	rules := Rules()
+
 	out := make([]string, 0, len(rules))
 	for i := range rules {
 		if !slices.Contains(out, rules[i].EventType) {

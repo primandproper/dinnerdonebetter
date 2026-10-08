@@ -3,6 +3,8 @@ package mcpserver
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
+
 	waitlists "github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -20,22 +22,22 @@ import (
 // equivalent — the token carries an account and no role — so there is nothing
 // here to gate it with.
 var waitlistSchema = map[string]any{
-	"ID":               stringField("The ID of the waitlist"),
-	fieldName:          stringField("The waitlist name"),
-	fieldDescription:   stringField("The waitlist description"),
-	"ClosesAt":         timestampField("When the waitlist stops taking signups"),
-	fieldCreatedAt:     timestampField("When the waitlist was created"),
-	fieldLastUpdatedAt: timestampField("When the waitlist was last updated"),
-	fieldArchivedAt:    timestampField("When the waitlist was archived"),
+	"ID":                        mcptools.StringField("The ID of the waitlist"),
+	mcptools.FieldName:          mcptools.StringField("The waitlist name"),
+	mcptools.FieldDescription:   mcptools.StringField("The waitlist description"),
+	"ClosesAt":                  mcptools.TimestampField("When the waitlist stops taking signups"),
+	mcptools.FieldCreatedAt:     mcptools.TimestampField("When the waitlist was created"),
+	mcptools.FieldLastUpdatedAt: mcptools.TimestampField("When the waitlist was last updated"),
+	mcptools.FieldArchivedAt:    mcptools.TimestampField("When the waitlist was archived"),
 }
 
 var getWaitlistTool = &mcp.Tool{
 	Name:        "GetWaitlist",
 	Description: "Get a waitlist by its ID",
-	InputSchema: schemaObject(map[string]any{
-		fieldWaitlistID: stringField("The ID of the waitlist to get"),
+	InputSchema: mcptools.SchemaObject(map[string]any{
+		fieldWaitlistID: mcptools.StringField("The ID of the waitlist to get"),
 	}),
-	OutputSchema: schemaObject(waitlistSchema),
+	OutputSchema: mcptools.SchemaObject(waitlistSchema),
 }
 
 type GetWaitlistInvocation struct {
@@ -56,11 +58,11 @@ func (h *mcpToolManager) GetWaitlist() mcp.ToolHandlerFor[*GetWaitlistInvocation
 var getWaitlistsTool = &mcp.Tool{
 	Name:        "GetWaitlists",
 	Description: "Get waitlists with optional filtering",
-	InputSchema: schemaObject(map[string]any{
-		fieldFilter: filtering.QueryFilterSchema(),
+	InputSchema: mcptools.SchemaObject(map[string]any{
+		mcptools.FieldFilter: filtering.QueryFilterSchema(),
 	}),
-	OutputSchema: schemaObject(map[string]any{
-		fieldResults: arrayType(schemaObject(waitlistSchema)),
+	OutputSchema: mcptools.SchemaObject(map[string]any{
+		mcptools.FieldResults: mcptools.ArrayType(mcptools.SchemaObject(waitlistSchema)),
 	}),
 }
 
@@ -88,11 +90,11 @@ func (h *mcpToolManager) GetWaitlists() mcp.ToolHandlerFor[*GetWaitlistsInvocati
 var getOpenWaitlistsTool = &mcp.Tool{
 	Name:        "GetOpenWaitlists",
 	Description: "Get the waitlists that are still taking signups",
-	InputSchema: schemaObject(map[string]any{
-		fieldFilter: filtering.QueryFilterSchema(),
+	InputSchema: mcptools.SchemaObject(map[string]any{
+		mcptools.FieldFilter: filtering.QueryFilterSchema(),
 	}),
-	OutputSchema: schemaObject(map[string]any{
-		fieldResults: arrayType(schemaObject(waitlistSchema)),
+	OutputSchema: mcptools.SchemaObject(map[string]any{
+		mcptools.FieldResults: mcptools.ArrayType(mcptools.SchemaObject(waitlistSchema)),
 	}),
 }
 

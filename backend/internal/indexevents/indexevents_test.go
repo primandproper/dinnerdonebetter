@@ -28,6 +28,9 @@ func ruleFor(t *testing.T, eventType string) searchsync.Rule {
 	return matched[0]
 }
 
+// The tests here drive the merged table through platform's side effect on identity's rows,
+// which this package names rather than a domain's: what a domain's rows say is that domain's
+// to test, beside the rows. What is asserted here is the merge and the registration.
 func TestNewSideEffect(T *testing.T) {
 	T.Parallel()
 
@@ -37,10 +40,10 @@ func TestNewSideEffect(T *testing.T) {
 		effect, err := NewSideEffect()
 		require.NoError(t, err)
 
-		r := ruleFor(t, "valid_instrument_created")
+		r := ruleFor(t, identity.EventUserRegistered.String())
 
 		derived, err := effect(t.Context(), nil, []outbox.Message{
-			message("valid_instrument_created", map[string]any{r.IDKey: "instrument_123"}),
+			message(identity.EventUserRegistered.String(), map[string]any{r.IDKey: "user_123"}),
 		})
 		require.NoError(t, err)
 		require.Len(t, derived, 1)
@@ -51,11 +54,11 @@ func TestNewSideEffect(T *testing.T) {
 
 		// The key is the document ID, which is what buys per-document ordering — at most one
 		// event per document in flight, however many relays are running.
-		assert.Equal(t, "instrument_123", derived[0].Key)
+		assert.Equal(t, "user_123", derived[0].Key)
 
 		event, ok := derived[0].Payload.(searchsync.Event)
 		require.True(t, ok)
-		assert.Equal(t, "instrument_123", event.DocumentID)
+		assert.Equal(t, "user_123", event.DocumentID)
 		assert.Equal(t, searchsync.OpUpsert, event.Op)
 	})
 
@@ -65,82 +68,16 @@ func TestNewSideEffect(T *testing.T) {
 		effect, err := NewSideEffect()
 		require.NoError(t, err)
 
-		instrument := ruleFor(t, "valid_instrument_created")
-		vessel := ruleFor(t, "valid_vessel_created")
-
-		derived, err := effect(t.Context(), nil, []outbox.Message{
-			message("valid_instrument_created", map[string]any{instrument.IDKey: "a"}),
-			message("valid_vessel_created", map[string]any{vessel.IDKey: "b"}),
-		})
-		require.NoError(t, err)
-		assert.Len(t, derived, 2)
-	})
-
-	T.Run("archiving an indexed entity deletes its document", func(t *testing.T) {
-		t.Parallel()
-
-		effect, err := NewSideEffect()
-		require.NoError(t, err)
-
-		r := ruleFor(t, "valid_instrument_archived")
-
-		derived, err := effect(t.Context(), nil, []outbox.Message{
-			message("valid_instrument_archived", map[string]any{r.IDKey: "gone"}),
-		})
-		require.NoError(t, err)
-		require.Len(t, derived, 1)
-
-		event, ok := derived[0].Payload.(searchsync.Event)
-		require.True(t, ok)
-		assert.Equal(t, searchsync.OpDelete, event.Op)
-	})
-
-	T.Run("archiving a sub-entity reindexes its parent instead", func(t *testing.T) {
-		t.Parallel()
-
-		effect, err := NewSideEffect()
-		require.NoError(t, err)
-
-		// An archived recipe step leaves the recipe indexed and changes what it says, so this
-		// is an upsert of the recipe rather than a delete of anything.
-		step := ruleFor(t, "recipe_step_archived")
-		recipe := ruleFor(t, "recipe_updated")
-
-		// The row reads the parent recipe's ID, which is the same key a recipe's own events use.
-		require.Equal(t, recipe.IDKey, step.IDKey)
-
-		derived, err := effect(t.Context(), nil, []outbox.Message{
-			message("recipe_step_archived", map[string]any{step.IDKey: "recipe_1"}),
-		})
-		require.NoError(t, err)
-		require.Len(t, derived, 1)
-
-		assert.Equal(t, "recipe_1", derived[0].Key)
-
-		event, ok := derived[0].Payload.(searchsync.Event)
-		require.True(t, ok)
-		assert.Equal(t, searchsync.OpUpsert, event.Op)
-		assert.Equal(t, "recipe_1", event.DocumentID)
-	})
-
-	T.Run("a user write feeds the users index under platform's event name", func(t *testing.T) {
-		t.Parallel()
-
-		effect, err := NewSideEffect()
-		require.NoError(t, err)
-
 		registered := ruleFor(t, identity.EventUserRegistered.String())
 		archived := ruleFor(t, identity.EventUserArchived.String())
-		require.Equal(t, registered.IDKey, archived.IDKey)
 
 		derived, err := effect(t.Context(), nil, []outbox.Message{
-			message(identity.EventUserRegistered.String(), map[string]any{registered.IDKey: "user_1"}),
-			message(identity.EventUserArchived.String(), map[string]any{archived.IDKey: "user_1"}),
+			message(identity.EventUserRegistered.String(), map[string]any{registered.IDKey: "a"}),
+			message(identity.EventUserArchived.String(), map[string]any{archived.IDKey: "b"}),
 		})
 		require.NoError(t, err)
 		require.Len(t, derived, 2)
 
-		assert.Equal(t, "users", derived[0].Topic)
 		assert.Equal(t, searchsync.OpUpsert, derived[0].Payload.(searchsync.Event).Op)
 		assert.Equal(t, searchsync.OpDelete, derived[1].Payload.(searchsync.Event).Op)
 	})
@@ -165,7 +102,7 @@ func TestNewSideEffect(T *testing.T) {
 		require.NoError(t, err)
 
 		derived, err := effect(t.Context(), nil, []outbox.Message{
-			{Topic: "recipes", Payload: searchsync.NewEvent(searchsync.OpUpsert, "already_an_index_event")},
+			{Topic: "users", Payload: searchsync.NewEvent(searchsync.OpUpsert, "already_an_index_event")},
 		})
 		require.NoError(t, err)
 		assert.Empty(t, derived)
@@ -180,7 +117,7 @@ func TestNewSideEffect(T *testing.T) {
 		// Refused rather than skipped. Skipping would put back the failure this package
 		// removes: a write commits, the index never hears about it, and nothing says so.
 		_, err = effect(t.Context(), nil, []outbox.Message{
-			message("valid_instrument_created", map[string]any{"some_other_key": "instrument_123"}),
+			message(identity.EventUserRegistered.String(), map[string]any{"some_other_key": "user_123"}),
 		})
 		require.ErrorIs(t, err, searchsync.ErrMissingDocumentID)
 	})
@@ -200,6 +137,18 @@ func TestNewSideEffect(T *testing.T) {
 func TestRules(T *testing.T) {
 	T.Parallel()
 
+	T.Run("merges every domain's table", func(t *testing.T) {
+		t.Parallel()
+
+		expected := 0
+		for _, table := range tables() {
+			expected += len(table)
+		}
+
+		require.NotZero(t, expected, "no domain contributed a table")
+		assert.Len(t, Rules(), expected)
+	})
+
 	T.Run("every row names an index and a key", func(t *testing.T) {
 		t.Parallel()
 
@@ -212,23 +161,14 @@ func TestRules(T *testing.T) {
 		}
 	})
 
-	T.Run("the table is one platform accepts", func(t *testing.T) {
+	T.Run("the merged table is one platform accepts", func(t *testing.T) {
 		t.Parallel()
 
 		// platform refuses a duplicate rule and an incomplete one at construction, so this is
-		// the table's validity in one call.
+		// the merged table's validity in one call — including that no two domains tabled the
+		// same event type for the same index.
 		_, err := NewSideEffect()
 		require.NoError(t, err)
-	})
-
-	T.Run("the index-only trigger is not a published event type", func(t *testing.T) {
-		t.Parallel()
-
-		// It stands in for an event that deliberately does not exist. If it ever collides with
-		// a real event type, every write of that type would derive a recipe reindex.
-		r := ruleFor(t, RecipeStepCreatedIndexTrigger)
-		assert.Equal(t, "recipes", r.Topic)
-		assert.Contains(t, RecipeStepCreatedIndexTrigger, ".index_only")
 	})
 
 	T.Run("Rules hands out a copy", func(t *testing.T) {

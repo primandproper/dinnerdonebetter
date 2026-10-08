@@ -30,7 +30,10 @@ events platform's stores record. For each event, it:
    that carries no secret (a password changed, a reset spent), and to the Mobile Notifications
    topic when a household is owed a push. A mail that carries a link — verification, password
    reset, username reminder, invitation, waitlist confirmation — never passes through here; see
-   Queued Mail below
+   Queued Mail below. Which of a domain's events imply a mail is that domain's to say: each
+   contributes an `OutboundNotificationHandler` through `RegisterAsyncDataChangeMessageHandler`
+   (the meal planning one is `internal/services/mealplanning/outbound`), and the handler here
+   ranges over the list. The handler over platform's identity events is this package's own
 
 Webhook deliveries and search index events are no longer this handler's: both are rows the
 transaction that caused the event writes, through platform's recording spine (built in

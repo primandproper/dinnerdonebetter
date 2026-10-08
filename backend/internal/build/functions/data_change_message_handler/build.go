@@ -105,8 +105,12 @@ func BuildInjector(
 		mealplanningregistration.RegisterIndexes,
 	)
 
-	// main handler
-	datachangemessagehandler.RegisterAsyncDataChangeMessageHandler(i)
+	// The handler, over each domain's outbound notifier: the mail its events imply. The
+	// handler over platform's identity events is the handler's own.
+	datachangemessagehandler.RegisterAsyncDataChangeMessageHandler(ctx, i,
+		// Domain: mealplanning
+		mealplanningregistration.OutboundNotifications,
+	)
 
 	return i, nil
 }

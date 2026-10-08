@@ -111,7 +111,7 @@ func TestRepository_Integration_Comments(t *testing.T) {
 	// The author is the one making the requests, which is who every entry below names.
 	ctx = pgtesting.AsRequester(ctx, user.ID)
 
-	comment := fakes.BuildFakeComment()
+	comment := fakes.BuildFakeComment(mealplanning.CommentTargetTypeRecipes)
 	comment.Author = user.ID
 	comment.Target = target
 
@@ -183,7 +183,7 @@ func TestRepository_Integration_ArchiveRecordsTheAuthorAndTheArchiver(t *testing
 	author := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	archiver := pgtesting.CreateUserForTest(t, nil, db.Writer())
 
-	comment := fakes.BuildFakeComment()
+	comment := fakes.BuildFakeComment(mealplanning.CommentTargetTypeRecipes)
 	comment.Author = author.ID
 	_, err := createComment(t, pgtesting.AsRequester(ctx, author.ID), db, dbc, comment)
 	require.NoError(t, err)
@@ -236,7 +236,7 @@ func TestRepository_Integration_UnknownTargetType(t *testing.T) {
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 
-	comment := fakes.BuildFakeComment()
+	comment := fakes.BuildFakeComment(mealplanning.CommentTargetTypeRecipes)
 	comment.Author = user.ID
 	comment.Target.Type = "recipies"
 
@@ -255,7 +255,7 @@ func TestRepository_Integration_Replies(t *testing.T) {
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	target := platformcomments.Target{Type: mealplanning.CommentTargetTypeRecipes, ID: identifiers.New()}
 
-	root := fakes.BuildFakeComment()
+	root := fakes.BuildFakeComment(mealplanning.CommentTargetTypeRecipes)
 	root.Author = user.ID
 	root.Target = target
 	_, err := createComment(t, ctx, db, dbc, root)

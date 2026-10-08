@@ -6,12 +6,13 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
-	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
 	identitymock "github.com/primandproper/platform-go/v15/identity/mock"
 	platformnotificationsmock "github.com/primandproper/platform-go/v15/notifications/mock"
 	"github.com/primandproper/platform-go/v15/notifications/push"
+	"github.com/primandproper/platform-go/v15/webhooks"
 	analyticsmock "github.com/primandproper/primitives-go/v2/analytics/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
@@ -69,7 +70,6 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	}
 
 	internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
-	mealPlanRepo := &mealplanningmock.RepositoryMock{}
 
 	pushFanout, err := push.NewFanout(&platformnotificationsmock.RegistryMock{},
 		noopnotifications.NewPushNotificationSender(),
@@ -100,12 +100,12 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		queuesConfig:                              queuescfg.Config{},
 		outboundEmailsPublisher:                   mockPublisher,
 		mobileNotificationsPublisher:              mockPublisher,
-		mealPlanRepo:                              mealPlanRepo,
 		pushFanout:                                pushFanout,
 	}
 
+	// The handler over platform's identity events alone: the domains' handlers are theirs to
+	// test, and the list the constructor builds is asserted in TestNewAsyncDataChangeMessageHandler.
 	handler.outboundNotificationHandlers = []OutboundNotificationHandler{
-		handler.handleMealPlanningOutboundNotification,
 		handler.handleIdentityOutboundNotification,
 	}
 
@@ -165,12 +165,17 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		}
 
 		internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
-		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 
 		pushFanout, err := push.NewFanout(&platformnotificationsmock.RegistryMock{},
 			noopnotifications.NewPushNotificationSender(),
 			push.WithLogger(logger), push.WithMetricsProvider(noopProvider))
 		require.NoError(t, err)
+
+		// One domain handler, claiming nothing, to assert the list's shape: the domains'
+		// first, in the order given, and the identity handler after them.
+		domainHandler := func(context.Context, *webhooks.Envelope) (bool, string, []*queuemessages.OutboundEmailMessage, error) {
+			return false, "", nil, nil
+		}
 
 		handler, err := NewAsyncDataChangeMessageHandler(
 			ctx,
@@ -189,7 +194,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			emailer,
 			metricsProvider,
 			searchSyncers,
-			mealPlanRepo,
+			[]OutboundNotificationHandler{domainHandler},
 			pushFanout,
 		)
 
@@ -200,6 +205,13 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		assert.Equal(t, analyticsEventReporter, handler.analyticsEventReporter)
 		assert.Equal(t, emailer, handler.emailer)
 		assert.Equal(t, searchSyncers, handler.searchSyncers)
+
+		// The domain's handler, then the identity one: two entries, and the second is the
+		// handler's own. Functions compare by nothing, so the shape is what is asserted.
+		require.Len(t, handler.outboundNotificationHandlers, 2)
+		handled, _, _, err := handler.outboundNotificationHandlers[0](ctx, &webhooks.Envelope{EventType: "anything"})
+		require.NoError(t, err)
+		assert.False(t, handled)
 
 		// metricsProvider and publisherProvider are moq mocks - no testify assertion needed
 	})

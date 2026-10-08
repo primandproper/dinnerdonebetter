@@ -11,7 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	mcpbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/mcp"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
@@ -114,9 +114,12 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	// Resolved rather than must-resolved: a container missing one of these is the failure
 	// this whole seam exists to make visible, and it is worth more as a named error than
 	// as a panic in whatever goroutine happened to be building the server.
-	mealplanningRepo, err := do.Invoke[mealplanning.Repository](injector)
+	//
+	// The domains' tools are one resolution: the build lists them, and a domain whose
+	// repository is missing fails here, before the server it would have served on exists.
+	toolsets, err := do.Invoke[[]mcptools.Toolset](injector)
 	if err != nil {
-		return nil, fmt.Errorf("resolving meal planning repository: %w", err)
+		return nil, fmt.Errorf("resolving the domains' tools: %w", err)
 	}
 
 	webhooksStore, err := do.Invoke[platformwebhooks.Store](injector)
@@ -223,11 +226,11 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	}
 
 	helper := &mcpToolManager{
-		reader:           dbClient.Reader(),
-		mealplanningRepo: mealplanningRepo,
-		webhooks:         webhooksStore,
-		waitlists:        waitlistStore,
-		issueReports:     issueReportsStore,
+		reader:       dbClient.Reader(),
+		webhooks:     webhooksStore,
+		waitlists:    waitlistStore,
+		issueReports: issueReportsStore,
+		toolsets:     toolsets,
 	}
 
 	return &Service{

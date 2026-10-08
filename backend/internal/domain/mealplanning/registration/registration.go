@@ -4,10 +4,15 @@ Package registration is the meal planning domain's contribution to the compositi
 Every process this application runs is composed in internal/build, and each builder takes what
 it needs from a domain as an entry in a list it ranges over: the gRPC surface to mount and the
 permission table its methods ship with, the comment targets it accepts, the scheduled jobs and
-the runners it owns, the search indexes it keeps, and the components the process registers for
-it. This package is where the meal planning entries come from. The builders name no other
-mealplanning package, so swapping the domain is replacing this package and the list entries
-that name it.
+the runners it owns, the search indexes it keeps, the mail its events imply, the tools it offers
+over MCP, and the components the process registers for it. This package is where the meal
+planning entries come from. The builders name no other mealplanning package, so swapping the
+domain is replacing this package and the list entries that name it.
+
+Two of the domain's entries are not functions here, because the list that merges them is not a
+builder: the search index rules (searchindex.IndexRules, merged by internal/indexevents) and the
+analytics allowlist (mealplanning.AnalyticsEventTypes, merged by internal/domain/analytics)
+live beside what they describe, and those two packages carry the marker instead.
 
 Every site outside the three mealplanning roots that names this domain carries a
 "// Domain: mealplanning" marker, and TestDomainMarkerCensus holds the composition root to it:
@@ -26,12 +31,16 @@ import (
 	grocerylistpreparation "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	mealplanningmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 	recipeanalysis "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	mealplanningmcp "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/mcp"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/outbound"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
@@ -93,10 +102,48 @@ func GRPCPermissions() map[string][]authorization.Permission {
 }
 
 // RegisterForDataChangeHandler registers mealplanning components needed by the async message
-// handler: the repository, and the text index clients behind the indexes it keeps current. The
-// indexes themselves are registered into the one Registry every domain's go through, by
-// RegisterIndexes — see internal/searchindexes.
+// handler: the repository, the text index clients behind the indexes it keeps current, and the
+// notifier behind this domain's entry in its outbound notification list. The indexes themselves
+// are registered into the one Registry every domain's go through, by RegisterIndexes — see
+// internal/searchindexes — and the notifier arrives through OutboundNotifications.
 func RegisterForDataChangeHandler(i do.Injector) {
+	registerRepository(i)
+	mealplanningindexing.RegisterSearchers(i)
+	outbound.Register(i)
+}
+
+// OutboundNotifications is this domain's entry in the data change handler's list of outbound
+// notification handlers: the mail its events imply. See internal/services/mealplanning/outbound
+// for which events those are.
+func OutboundNotifications(i do.Injector) (datachangemessagehandler.OutboundNotificationHandler, error) {
+	notifier, err := do.Invoke[*outbound.Notifier](i)
+	if err != nil {
+		return nil, err
+	}
+
+	return notifier.Handle, nil
+}
+
+// RegisterForMCP registers mealplanning components needed by the MCP server: the repository
+// its tools read through. The tools arrive through MCPTools.
+func RegisterForMCP(i do.Injector) {
+	registerRepository(i)
+}
+
+// MCPTools is this domain's tool surface, the MCP server's one entry for it.
+func MCPTools(i do.Injector) (mcptools.Toolset, error) {
+	repo, err := do.Invoke[mealplanning.Repository](i)
+	if err != nil {
+		return nil, err
+	}
+
+	return mealplanningmcp.NewTools(repo)
+}
+
+// RegisterForSearchIndexInitializer registers mealplanning components needed by a process that
+// only rebuilds search indexes: the repository the index sources read from and the text index
+// clients they write to. The indexes themselves arrive through RegisterIndexes.
+func RegisterForSearchIndexInitializer(i do.Injector) {
 	registerRepository(i)
 	mealplanningindexing.RegisterSearchers(i)
 }

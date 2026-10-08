@@ -11,7 +11,6 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	webhookfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine/recordingspinetest"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
@@ -397,7 +396,7 @@ func TestRepository_emitIndex(T *testing.T) {
 		repo := &repository{writer: writer}
 		recipeID := fake.BuildFakeID()
 
-		require.NoError(t, repo.emitIndex(t.Context(), database.NewTxForTesting(executor), indexevents.RecipeStepCreatedIndexTrigger, map[string]any{
+		require.NoError(t, repo.emitIndex(t.Context(), database.NewTxForTesting(executor), searchindex.RecipeStepCreatedIndexTrigger, map[string]any{
 			mealplanningkeys.RecipeIDKey: recipeID,
 		}))
 

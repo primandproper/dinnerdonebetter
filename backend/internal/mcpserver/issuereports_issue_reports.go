@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 
 	issuereports "github.com/primandproper/platform-go/v15/issuereports"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -13,27 +14,27 @@ import (
 )
 
 var issueReportSchema = map[string]any{
-	"ID":               stringField("The ID of the issue report"),
-	"Reporter":         stringField("The ID of the user who filed the report"),
-	"Kind":             stringField("The category the report was filed under"),
-	"Details":          stringField("What the reporter actually said"),
-	"SubjectType":      stringField("The kind of thing the report is about, if any"),
-	"SubjectID":        stringField("The ID of the thing the report is about, if any"),
-	"Status":           stringField("Where the report stands: open, acknowledged, resolved or declined"),
-	"Resolution":       stringField("Why the report is in the terminal status it is in, if it is in one"),
-	fieldCreatedAt:     timestampField("When the report was filed"),
-	fieldLastUpdatedAt: timestampField("When the report was last updated"),
-	fieldArchivedAt:    timestampField("When the report was archived"),
-	"ClosedAt":         timestampField("When the report reached a terminal status, if it has"),
+	"ID":                        mcptools.StringField("The ID of the issue report"),
+	"Reporter":                  mcptools.StringField("The ID of the user who filed the report"),
+	"Kind":                      mcptools.StringField("The category the report was filed under"),
+	"Details":                   mcptools.StringField("What the reporter actually said"),
+	"SubjectType":               mcptools.StringField("The kind of thing the report is about, if any"),
+	"SubjectID":                 mcptools.StringField("The ID of the thing the report is about, if any"),
+	"Status":                    mcptools.StringField("Where the report stands: open, acknowledged, resolved or declined"),
+	"Resolution":                mcptools.StringField("Why the report is in the terminal status it is in, if it is in one"),
+	mcptools.FieldCreatedAt:     mcptools.TimestampField("When the report was filed"),
+	mcptools.FieldLastUpdatedAt: mcptools.TimestampField("When the report was last updated"),
+	mcptools.FieldArchivedAt:    mcptools.TimestampField("When the report was archived"),
+	"ClosedAt":                  mcptools.TimestampField("When the report reached a terminal status, if it has"),
 }
 
 var getIssueReportTool = &mcp.Tool{
 	Name:        "GetIssueReport",
 	Description: "Get an issue report you filed, by its ID",
-	InputSchema: schemaObject(map[string]any{
-		"IssueReportID": stringField("The ID of the issue report to get"),
+	InputSchema: mcptools.SchemaObject(map[string]any{
+		"IssueReportID": mcptools.StringField("The ID of the issue report to get"),
 	}),
-	OutputSchema: schemaObject(issueReportSchema),
+	OutputSchema: mcptools.SchemaObject(issueReportSchema),
 }
 
 type GetIssueReportInvocation struct {
@@ -70,11 +71,11 @@ func (h *mcpToolManager) GetIssueReport() mcp.ToolHandlerFor[*GetIssueReportInvo
 var getIssueReportsTool = &mcp.Tool{
 	Name:        "GetIssueReports",
 	Description: "Get the issue reports you filed, with optional filtering",
-	InputSchema: schemaObject(map[string]any{
-		fieldFilter: filtering.QueryFilterSchema(),
+	InputSchema: mcptools.SchemaObject(map[string]any{
+		mcptools.FieldFilter: filtering.QueryFilterSchema(),
 	}),
-	OutputSchema: schemaObject(map[string]any{
-		fieldResults: arrayType(schemaObject(issueReportSchema)),
+	OutputSchema: mcptools.SchemaObject(map[string]any{
+		mcptools.FieldResults: mcptools.ArrayType(mcptools.SchemaObject(issueReportSchema)),
 	}),
 }
 

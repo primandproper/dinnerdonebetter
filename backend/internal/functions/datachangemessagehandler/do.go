@@ -5,7 +5,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
@@ -21,11 +20,22 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// RegisterAsyncDataChangeMessageHandler registers the async data change message handler with the injector.
-func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
+// RegisterAsyncDataChangeMessageHandler registers the async data change message handler with
+// the injector, over the outbound notifiers handed in. ctx is the process's own, which the
+// handler's publishers and dead-letter topic are opened under.
+//
+// The notifiers are named by the process wiring itself rather than discovered, for the reason
+// searchindexes.Register gives for its registrars: a domain whose notifier is missing has events
+// that imply mail nobody sends, and the only symptom is an inbox that stays empty.
+func RegisterAsyncDataChangeMessageHandler(ctx context.Context, i do.Injector, notifiers ...OutboundNotifier) {
 	do.Provide[*AsyncDataChangeMessageHandler](i, func(i do.Injector) (*AsyncDataChangeMessageHandler, error) {
+		handlers, err := outboundNotificationHandlers(i, notifiers)
+		if err != nil {
+			return nil, err
+		}
+
 		return NewAsyncDataChangeMessageHandler(
-			do.MustInvoke[context.Context](i),
+			ctx,
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*config.AsyncMessageHandlerConfig](i),
@@ -38,10 +48,28 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[email.Emailer](i),
 			do.MustInvoke[metrics.Provider](i),
 			searchSyncers(i),
-			do.MustInvoke[mealplanning.Repository](i),
+			handlers,
 			do.MustInvoke[*push.Fanout](i),
 		)
 	})
+}
+
+// outboundNotificationHandlers resolves each domain's handler, in the order the process listed
+// them. A domain whose handler cannot be built fails the handler's construction rather than its
+// first event.
+func outboundNotificationHandlers(i do.Injector, notifiers []OutboundNotifier) ([]OutboundNotificationHandler, error) {
+	handlers := make([]OutboundNotificationHandler, 0, len(notifiers))
+
+	for _, notifier := range notifiers {
+		handler, err := notifier(i)
+		if err != nil {
+			return nil, err
+		}
+
+		handlers = append(handlers, handler)
+	}
+
+	return handlers, nil
 }
 
 // searchSyncers is every registered index's Syncer, paired with the topic its events arrive on,

@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
@@ -29,7 +30,7 @@ import (
 // resolved once at /authorize rather than per request. Subject.Claims is
 // map[string]string by construction, so it round-trips through the store as the
 // same Go type it went in as.
-const claimAccountID = "account_id"
+const claimAccountID = mcptools.ClaimAccountID
 
 // accessDeniedMessage is what a failed sign-in says, whichever half was wrong.
 //

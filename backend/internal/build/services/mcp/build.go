@@ -8,11 +8,11 @@ import (
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/queuedmail"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
+	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
-	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
@@ -62,16 +62,43 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// reset and waitlists their mail. See internal/build/queuedmail.
 	queuedmail.Register(i)
 	identitybuild.RegisterSessionBuilder(i)
-	recordingspine.Register(i)
 
 	// The upload registry, because both repositories above read media through it —
 	// a user's avatar, a recipe step's images.
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	// Domain: mealplanning
-	mealplanningrepo.RegisterMealPlanningRepository(i)
+	//
+	// The repository the tools read through. The recording spine every store here records
+	// through — the outbox writer, the webhook emitter, and the recorder over them — is
+	// assembled in there too, as it is for the scheduler and the async handler, for the
+	// reason config.SchedulerConfig.OutboxRelay gives.
+	mealplanningregistration.RegisterForMCP(i)
 	webhooksstore.RegisterWebhooksStore(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 
+	// The domains' tools, as the one list the server mounts.
+	do.Provide[[]mcptools.Toolset](i, Toolsets)
+
 	return i
+}
+
+// Toolsets is every domain's tool surface, resolved from i in the order the server mounts them.
+// The server's own tools over platform's stores are not in it; those are the server's.
+func Toolsets(i do.Injector) ([]mcptools.Toolset, error) {
+	var toolsets []mcptools.Toolset
+
+	for _, contribute := range []func(do.Injector) (mcptools.Toolset, error){
+		// Domain: mealplanning
+		mealplanningregistration.MCPTools,
+	} {
+		toolset, err := contribute(i)
+		if err != nil {
+			return nil, err
+		}
+
+		toolsets = append(toolsets, toolset)
+	}
+
+	return toolsets, nil
 }
