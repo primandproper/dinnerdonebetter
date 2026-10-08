@@ -93,20 +93,7 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 
 	y := filtering.Drain(
 		results,
-		func(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) *types.MealPlanRecipeOptionSelection {
-			return &types.MealPlanRecipeOptionSelection{
-				ID:                      result.ID,
-				BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-				RecipeID:                result.RecipeID,
-				RecipeStepID:            result.RecipeStepID,
-				IngredientIndex:         uint16(result.IngredientIndex),
-				SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
-				SelectionType:           result.SelectionType,
-				CreatedAt:               result.CreatedAt,
-				LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-			}
-		},
+		mealPlanRecipeOptionSelectionFromListRow,
 		func(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -153,18 +140,7 @@ func (q *repository) GetSelectionsForMealPlan(ctx context.Context, mealPlanID st
 
 	x := make([]*types.MealPlanRecipeOptionSelection, 0, len(results))
 	for _, result := range results {
-		selection := &types.MealPlanRecipeOptionSelection{
-			ID:                      result.ID,
-			BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-			RecipeID:                result.RecipeID,
-			RecipeStepID:            result.RecipeStepID,
-			IngredientIndex:         uint16(result.IngredientIndex),
-			SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
-			SelectionType:           result.SelectionType,
-			CreatedAt:               result.CreatedAt,
-			LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-		}
+		selection := mealPlanRecipeOptionSelectionFromListRow((*generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow)(result))
 
 		x = append(x, selection)
 	}
@@ -321,4 +297,23 @@ func (q *repository) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, m
 	logger.Info("meal plan recipe option selection archived")
 
 	return nil
+}
+
+// mealPlanRecipeOptionSelectionFromListRow maps a meal plan recipe option selection row to its
+// domain type. The per-option and per-meal-plan reads both carry the filtered and total counts
+// alongside the table's columns, so each converts to
+// generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow and comes through here.
+func mealPlanRecipeOptionSelectionFromListRow(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) *types.MealPlanRecipeOptionSelection {
+	return &types.MealPlanRecipeOptionSelection{
+		ID:                      result.ID,
+		BelongsToMealPlanOption: result.BelongsToMealPlanOption,
+		RecipeID:                result.RecipeID,
+		RecipeStepID:            result.RecipeStepID,
+		IngredientIndex:         uint16(result.IngredientIndex),
+		SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
+		SelectionType:           result.SelectionType,
+		CreatedAt:               result.CreatedAt,
+		LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
+	}
 }

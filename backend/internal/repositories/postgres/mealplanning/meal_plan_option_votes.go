@@ -71,19 +71,7 @@ func (q *repository) GetMealPlanOptionVote(ctx context.Context, mealPlanID, meal
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting meal plan option vote")
 	}
 
-	mealPlanOptionVote := &types.MealPlanOptionVote{
-		CreatedAt:               result.CreatedAt,
-		ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ID:                      result.ID,
-		Notes:                   result.Notes,
-		BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-		ByUser:                  result.ByUser,
-		Rank:                    uint8(result.Rank),
-		Abstain:                 result.Abstain,
-	}
-
-	return mealPlanOptionVote, nil
+	return mealPlanOptionVoteFromRow(result), nil
 }
 
 // GetMealPlanOptionVotesForMealPlanOption fetches a list of meal plan option votes from the database that meet a particular filter.
@@ -111,17 +99,7 @@ func (q *repository) GetMealPlanOptionVotesForMealPlanOption(ctx context.Context
 
 	x = make([]*types.MealPlanOptionVote, len(results))
 	for i, result := range results {
-		x[i] = &types.MealPlanOptionVote{
-			CreatedAt:               result.CreatedAt,
-			ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:                      result.ID,
-			Notes:                   result.Notes,
-			BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-			ByUser:                  result.ByUser,
-			Rank:                    uint8(result.Rank),
-			Abstain:                 result.Abstain,
-		}
+		x[i] = mealPlanOptionVoteFromRow(result)
 	}
 
 	return x, nil
@@ -326,4 +304,21 @@ func (q *repository) ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, 
 	}
 
 	return nil
+}
+
+// mealPlanOptionVoteFromRow maps a meal plan option vote row to its domain type. The single and
+// per-option reads both select the bare meal_plan_option_votes table, so sqlc hands both back as
+// generated.MealPlanOptionVotes.
+func mealPlanOptionVoteFromRow(result *generated.MealPlanOptionVotes) *types.MealPlanOptionVote {
+	return &types.MealPlanOptionVote{
+		CreatedAt:               result.CreatedAt,
+		ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ID:                      result.ID,
+		Notes:                   result.Notes,
+		BelongsToMealPlanOption: result.BelongsToMealPlanOption,
+		ByUser:                  result.ByUser,
+		Rank:                    uint8(result.Rank),
+		Abstain:                 result.Abstain,
+	}
 }

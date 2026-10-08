@@ -69,17 +69,7 @@ func (q *repository) GetMealPlanEvent(ctx context.Context, mealPlanID, mealPlanE
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan event retrieval query")
 	}
 
-	mealPlanEvent := &types.MealPlanEvent{
-		CreatedAt:         result.CreatedAt,
-		StartsAt:          result.StartsAt,
-		EndsAt:            result.EndsAt,
-		ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
-		MealName:          string(result.MealName),
-		Notes:             result.Notes,
-		BelongsToMealPlan: result.BelongsToMealPlan,
-		ID:                result.ID,
-	}
+	mealPlanEvent := mealPlanEventFromRow(result)
 
 	options, err := q.getMealPlanOptionsForMealPlanEvent(ctx, mealPlanID, mealPlanEventID)
 	if err != nil {
@@ -108,17 +98,7 @@ func (q *repository) getMealPlanEventsForMealPlan(ctx context.Context, mealPlanI
 	}
 
 	for _, result := range results {
-		event := &types.MealPlanEvent{
-			CreatedAt:         result.CreatedAt,
-			StartsAt:          result.StartsAt,
-			EndsAt:            result.EndsAt,
-			ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
-			MealName:          string(result.MealName),
-			Notes:             result.Notes,
-			BelongsToMealPlan: result.BelongsToMealPlan,
-			ID:                result.ID,
-		}
+		event := mealPlanEventFromRow(result)
 
 		mealPlanOptions, mealPlanOptionsErr := q.getMealPlanOptionsForMealPlanEvent(ctx, mealPlanID, event.ID)
 		if mealPlanOptionsErr != nil {
@@ -431,4 +411,21 @@ func (q *repository) ArchiveMealPlanEvent(ctx context.Context, mealPlanID, mealP
 
 		return nil
 	})
+}
+
+// mealPlanEventFromRow maps a meal plan event row to its domain type, without its options. The
+// single and per-meal-plan reads both select the bare meal_plan_events table, so sqlc hands both
+// back as generated.MealPlanEvents.
+func mealPlanEventFromRow(result *generated.MealPlanEvents) *types.MealPlanEvent {
+	return &types.MealPlanEvent{
+		CreatedAt:         result.CreatedAt,
+		StartsAt:          result.StartsAt,
+		EndsAt:            result.EndsAt,
+		ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
+		MealName:          string(result.MealName),
+		Notes:             result.Notes,
+		BelongsToMealPlan: result.BelongsToMealPlan,
+		ID:                result.ID,
+	}
 }
