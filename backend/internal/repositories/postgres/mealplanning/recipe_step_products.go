@@ -24,25 +24,14 @@ func (q *repository) RecipeStepProductExists(ctx context.Context, recipeID, reci
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+		idArg{mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeStepID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
-
-	if recipeStepProductID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
 
 	result, err := q.generatedQuerier.CheckRecipeStepProductExistence(ctx, q.readDB, &generated.CheckRecipeStepProductExistenceParams{
 		RecipeStepID:        recipeStepID,
@@ -61,25 +50,14 @@ func (q *repository) GetRecipeStepProduct(ctx context.Context, recipeID, recipeS
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+		idArg{mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeStepID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
-
-	if recipeStepProductID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
 
 	result, err := q.generatedQuerier.GetRecipeStepProduct(ctx, q.readDB, &generated.GetRecipeStepProductParams{
 		RecipeStepID:        recipeStepID,
@@ -141,13 +119,10 @@ func (q *repository) getRecipeStepProductsForRecipe(ctx context.Context, recipeI
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeIDKey, recipeID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	results, err := q.generatedQuerier.GetRecipeStepProductsForRecipe(ctx, q.readDB, recipeID)
 	if err != nil {
@@ -210,19 +185,13 @@ func (q *repository) GetRecipeStepProducts(ctx context.Context, recipeID, recipe
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeStepID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -448,19 +417,13 @@ func (q *repository) ArchiveRecipeStepProduct(ctx context.Context, recipeID, rec
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeStepID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+		idArg{mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
-
-	if recipeStepProductID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepProductIDKey, recipeStepProductID)
 
 	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepProductArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:            recipeID,

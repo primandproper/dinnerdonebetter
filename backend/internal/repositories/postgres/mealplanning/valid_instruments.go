@@ -25,13 +25,10 @@ func (q *repository) ValidInstrumentExists(ctx context.Context, validInstrumentI
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validInstrumentID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidInstrumentIDKey, validInstrumentID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
 
 	result, err := q.generatedQuerier.CheckValidInstrumentExistence(ctx, q.readDB, validInstrumentID)
 	if err != nil {
@@ -46,13 +43,10 @@ func (q *repository) GetValidInstrument(ctx context.Context, validInstrumentID s
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validInstrumentID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidInstrumentIDKey, validInstrumentID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
 
 	result, err := q.generatedQuerier.GetValidInstrument(ctx, q.readDB, validInstrumentID)
 	if err != nil {
@@ -439,13 +433,10 @@ func (q *repository) ArchiveValidInstrument(ctx context.Context, validInstrument
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validInstrumentID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidInstrumentIDKey, validInstrumentID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, validInstrumentID)
 
 	return q.withEvent(ctx, logger, types.ValidInstrumentArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidInstrumentIDKey: validInstrumentID,

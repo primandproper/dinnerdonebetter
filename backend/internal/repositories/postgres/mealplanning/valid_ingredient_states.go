@@ -25,13 +25,10 @@ func (q *repository) ValidIngredientStateExists(ctx context.Context, validIngred
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientStateID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID)
 
 	result, err := q.generatedQuerier.CheckValidIngredientStateExistence(ctx, q.readDB, validIngredientStateID)
 	if err != nil {
@@ -46,13 +43,10 @@ func (q *repository) GetValidIngredientState(ctx context.Context, validIngredien
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientStateID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID)
 
 	result, err := q.generatedQuerier.GetValidIngredientState(ctx, q.readDB, validIngredientStateID)
 	if err != nil {
@@ -344,13 +338,10 @@ func (q *repository) ArchiveValidIngredientState(ctx context.Context, validIngre
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientStateID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIDKey, validIngredientStateID)
 
 	return q.withEvent(ctx, logger, types.ValidIngredientStateArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientStateIDKey: validIngredientStateID,

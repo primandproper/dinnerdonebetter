@@ -26,19 +26,13 @@ func (q *repository) UserIngredientPreferenceExists(ctx context.Context, userIng
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if userIngredientPreferenceID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID},
+		idArg{platformkeys.UserIDKey, userID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID)
-	tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID)
-
-	if userID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	exists, err = q.generatedQuerier.CheckUserIngredientPreferenceExistence(ctx, q.readDB, &generated.CheckUserIngredientPreferenceExistenceParams{
 		ID:            userIngredientPreferenceID,
@@ -56,19 +50,13 @@ func (q *repository) GetUserIngredientPreference(ctx context.Context, userIngred
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if userIngredientPreferenceID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID},
+		idArg{platformkeys.UserIDKey, userID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID)
-	tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID)
-
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	result, err := q.generatedQuerier.GetUserIngredientPreference(ctx, q.readDB, &generated.GetUserIngredientPreferenceParams{
 		ID:            userIngredientPreferenceID,
@@ -137,13 +125,10 @@ func (q *repository) GetUserIngredientPreferences(ctx context.Context, userID st
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{platformkeys.UserIDKey, userID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -348,19 +333,13 @@ func (q *repository) ArchiveUserIngredientPreference(ctx context.Context, userIn
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if userID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{platformkeys.UserIDKey, userID},
+		idArg{mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
-
-	if userIngredientPreferenceID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID)
-	tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, userIngredientPreferenceID)
 
 	if err := q.withEvent(ctx, logger, mealplanning.UserIngredientPreferenceArchivedServiceEventType, userID, map[string]any{
 		mealplanningkeys.UserIngredientPreferenceIDKey: userIngredientPreferenceID,

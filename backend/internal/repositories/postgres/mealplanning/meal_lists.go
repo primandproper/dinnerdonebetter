@@ -178,19 +178,13 @@ func (q *repository) ArchiveMealList(ctx context.Context, mealListID, userID str
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if userID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{platformkeys.UserIDKey, userID},
+		idArg{mealplanningkeys.MealListIDKey, mealListID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
-
-	if mealListID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealListIDKey, mealListID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealListIDKey, mealListID)
 
 	if err := q.withEvent(ctx, logger, types.MealListArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealListIDKey: mealListID,

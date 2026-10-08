@@ -29,19 +29,13 @@ func (q *repository) MealPlanEventExists(ctx context.Context, mealPlanID, mealPl
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanEventIDKey, mealPlanEventID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanEventID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 
 	result, err := q.generatedQuerier.CheckMealPlanEventExistence(ctx, q.readDB, &generated.CheckMealPlanEventExistenceParams{
 		ID:         mealPlanEventID,
@@ -59,19 +53,13 @@ func (q *repository) GetMealPlanEvent(ctx context.Context, mealPlanID, mealPlanE
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanEventIDKey, mealPlanEventID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanEventID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 
 	result, err := q.generatedQuerier.GetMealPlanEvent(ctx, q.readDB, &generated.GetMealPlanEventParams{
 		ID:                mealPlanEventID,
@@ -107,13 +95,10 @@ func (q *repository) getMealPlanEventsForMealPlan(ctx context.Context, mealPlanI
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.MealPlanIDKey, mealPlanID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
 	x = []*types.MealPlanEvent{}
 
@@ -153,13 +138,10 @@ func (q *repository) GetMealPlanEvents(ctx context.Context, mealPlanID string, f
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.MealPlanIDKey, mealPlanID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -209,19 +191,13 @@ func (q *repository) MealPlanEventIsEligibleForVoting(ctx context.Context, mealP
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanEventIDKey, mealPlanEventID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanEventID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 
 	result, err := q.generatedQuerier.MealPlanEventIsEligibleForVoting(ctx, q.readDB, &generated.MealPlanEventIsEligibleForVotingParams{
 		MealPlanID:      mealPlanID,
@@ -429,19 +405,13 @@ func (q *repository) ArchiveMealPlanEvent(ctx context.Context, mealPlanID, mealP
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanEventIDKey, mealPlanEventID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanEventID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 
 	return q.withRecord(ctx, logger, auditEntry(resourceTypeMealPlanEvents, mealPlanEventID, platformaudit.EventArchived), types.MealPlanEventArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanIDKey:      mealPlanID,

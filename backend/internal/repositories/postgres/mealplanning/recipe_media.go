@@ -23,13 +23,10 @@ func (q *repository) RecipeMediaExists(ctx context.Context, recipeMediaID string
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeMediaID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeMediaIDKey, recipeMediaID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
 
 	result, err := q.generatedQuerier.CheckRecipeMediaExistence(ctx, q.readDB, recipeMediaID)
 	if err != nil {
@@ -44,13 +41,10 @@ func (q *repository) GetRecipeMedia(ctx context.Context, recipeMediaID string) (
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeMediaID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeMediaIDKey, recipeMediaID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
 
 	result, err := q.generatedQuerier.GetRecipeMedia(ctx, q.readDB, recipeMediaID)
 	if err != nil {
@@ -78,13 +72,10 @@ func (q *repository) getRecipeMediaForRecipe(ctx context.Context, recipeID strin
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeIDKey, recipeID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	results, err := q.generatedQuerier.GetRecipeMediaForRecipe(ctx, q.readDB, database.NullStringFromString(recipeID))
 	if err != nil {
@@ -115,19 +106,13 @@ func (q *repository) getRecipeMediaForRecipeStep(ctx context.Context, recipeID, 
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeStepIDKey, recipeStepID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeStepID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
 	results, err := q.generatedQuerier.GetRecipeMediaForRecipeStep(ctx, q.readDB, &generated.GetRecipeMediaForRecipeStepParams{
 		RecipeID:     database.NullStringFromString(recipeID),
@@ -240,13 +225,10 @@ func (q *repository) ArchiveRecipeMedia(ctx context.Context, recipeMediaID strin
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeMediaID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeMediaIDKey, recipeMediaID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeMediaIDKey, recipeMediaID)
 
 	return q.withEvent(ctx, logger, types.RecipeMediaArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeMediaIDKey: recipeMediaID,

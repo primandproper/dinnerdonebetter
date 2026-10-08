@@ -26,19 +26,13 @@ func (q *repository) MealPlanTaskExists(ctx context.Context, mealPlanID, mealPla
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.MealPlanIDKey, mealPlanID},
+		idArg{mealplanningkeys.MealPlanTaskIDKey, mealPlanTaskID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if mealPlanTaskID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanTaskIDKey, mealPlanTaskID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanTaskIDKey, mealPlanTaskID)
 
 	result, err := q.generatedQuerier.CheckMealPlanTaskExistence(ctx, q.readDB, &generated.CheckMealPlanTaskExistenceParams{
 		MealPlanID:     mealPlanID,
@@ -58,13 +52,10 @@ func (q *repository) GetMealPlanTask(ctx context.Context, mealPlanTaskID string)
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanTaskID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.MealPlanTaskIDKey, mealPlanTaskID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanTaskIDKey, mealPlanTaskID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanTaskIDKey, mealPlanTaskID)
 
 	result, err := q.generatedQuerier.GetMealPlanTask(ctx, q.readDB, mealPlanTaskID)
 	if err != nil {
@@ -198,13 +189,10 @@ func (q *repository) GetMealPlanTasksForMealPlan(ctx context.Context, mealPlanID
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.MealPlanIDKey, mealPlanID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
 	results, err := q.generatedQuerier.ListAllMealPlanTasksByMealPlan(ctx, q.readDB, mealPlanID)
 	if err != nil {

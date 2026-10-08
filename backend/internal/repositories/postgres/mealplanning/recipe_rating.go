@@ -25,19 +25,13 @@ func (q *repository) RecipeRatingExists(ctx context.Context, recipeID, recipeRat
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeRatingIDKey, recipeRatingID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeRatingID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeRatingIDKey, recipeRatingID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeRatingIDKey, recipeRatingID)
 
 	result, err := q.generatedQuerier.CheckRecipeRatingExistence(ctx, q.readDB, recipeRatingID)
 	if err != nil {
@@ -52,19 +46,13 @@ func (q *repository) GetRecipeRating(ctx context.Context, recipeID, recipeRating
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeRatingIDKey, recipeRatingID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeRatingID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeRatingIDKey, recipeRatingID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeRatingIDKey, recipeRatingID)
 
 	result, err := q.generatedQuerier.GetRecipeRating(ctx, q.readDB, recipeRatingID)
 	if err != nil {
@@ -98,11 +86,10 @@ func (q *repository) GetRecipeRatingsForRecipe(ctx context.Context, recipeID str
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err = guardIDs(logger, span, idArg{mealplanningkeys.RecipeIDKey, recipeID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -157,11 +144,10 @@ func (q *repository) GetRecipeRatingsForUser(ctx context.Context, userID string,
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err = guardIDs(logger, span, idArg{platformkeys.UserIDKey, userID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -298,19 +284,13 @@ func (q *repository) ArchiveRecipeRating(ctx context.Context, recipeID, recipeRa
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipeRatingIDKey, recipeRatingID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipeRatingID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeRatingIDKey, recipeRatingID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeRatingIDKey, recipeRatingID)
 
 	if err := q.withEvent(ctx, logger, types.RecipeRatingArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:       recipeID,

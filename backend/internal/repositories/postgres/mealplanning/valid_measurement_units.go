@@ -25,13 +25,10 @@ func (q *repository) ValidMeasurementUnitExists(ctx context.Context, validMeasur
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
 	result, err := q.generatedQuerier.CheckValidMeasurementUnitExistence(ctx, q.readDB, validMeasurementUnitID)
 	if err != nil {
@@ -46,13 +43,10 @@ func (q *repository) GetValidMeasurementUnit(ctx context.Context, validMeasureme
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
 	result, err := q.generatedQuerier.GetValidMeasurementUnit(ctx, q.readDB, validMeasurementUnitID)
 	if err != nil {
@@ -453,13 +447,10 @@ func (q *repository) ArchiveValidMeasurementUnit(ctx context.Context, validMeasu
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
 	return q.withEvent(ctx, logger, types.ValidMeasurementUnitArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitIDKey: validMeasurementUnitID,

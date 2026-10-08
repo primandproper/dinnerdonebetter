@@ -25,13 +25,10 @@ func (q *repository) ValidPreparationExists(ctx context.Context, validPreparatio
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validPreparationID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidPreparationIDKey, validPreparationID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidPreparationIDKey, validPreparationID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, validPreparationID)
 
 	exists, err := q.generatedQuerier.CheckValidPreparationExistence(ctx, q.readDB, validPreparationID)
 	if err != nil {
@@ -46,13 +43,10 @@ func (q *repository) GetValidPreparation(ctx context.Context, validPreparationID
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validPreparationID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidPreparationIDKey, validPreparationID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidPreparationIDKey, validPreparationID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, validPreparationID)
 
 	result, err := q.generatedQuerier.GetValidPreparation(ctx, q.readDB, validPreparationID)
 	if err != nil {
@@ -468,13 +462,10 @@ func (q *repository) ArchiveValidPreparation(ctx context.Context, validPreparati
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validPreparationID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidPreparationIDKey, validPreparationID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidPreparationIDKey, validPreparationID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, validPreparationID)
 
 	return q.withEvent(ctx, logger, mealplanning.ValidPreparationArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPreparationIDKey: validPreparationID,

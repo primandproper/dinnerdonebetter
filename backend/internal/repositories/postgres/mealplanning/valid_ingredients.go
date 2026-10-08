@@ -25,13 +25,10 @@ func (q *repository) ValidIngredientExists(ctx context.Context, validIngredientI
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientIDKey, validIngredientID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
 	result, err := q.generatedQuerier.CheckValidIngredientExistence(ctx, q.readDB, validIngredientID)
 	if err != nil {
@@ -46,13 +43,10 @@ func (q *repository) GetValidIngredient(ctx context.Context, validIngredientID s
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientIDKey, validIngredientID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
 	result, err := q.generatedQuerier.GetValidIngredient(ctx, q.readDB, validIngredientID)
 	if err != nil {
@@ -686,13 +680,10 @@ func (q *repository) ArchiveValidIngredient(ctx context.Context, validIngredient
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validIngredientID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidIngredientIDKey, validIngredientID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 
 	return q.withEvent(ctx, logger, mealplanning.ValidIngredientArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientIDKey: validIngredientID,

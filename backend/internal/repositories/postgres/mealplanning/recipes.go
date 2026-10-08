@@ -470,11 +470,10 @@ func (q *repository) GetRecipesCreatedByUser(ctx context.Context, userID string,
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err = guardIDs(logger, span, idArg{platformkeys.UserIDKey, userID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -1161,11 +1160,10 @@ func (q *repository) UpdateRecipeStatus(ctx context.Context, recipeID, newStatus
 
 	logger := q.logger.WithSpan(span)
 
-	if recipeID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(logger, span, idArg{mealplanningkeys.RecipeIDKey, recipeID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	return q.withEvent(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,
@@ -1222,11 +1220,10 @@ func (q *repository) ArchiveRecipe(ctx context.Context, recipeID, userID string)
 	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
-	if userID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(logger, span, idArg{platformkeys.UserIDKey, userID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	return q.withEvent(ctx, logger, mealplanning.RecipeArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,

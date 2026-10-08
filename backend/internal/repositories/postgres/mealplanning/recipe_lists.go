@@ -25,19 +25,13 @@ func (q *repository) RecipeListExists(ctx context.Context, recipeListID, userID 
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeListID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeListIDKey, recipeListID},
+		idArg{platformkeys.UserIDKey, userID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeListIDKey, recipeListID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, recipeListID)
-
-	if userID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	result, err := q.generatedQuerier.CheckRecipeListExistence(ctx, q.readDB, &generated.CheckRecipeListExistenceParams{
 		ID:            recipeListID,
@@ -55,13 +49,10 @@ func (q *repository) GetRecipeLists(ctx context.Context, userID string, filter *
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{platformkeys.UserIDKey, userID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -214,19 +205,13 @@ func (q *repository) ArchiveRecipeList(ctx context.Context, recipeListID, userID
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if userID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{platformkeys.UserIDKey, userID},
+		idArg{mealplanningkeys.RecipeListIDKey, recipeListID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(platformkeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
-
-	if recipeListID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipeListIDKey, recipeListID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, recipeListID)
 
 	if err := q.withEvent(ctx, logger, types.RecipeListArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeListIDKey: recipeListID,

@@ -24,13 +24,10 @@ func (q *repository) ValidMeasurementUnitConversionExists(ctx context.Context, v
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitConversionID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID)
 
 	result, err := q.generatedQuerier.CheckValidMeasurementUnitConversionExistence(ctx, q.readDB, validMeasurementUnitConversionID)
 	if err != nil {
@@ -45,13 +42,10 @@ func (q *repository) GetValidMeasurementUnitConversion(ctx context.Context, vali
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitConversionID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID)
 
 	result, err := q.generatedQuerier.GetValidMeasurementUnitConversion(ctx, q.readDB, validMeasurementUnitConversionID)
 	if err != nil {
@@ -251,13 +245,10 @@ func (q *repository) GetValidMeasurementUnitConversionsForUnit(ctx context.Conte
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -497,13 +488,10 @@ func (q *repository) ArchiveValidMeasurementUnitConversion(ctx context.Context, 
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validMeasurementUnitConversionID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitConversionIDKey, validMeasurementUnitConversionID)
 
 	return q.withEvent(ctx, logger, mealplanning.ValidMeasurementUnitConversionArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitConversionIDKey: validMeasurementUnitConversionID,

@@ -24,19 +24,13 @@ func (q *repository) RecipePrepTaskExists(ctx context.Context, recipeID, recipeP
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID},
+	)
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipePrepTaskID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
 
 	result, err := q.generatedQuerier.CheckRecipePrepTaskExistence(ctx, q.readDB, &generated.CheckRecipePrepTaskExistenceParams{
 		RecipeID:         recipeID,
@@ -56,19 +50,13 @@ func (q *repository) GetRecipePrepTask(ctx context.Context, recipeID, recipePrep
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID},
+	)
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipePrepTaskID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
 
 	results, err := q.generatedQuerier.GetRecipePrepTask(ctx, q.readDB, recipePrepTaskID)
 	if err != nil {
@@ -259,13 +247,10 @@ func (q *repository) getRecipePrepTasksForRecipe(ctx context.Context, recipeID s
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeIDKey, recipeID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	results, err := q.generatedQuerier.ListAllRecipePrepTasksByRecipe(ctx, q.readDB, recipeID)
 	if err != nil {
@@ -328,13 +313,10 @@ func (q *repository) GetRecipePrepTasks(ctx context.Context, recipeID string, fi
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.RecipeIDKey, recipeID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	filter, logger = filtering.Observe(ctx, logger, filter)
 
@@ -404,19 +386,13 @@ func (q *repository) ArchiveRecipePrepTask(ctx context.Context, recipeID, recipe
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if recipeID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span,
+		idArg{mealplanningkeys.RecipeIDKey, recipeID},
+		idArg{mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID},
+	)
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-
-	if recipePrepTaskID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
-	tracing.AttachToSpan(span, mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
 
 	if err := q.withEvent(ctx, logger, mealplanning.RecipePrepTaskArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:         recipeID,

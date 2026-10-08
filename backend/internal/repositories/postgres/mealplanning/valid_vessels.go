@@ -26,13 +26,10 @@ func (q *repository) ValidVesselExists(ctx context.Context, validVesselID string
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validVesselID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidVesselIDKey, validVesselID})
+	if err != nil {
+		return false, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)
 
 	result, err := q.generatedQuerier.CheckValidVesselExistence(ctx, q.readDB, validVesselID)
 	if err != nil {
@@ -47,13 +44,10 @@ func (q *repository) GetValidVessel(ctx context.Context, validVesselID string) (
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validVesselID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidVesselIDKey, validVesselID})
+	if err != nil {
+		return nil, err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)
 
 	result, err := q.generatedQuerier.GetValidVessel(ctx, q.readDB, validVesselID)
 	if err != nil {
@@ -518,13 +512,10 @@ func (q *repository) ArchiveValidVessel(ctx context.Context, validVesselID strin
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if validVesselID == "" {
-		return platformerrors.ErrInvalidIDProvided
+	logger, err := guardIDs(q.logger.Clone(), span, idArg{mealplanningkeys.ValidVesselIDKey, validVesselID})
+	if err != nil {
+		return err
 	}
-	logger = logger.WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
-	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)
 
 	return q.withEvent(ctx, logger, types.ValidVesselArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidVesselIDKey: validVesselID,
