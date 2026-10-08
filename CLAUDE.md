@@ -1,6 +1,6 @@
 # Dinner Done Better
 
-Monorepo for a meal planning application built as a reusable service template.
+Monorepo for a meal planning application: one domain, built on an imported platform.
 
 ## Repository Structure
 
@@ -11,7 +11,7 @@ Monorepo for a meal planning application built as a reusable service template.
 - `infra/` — Infrastructure Terraform (GKE, networking, DNS, Caddy)
 - `docs/` — Cross-cutting documentation (identity, auth, meals, recipes, deployment)
 
-## Template Philosophy
+## One Domain, Platform Underneath
 
 This is one domain on top of an imported platform. The framework (database, cache, observability, messaging, identity, audit, billing, webhooks, and the rest) lives in a separate repo at `github.com/primandproper/platform-go/v15`, with `primitives-go/v2` underneath it, and is imported as a dependency; every non-mealplanning store here is a thin wiring of a platform package. `internal/domain/mealplanning` is the only domain, and no new ones are planned. The work is simplification over extension: when something mealplanning does is something platform could own, the answer is to adopt platform's and delete the local copy, not to generalize the local copy. There is no add-a-domain guide and no CRUD kit, on purpose — `backend/docs/writing_go.md` records why.
 

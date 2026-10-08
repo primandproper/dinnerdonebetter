@@ -79,8 +79,9 @@ flowchart TB
 The schema is platform-go's, rendered by `renderBillingDDL` in
 `internal/repositories/postgres/migrations` as `billingMigrationVersion` with the `ddb` prefix (see
 `branding.TablePrefix`). The hand-written tables and enums it replaced are gone from the migration
-sequence rather than dropped by a later one; see `docs/migrations.md`. Every table carries a tenancy `scope`, and this application keeps all four in the
-global one — see the tenancy section of `internal/domain/payments`.
+sequence rather than dropped by a later one; see `docs/migrations.md`. Every table carries a
+tenancy `scope`, and this application keeps all four in the global one — see the tenancy section
+of `internal/domain/payments`.
 
 - **ddb_billing_products** — the catalog: `kind` (`recurring`/`one_time`), `amount_cents` (BIGINT), `currency`, `billing_interval_months` (NULL for one-time), `external_product_id`
 - **ddb_billing_subscriptions** — `belongs_to_account`, `product_id`, `external_subscription_id`, `status` (capitalism's vocabulary), `current_period_start`/`end`
