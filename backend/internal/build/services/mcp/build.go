@@ -10,7 +10,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
@@ -63,12 +62,16 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// reset and waitlists their mail. See internal/build/queuedmail.
 	queuedmail.Register(i)
 	identitybuild.RegisterSessionBuilder(i)
-	recordingspine.Register(i)
 
 	// The upload registry, because both repositories above read media through it —
 	// a user's avatar, a recipe step's images.
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	// Domain: mealplanning
+	//
+	// The repository the tools read through. The recording spine every store here records
+	// through — the outbox writer, the webhook emitter, and the recorder over them — is
+	// assembled in there too, as it is for the scheduler and the async handler, for the
+	// reason config.SchedulerConfig.OutboxRelay gives.
 	mealplanningregistration.RegisterForMCP(i)
 	webhooksstore.RegisterWebhooksStore(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)

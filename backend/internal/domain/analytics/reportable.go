@@ -48,6 +48,7 @@ package analytics
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -116,9 +117,7 @@ var reportable = allowlist()
 // constants on both sides, so that is a build-time collision caught at package init.
 func allowlist() map[webhooks.EventType]reading {
 	merged := make(map[webhooks.EventType]reading, len(platformEvents))
-	for eventType, read := range platformEvents {
-		merged[eventType] = read
-	}
+	maps.Copy(merged, platformEvents)
 
 	for _, domain := range ownEvents() {
 		for _, eventType := range domain {

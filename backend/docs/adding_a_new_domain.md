@@ -422,13 +422,13 @@ Beyond the gRPC surface, the permission table, the comment targets, the schedule
 runners and the search indexes (`RegisterIndexes`), a domain contributes to three generic
 consumers that used to hold the example domain by name:
 
-| Seam                                             | Domain contributes                                                                                                                                  | Listed in                                                           |
-|--------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| Outbound notifications (the async handler)       | `OutboundNotifications(i) (datachangemessagehandler.OutboundNotificationHandler, error)` — the mail its events imply                                 | `internal/build/functions/data_change_message_handler/build.go`     |
-| Search index rules (the outbox side effect)      | `IndexRules() []searchsync.Rule` beside its index names — which of its writes feed which index                                                       | `internal/indexevents/indexevents.go`                               |
-| MCP tools                                        | `MCPTools(i) (mcptools.Toolset, error)` — a type with `RegisterOn(*mcp.Server)` over its repository, in `internal/services/<domain>/mcp`           | `internal/build/services/mcp/build.go`                              |
-| Product analytics allowlist                      | `<domain>.AnalyticsEventTypes() []string` — the events a product question is asked of                                                               | `internal/domain/analytics/reportable.go`                           |
-| Search index initializer (`cmd/tools`)           | `RegisterForSearchIndexInitializer(i)` plus the same `RegisterIndexes`                                                                               | `cmd/tools/search_index_initializer/main.go`                        |
+| Seam                                        | Domain contributes                                                                                                                       | Listed in                                                       |
+|---------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
+| Outbound notifications (the async handler)  | `OutboundNotifications(i) (datachangemessagehandler.OutboundNotificationHandler, error)` — the mail its events imply                     | `internal/build/functions/data_change_message_handler/build.go` |
+| Search index rules (the outbox side effect) | `IndexRules() []searchsync.Rule` beside its index names — which of its writes feed which index                                           | `internal/indexevents/indexevents.go`                           |
+| MCP tools                                   | `MCPTools(i) (mcptools.Toolset, error)` — a type with `RegisterOn(*mcp.Server)` over its repository, in `internal/services/<domain>/mcp` | `internal/build/services/mcp/build.go`                          |
+| Product analytics allowlist                 | `<domain>.AnalyticsEventTypes() []string` — the events a product question is asked of                                                    | `internal/domain/analytics/reportable.go`                       |
+| Search index initializer (`cmd/tools`)      | `RegisterForSearchIndexInitializer(i)` plus the same `RegisterIndexes`                                                                   | `cmd/tools/search_index_initializer/main.go`                    |
 
 The handler over platform's identity events, the users index's rules, and the MCP tools over
 platform's stores stay with their generic owners: they come with every deployment, whatever
@@ -530,7 +530,7 @@ Shorter path — reuse:
 | gRPC - Registration      | `build/services/api/grpc/extras.go`, `build.go`                                                                       |
 | Auth interceptor         | `authorization/*_permissions.go`; `services/<domain>/grpc/permissions.go`; `extras.go` AggregateMethodPermissions     |
 | Configs                  | `config/services_config.go`, `wire.go`, `config/environments/*.go` (if needed)                                        |
-| Registration seams       | `domain/<domain>/registration/`; one marked entry per list in `build/`, `indexevents/`, `domain/analytics/`            |
+| Registration seams       | `domain/<domain>/registration/`; one marked entry per list in `build/`, `indexevents/`, `domain/analytics/`           |
 | Integration tests        | `testing/integration/apiserver/<domain>_<entity>_test.go`                                                             |
 | Admin - List view        | `cmd/services/admin/routes.go`; handler in `cmd/services/admin/`                                                      |
 | Admin - Edit view        | Same                                                                                                                  |

@@ -28,7 +28,6 @@ import (
 	"time"
 
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
@@ -191,10 +190,10 @@ func buildInjector(ctx context.Context, dbConfig *databasecfg.Config, searchCfg 
 
 	// The repositories record through the spine even though nothing here writes a row: a
 	// repository is built over its emitter and recorder whether or not a given process
-	// exercises them.
+	// exercises them. The spine itself is assembled by the domain registration below, as it
+	// is in every other process; what it needs from here is the audit recorder behind it.
 	auditlogentries.RegisterAuditLog(i)
 	auditlogentries.RegisterPlatformRecorder(i)
-	recordingspine.Register(i)
 	uploadedmedia.RegisterUploadedMediaRepository(i)
 	identitystore.RegisterIdentityStore(i)
 
