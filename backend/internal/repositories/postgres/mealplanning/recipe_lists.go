@@ -213,7 +213,7 @@ func (q *repository) ArchiveRecipeList(ctx context.Context, recipeListID, userID
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, types.RecipeListArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, types.RecipeListArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeListIDKey: recipeListID,
 	}, func(tx database.Tx) error {
 		rowsAffected, writeErr := q.generatedQuerier.ArchiveRecipeList(ctx, tx, &generated.ArchiveRecipeListParams{

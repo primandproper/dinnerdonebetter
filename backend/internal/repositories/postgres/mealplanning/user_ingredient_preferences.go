@@ -341,7 +341,7 @@ func (q *repository) ArchiveUserIngredientPreference(ctx context.Context, userIn
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, mealplanning.UserIngredientPreferenceArchivedServiceEventType, userID, map[string]any{
+	if err = q.withEvent(ctx, logger, mealplanning.UserIngredientPreferenceArchivedServiceEventType, userID, map[string]any{
 		mealplanningkeys.UserIngredientPreferenceIDKey: userIngredientPreferenceID,
 	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveUserIngredientPreference(ctx, tx, &generated.ArchiveUserIngredientPreferenceParams{

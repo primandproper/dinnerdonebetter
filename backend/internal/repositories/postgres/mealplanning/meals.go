@@ -694,7 +694,7 @@ func (q *repository) createMealComponent(ctx context.Context, querier database.T
 	}
 
 	// create the meal.
-	if err := q.generatedQuerier.CreateMealComponent(ctx, querier, &generated.CreateMealComponentParams{
+	if err = q.generatedQuerier.CreateMealComponent(ctx, querier, &generated.CreateMealComponentParams{
 		ID:                identifiers.New(),
 		BelongsToMeal:     mealID,
 		RecipeID:          input.RecipeID,
@@ -745,7 +745,7 @@ func (q *repository) ArchiveMeal(ctx context.Context, mealID, userID string) err
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, mealplanning.MealArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, mealplanning.MealArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealIDKey: mealID,
 	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMeal(ctx, tx, &generated.ArchiveMealParams{

@@ -18,8 +18,8 @@ import (
 // recordingSpan is a span that is always recording and keeps every attribute set on it, so a test
 // can see exactly what a prologue traced before it returned.
 type recordingSpan struct {
-	noop.Span
 	attributes []attribute.KeyValue
+	noop.Span
 }
 
 func (s *recordingSpan) IsRecording() bool { return true }
@@ -68,7 +68,7 @@ func TestGuardIDs(T *testing.T) {
 			idArg{mealplanningkeys.MealPlanIDKey, ""},
 			idArg{mealplanningkeys.MealPlanEventIDKey, identifiers.New()},
 		)
-		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
+		require.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 		assert.Empty(t, span.attributes)
 	})
 
@@ -83,7 +83,7 @@ func TestGuardIDs(T *testing.T) {
 			idArg{mealplanningkeys.MealPlanEventIDKey, ""},
 			idArg{mealplanningkeys.MealPlanOptionIDKey, identifiers.New()},
 		)
-		assert.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
+		require.ErrorIs(t, err, platformerrors.ErrInvalidIDProvided)
 		assert.Equal(t, []attribute.KeyValue{
 			attribute.String(mealplanningkeys.MealPlanIDKey, mealPlanID),
 		}, span.attributes)

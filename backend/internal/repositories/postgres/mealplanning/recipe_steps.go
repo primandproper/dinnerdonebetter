@@ -557,7 +557,7 @@ func (q *repository) ArchiveRecipeStep(ctx context.Context, recipeID, recipeStep
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, mealplanning.RecipeStepArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:     recipeID,
 		mealplanningkeys.RecipeStepIDKey: recipeStepID,
 	}, func(tx database.Tx) error {

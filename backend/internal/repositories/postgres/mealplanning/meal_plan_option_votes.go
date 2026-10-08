@@ -280,7 +280,7 @@ func (q *repository) ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, 
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, types.MealPlanOptionVoteArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, types.MealPlanOptionVoteArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanIDKey:           mealPlanID,
 		mealplanningkeys.MealPlanEventIDKey:      mealPlanEventID,
 		mealplanningkeys.MealPlanOptionIDKey:     mealPlanOptionID,

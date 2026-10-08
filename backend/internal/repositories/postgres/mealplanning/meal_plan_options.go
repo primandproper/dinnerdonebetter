@@ -434,7 +434,7 @@ func (q *repository) ArchiveMealPlanOption(ctx context.Context, mealPlanID, meal
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, mealplanning.MealPlanOptionArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, mealplanning.MealPlanOptionArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanIDKey:       mealPlanID,
 		mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
 		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,

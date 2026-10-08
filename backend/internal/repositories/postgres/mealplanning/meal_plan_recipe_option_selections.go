@@ -20,6 +20,13 @@ var (
 	_ types.MealPlanRecipeOptionSelectionDataManager = (*repository)(nil)
 )
 
+// The keys a selection's recipe step and selection type are logged, traced and emitted under. They
+// have no entry in mealplanningkeys, and keep the spelling they have always been recorded with.
+const (
+	recipeStepIDKey  = "recipe_step_id"
+	selectionTypeKey = "selection_type"
+)
+
 // GetSelection fetches a meal plan recipe option selection from the database.
 func (q *repository) GetMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string) (*types.MealPlanRecipeOptionSelection, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
@@ -27,8 +34,8 @@ func (q *repository) GetMealPlanRecipeOptionSelection(ctx context.Context, mealP
 
 	logger, err := guardIDs(q.logger.Clone(), span,
 		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
-		idArg{"recipe_step_id", recipeStepID},
-		idArg{"selection_type", selectionType},
+		idArg{recipeStepIDKey, recipeStepID},
+		idArg{selectionTypeKey, selectionType},
 	)
 	if err != nil {
 		return nil, err
@@ -206,8 +213,8 @@ func (q *repository) UpdateMealPlanRecipeOptionSelection(ctx context.Context, me
 
 	logger, err := guardIDs(q.logger.Clone(), span,
 		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
-		idArg{"recipe_step_id", recipeStepID},
-		idArg{"selection_type", selectionType},
+		idArg{recipeStepIDKey, recipeStepID},
+		idArg{selectionTypeKey, selectionType},
 	)
 	if err != nil {
 		return err
@@ -262,18 +269,18 @@ func (q *repository) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, m
 
 	logger, err := guardIDs(q.logger.Clone(), span,
 		idArg{mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID},
-		idArg{"recipe_step_id", recipeStepID},
-		idArg{"selection_type", selectionType},
+		idArg{recipeStepIDKey, recipeStepID},
+		idArg{selectionTypeKey, selectionType},
 	)
 	if err != nil {
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-		"recipe_step_id":                     recipeStepID,
+		recipeStepIDKey:                      recipeStepID,
 		"ingredient_index":                   ingredientIndex,
-		"selection_type":                     selectionType,
+		selectionTypeKey:                     selectionType,
 	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanRecipeOptionSelection(ctx, tx, &generated.ArchiveMealPlanRecipeOptionSelectionParams{
 			MealPlanOptionID: mealPlanOptionID,

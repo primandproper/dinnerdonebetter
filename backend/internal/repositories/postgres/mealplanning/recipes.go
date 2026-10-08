@@ -1071,12 +1071,12 @@ func (q *repository) UpdateRecipeStatus(ctx context.Context, recipeID, newStatus
 	return q.withEvent(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,
 	}, func(tx database.Tx) error {
-		rowsAffected, err := q.generatedQuerier.UpdateRecipeStatus(ctx, tx, &generated.UpdateRecipeStatusParams{
+		rowsAffected, updateErr := q.generatedQuerier.UpdateRecipeStatus(ctx, tx, &generated.UpdateRecipeStatusParams{
 			Status: generated.RecipeStatus(newStatus),
 			ID:     recipeID,
 		})
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "updating recipe status")
+		if updateErr != nil {
+			return observability.PrepareAndLogError(updateErr, logger, span, "updating recipe status")
 		}
 
 		if rowsAffected == 0 {
@@ -1131,12 +1131,12 @@ func (q *repository) ArchiveRecipe(ctx context.Context, recipeID, userID string)
 	return q.withEvent(ctx, logger, mealplanning.RecipeArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,
 	}, func(tx database.Tx) error {
-		rowsAffected, err := q.generatedQuerier.ArchiveRecipe(ctx, tx, &generated.ArchiveRecipeParams{
+		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipe(ctx, tx, &generated.ArchiveRecipeParams{
 			CreatedByUser: userID,
 			ID:            recipeID,
 		})
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "archiving recipe")
+		if archiveErr != nil {
+			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving recipe")
 		}
 
 		if rowsAffected == 0 {

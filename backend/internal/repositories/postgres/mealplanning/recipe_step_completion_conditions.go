@@ -418,7 +418,7 @@ func (q *repository) ArchiveRecipeStepCompletionCondition(ctx context.Context, r
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, types.RecipeStepCompletionConditionArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, types.RecipeStepCompletionConditionArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:                        recipeID,
 		mealplanningkeys.RecipeStepIDKey:                    recipeStepID,
 		mealplanningkeys.RecipeStepCompletionConditionIDKey: recipeStepCompletionConditionID,

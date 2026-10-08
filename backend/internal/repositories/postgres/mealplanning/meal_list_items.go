@@ -215,7 +215,7 @@ func (q *repository) ArchiveMealListItem(ctx context.Context, mealListItemID, me
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, types.MealListItemArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, types.MealListItemArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealListIDKey:     mealListID,
 		mealplanningkeys.MealListItemIDKey: mealListItemID,
 	}, func(tx database.Tx) error {

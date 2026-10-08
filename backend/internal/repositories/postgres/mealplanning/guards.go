@@ -21,7 +21,8 @@ type idArg struct {
 // prologue does something else on a missing ID (a different error, no span attribute, a combined
 // check) keep their own prologue; this only names the common one.
 func guardIDs(logger logging.Logger, span tracing.Span, ids ...idArg) (logging.Logger, error) {
-	for _, id := range ids {
+	for i := range ids {
+		id := &ids[i]
 		if id.value == "" {
 			return logger, platformerrors.ErrInvalidIDProvided
 		}

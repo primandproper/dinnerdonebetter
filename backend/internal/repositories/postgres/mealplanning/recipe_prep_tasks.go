@@ -394,7 +394,7 @@ func (q *repository) ArchiveRecipePrepTask(ctx context.Context, recipeID, recipe
 		return err
 	}
 
-	if err := q.withEvent(ctx, logger, mealplanning.RecipePrepTaskArchivedServiceEventType, "", map[string]any{
+	if err = q.withEvent(ctx, logger, mealplanning.RecipePrepTaskArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:         recipeID,
 		mealplanningkeys.RecipePrepTaskIDKey: recipePrepTaskID,
 	}, func(tx database.Tx) error {
