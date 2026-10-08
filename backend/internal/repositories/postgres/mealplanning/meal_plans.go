@@ -3,21 +3,20 @@ package mealplanning
 import (
 	"context"
 	"database/sql"
-	"strings"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -27,8 +26,6 @@ const (
 
 var (
 	_ types.MealPlanDataManager = (*repository)(nil)
-
-	ErrAlreadyFinalized = platformerrors.New("meal plan already finalized")
 
 	// ErrFinalizationSagaAlreadyAttached indicates a meal plan that already has a finalization
 	// saga. It is the losing side of a race between two starters reading the same page of
@@ -144,13 +141,7 @@ func (q *repository) GetMealPlansForAccount(ctx context.Context, accountID strin
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*types.MealPlan
@@ -257,7 +248,7 @@ func (q *repository) GetMealPlanIDsVotedOnByUser(ctx context.Context, userID str
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	if len(mealPlanIDs) == 0 {
 		return []string{}, nil
@@ -364,13 +355,6 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 
 	logger := q.logger.WithValue(mealplanningkeys.MealPlanIDKey, input.ID)
 
-	status := types.MealPlanStatusFinalized
-	for _, event := range input.Events {
-		if len(event.Options) > 1 {
-			status = types.MealPlanStatusAwaitingVotes
-		}
-	}
-
 	var err error
 	var x *types.MealPlan
 	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
@@ -378,7 +362,7 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 		if err = q.generatedQuerier.CreateMealPlan(ctx, tx, &generated.CreateMealPlanParams{
 			ID:               input.ID,
 			Notes:            input.Notes,
-			Status:           generated.MealPlanStatus(status),
+			Status:           generated.MealPlanStatus(input.Status),
 			VotingDeadline:   input.VotingDeadline,
 			BelongsToAccount: input.BelongsToAccount,
 			CreatedByUser:    input.CreatedByUser,
@@ -386,20 +370,20 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			return observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 		}
 
-		if err = q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeMealPlans, input.ID, platformaudit.EventCreated)); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
 		x = &types.MealPlan{
 			ID:               input.ID,
 			Notes:            input.Notes,
-			Status:           string(status),
+			Status:           input.Status,
 			VotingDeadline:   input.VotingDeadline,
 			BelongsToAccount: input.BelongsToAccount,
 			ElectionMethod:   input.ElectionMethod,
 			CreatedAt:        q.CurrentTime(),
 			CreatedByUser:    input.CreatedByUser,
 		}
+
+		// The meal plan's entry, then one per event created with it, as CreateMealPlanEvent
+		// would have recorded each of them.
+		entries := []*platformrecording.Entry{auditEntry(resourceTypeMealPlans, input.ID, platformaudit.EventCreated)}
 
 		logger.WithValue("quantity", len(input.Events)).Info("creating events for meal plan")
 		// Map to track option ID -> meal ID for matching selections
@@ -411,6 +395,7 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 				return observability.PrepareError(createErr, span, "creating meal plan event for meal plan")
 			}
 			x.Events = append(x.Events, opt)
+			entries = append(entries, auditEntry(resourceTypeMealPlanEvents, opt.ID, platformaudit.EventCreated))
 
 			// Track option IDs and their meal IDs for selection matching
 			for _, option := range opt.Options {
@@ -488,12 +473,12 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			}
 		}
 
-		// The event is another statement in this transaction, so it lives or dies with the
-		// meal plan it describes. See internal/recordingspine.
-		if emitErr := q.emit(ctx, tx, logger, types.MealPlanCreatedServiceEventType, input.BelongsToAccount, map[string]any{
+		// The entries and the event are further statements in this transaction, so they live
+		// or die with the meal plan they describe. See internal/recordingspine.
+		if recordErr := q.record(ctx, tx, logger, types.MealPlanCreatedServiceEventType, input.BelongsToAccount, map[string]any{
 			mealplanningkeys.MealPlanIDKey: input.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing meal plan created event")
+		}, entries...); recordErr != nil {
+			return observability.PrepareError(recordErr, span, "recording meal plan creation")
 		}
 
 		return nil
@@ -537,9 +522,9 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 			return sql.ErrNoRows
 		}
 
-		return q.record(ctx, tx, logger, audit.NewEntry("", updated.BelongsToAccount, resourceTypeMealPlans, updated.ID, platformaudit.EventUpdated), types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
+		return q.record(ctx, tx, logger, types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
 			mealplanningkeys.MealPlanIDKey: updated.ID,
-		})
+		}, auditEntry(resourceTypeMealPlans, updated.ID, platformaudit.EventUpdated))
 	}); err != nil {
 		return err
 	}
@@ -583,149 +568,63 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 			return sql.ErrNoRows
 		}
 
-		return q.record(ctx, tx, logger, audit.NewEntry("", accountID, resourceTypeMealPlans, mealPlanID, platformaudit.EventArchived), types.MealPlanArchivedServiceEventType, accountID, map[string]any{
+		return q.record(ctx, tx, logger, types.MealPlanArchivedServiceEventType, accountID, map[string]any{
 			mealplanningkeys.MealPlanIDKey: mealPlanID,
-		})
+		}, auditEntry(resourceTypeMealPlans, mealPlanID, platformaudit.EventArchived))
 	})
 }
 
-// AttemptToFinalizeMealPlan finalizes a meal plan if all of its options have a selection.
-func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, accountID string) (finalized bool, err error) {
+// RecordMealPlanTally writes down what a tally decided, in one transaction: each decided event's
+// chosen option, and — when the tally finalized the plan — its status and the event announcing it.
+func (q *repository) RecordMealPlanTally(ctx context.Context, mealPlan *types.MealPlan, tally *types.MealPlanTally) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if accountID == "" {
-		return false, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
-
-	logger.Info("attempting to finalize meal plan")
-
-	members, err := identity.MembersOfAccount(ctx, q.roster, q.readDB, accountID)
-	if err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "fetching account members")
+	if mealPlan == nil || tally == nil {
+		return platformerrors.ErrNilInputParameter
 	}
 
-	// fetch meal plan
-	mealPlan, err := q.getMealPlan(ctx, mealPlanID, accountID)
-	if err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "fetching meal plan")
+	if mealPlan.ID == "" || mealPlan.BelongsToAccount == "" {
+		return platformerrors.ErrInvalidIDProvided
 	}
+	logger := q.logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlan.ID).WithValue(identitykeys.AccountIDKey, mealPlan.BelongsToAccount)
+	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlan.ID)
+	tracing.AttachToSpan(span, identitykeys.AccountIDKey, mealPlan.BelongsToAccount)
 
-	votingDeadlineHasPassed := mealPlan.VotingDeadline.Before(q.CurrentTime())
-	if strings.EqualFold(mealPlan.Status, string(types.MealPlanStatusFinalized)) {
-		return false, ErrAlreadyFinalized
-	}
-
-	usersWhoHaveNotVoted := []string{}
-	allVotesAreSubmitted := true
-	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
-		for _, event := range mealPlan.Events {
-			if len(event.Options) == 0 {
-				continue
-			}
-
-			// we load this map with false for each member of the account
-			// and then iterate through the votes and mark each voter as true
-			userHasVoted := map[string]bool{}
-			for _, memberID := range members {
-				userHasVoted[memberID] = false
-			}
-
-			alreadyChosen := false
-			for _, opt := range event.Options {
-				if opt.Chosen {
-					alreadyChosen = true
-					break
-				}
-
-				for _, vote := range opt.Votes {
-					userHasVoted[vote.ByUser] = true
-				}
-			}
-
-			// if we've previously marked an event option as chosen, then we don't need to do anything else
-			if alreadyChosen {
-				continue
-			}
-
-			for userID, hasVoted := range userHasVoted {
-				if !hasVoted {
-					allVotesAreSubmitted = false
-					usersWhoHaveNotVoted = append(usersWhoHaveNotVoted, userID)
-				}
-			}
-
-			// if we're missing votes from account members, and the deadline hasn't passed, then we can't finalize the meal plan.
-			if !allVotesAreSubmitted && !votingDeadlineHasPassed {
-				logger.WithValue("users_without_votes", usersWhoHaveNotVoted).Info("not all votes are submitted, and the voting deadline hasn't passed yet")
-				continue
-			}
-
-			// the ballot is ready to be tallied for this event
-			winner, tiebroken, chosen := q.decideOptionWinner(ctx, event.Options)
-			if chosen {
-				logger = logger.WithValue("winner", winner).WithValue("tiebroken", tiebroken)
-
-				if err = q.generatedQuerier.FinalizeMealPlanOption(ctx, tx, &generated.FinalizeMealPlanOptionParams{
-					MealPlanEventID: database.NullStringFromString(event.ID),
-					ID:              winner,
-					Tiebroken:       tiebroken,
-				}); err != nil {
-					return observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
-				}
-
-				logger.Info("finalized meal plan option")
-			} else {
-				logger.Info("no winner chosen")
+	return q.WithTransaction(ctx, func(tx database.Tx) error {
+		for _, decision := range tally.Decisions {
+			if err := q.generatedQuerier.FinalizeMealPlanOption(ctx, tx, &generated.FinalizeMealPlanOptionParams{
+				MealPlanEventID: database.NullStringFromString(decision.MealPlanEventID),
+				ID:              decision.MealPlanOptionID,
+				Tiebroken:       decision.Tiebroken,
+			}); err != nil {
+				return observability.PrepareAndLogError(err, logger, span, "choosing meal plan option")
 			}
 		}
 
-		if allVotesAreSubmitted || votingDeadlineHasPassed {
-			logger.Info("finalizing meal plan")
+		if !tally.Finalized {
+			return nil
+		}
 
-			if err = q.generatedQuerier.FinalizeMealPlan(ctx, tx, &generated.FinalizeMealPlanParams{
-				Status: generated.MealPlanStatus(types.MealPlanStatusFinalized),
-				ID:     mealPlanID,
-			}); err != nil {
-				return observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
-			}
+		if err := q.generatedQuerier.FinalizeMealPlan(ctx, tx, &generated.FinalizeMealPlanParams{
+			Status: generated.MealPlanStatus(types.MealPlanStatusFinalized),
+			ID:     mealPlan.ID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "finalizing meal plan")
+		}
 
-			// Emitted here rather than by the two callers — the manager on a user request
-			// and the finalizer job on a tick — because only this transaction knows the
-			// plan actually finalized, and only in here can the event commit with it.
-			// The account is passed explicitly: the finalizer job has no session context.
-			if emitErr := q.emit(ctx, tx, logger, types.MealPlanFinalizedServiceEventType, accountID, map[string]any{
-				mealplanningkeys.MealPlanIDKey: mealPlanID,
-				"meal_plan":                    mealPlan,
-			}); emitErr != nil {
-				return observability.PrepareError(emitErr, span, "enqueuing meal plan finalized event")
-			}
-
-			finalized = true
+		// Emitted here rather than by the two callers — the manager on a user request and the
+		// finalization saga — because only in here can the event commit with the plan it says
+		// finalized. The account is passed explicitly: the saga has no session context.
+		if err := q.emit(ctx, tx, logger, types.MealPlanFinalizedServiceEventType, mealPlan.BelongsToAccount, map[string]any{
+			mealplanningkeys.MealPlanIDKey: mealPlan.ID,
+			mealplanningkeys.MealPlanKey:   mealPlan,
+		}); err != nil {
+			return observability.PrepareError(err, span, "enqueuing meal plan finalized event")
 		}
 
 		return nil
-	}); err != nil {
-		return false, err
-	}
-
-	logger.WithValue("finalized", finalized).
-		WithValue("usersWhoHaveNotVoted", usersWhoHaveNotVoted).
-		WithValue("allVotesAreSubmitted", allVotesAreSubmitted).
-		WithValue("votingDeadlineHasPassed", votingDeadlineHasPassed).
-		Info("done attempting to finalize meal plan")
-
-	return finalized, nil
+	})
 }
 
 // GetMealPlansAwaitingFinalizationSaga gets meal plans the finalization pipeline still owes
@@ -848,59 +747,4 @@ func (q *repository) GetFinalizedMealPlanOptionsForMealPlan(ctx context.Context,
 	}
 
 	return output, nil
-}
-
-// FetchMissingVotesForMealPlan determines the missing votes for a given meal plan.
-func (q *repository) FetchMissingVotesForMealPlan(ctx context.Context, mealPlanID, accountID string) ([]*types.MissingVote, error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := q.logger.Clone()
-
-	if mealPlanID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-
-	if accountID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
-
-	members, err := identity.MembersOfAccount(ctx, q.roster, q.readDB, accountID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching account members to determine missing votes")
-	}
-
-	mealPlan, err := q.GetMealPlan(ctx, mealPlanID, accountID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plan to determine missing votes")
-	}
-
-	var missingVotes []*types.MissingVote
-	for _, event := range mealPlan.Events {
-		for _, option := range event.Options {
-			for _, memberID := range members {
-				var voteFoundForMemberForOption bool
-				for _, vote := range option.Votes {
-					if vote.ByUser == memberID {
-						voteFoundForMemberForOption = true
-						break
-					}
-				}
-
-				if !voteFoundForMemberForOption {
-					missingVotes = append(missingVotes, &types.MissingVote{
-						EventID:  event.ID,
-						OptionID: option.ID,
-						UserID:   memberID,
-					})
-				}
-			}
-		}
-	}
-
-	return missingVotes, nil
 }

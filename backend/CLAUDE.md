@@ -18,7 +18,7 @@ make integration_tests  # Run integration tests against Postgres
 ```bash
 make querier    # Regenerate SQL query code (codegen + sqlc via Docker — NOT `sqlc generate`)
 make configs    # Regenerate config structs per environment
-make env_vars   # Regenerate valid environment variable constants
+make env_vars   # Regenerate .env.example from the config structs
 make proto      # Generate proto (run from repo root, not backend/)
 ```
 

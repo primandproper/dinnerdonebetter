@@ -39,7 +39,6 @@ import (
 	notificationsprivacy "github.com/primandproper/platform-go/v15/notifications/privacy"
 	settingsprivacy "github.com/primandproper/platform-go/v15/settings/privacy"
 	waitlistsprivacy "github.com/primandproper/platform-go/v15/waitlists/privacy"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // Registration keys. These become section names in the export artifact and
@@ -112,22 +111,3 @@ const (
 // not acquire a dependency on the identity domain to get it. The build layer
 // supplies the implementation, and each collector takes exactly what it needs.
 type AccountIDResolver func(ctx context.Context, userID string) ([]string, error)
-
-// UnconfinedScope is the tenancy scope this application files privacy requests under: none.
-//
-// A privacy request is about a person, not about a tenant. The subject is the user, the
-// artifact is theirs, and a request submitted while one account was active still covers
-// everything held about them — so there is no account to file it under.
-//
-// "No tenant" is the zero Scope rather than tenancy.Global, and the two are different
-// answers here in a way they are not everywhere else. platform refuses a global privacy
-// request outright, with ErrGlobalRequestScope: the global scope is the chain
-// platform-level events are recorded in, and a request about a person is not one of those.
-// The zero Scope is what it reads as unconfined, and it maps that back to Global itself
-// when it comes to record the request's own audit entry — see dataprivacy.auditScope.
-//
-// The reads spell the same thing differently, and that is platform's shape rather than a
-// slip here: they take a *tenancy.Scope where nil narrows nothing, and a non-nil pointer at
-// the zero Scope is refused as a caller whose own lookup came back empty. So a write passes
-// this and a read passes nil.
-func UnconfinedScope() tenancy.Scope { return tenancy.Scope{} }

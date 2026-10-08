@@ -9,7 +9,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
-	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/platform-go/v15/outbox"
 	platformrecording "github.com/primandproper/platform-go/v15/recording"
@@ -17,7 +16,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -27,19 +25,21 @@ const (
 // repository is the meal planning repository implementation.
 //
 // Every write announces itself through platform's recording spine, on the write's own
-// transaction: emitter for an event alone, recorder for an audit entry and the event describing
-// the same write, and writer's EnqueueDerived for an index event alone. The one thing this
-// application adds to them is the payload, which datachanges.Event builds.
+// transaction: emitter for an event alone (withEvent, emit), recorder for audit entries and the
+// event describing the same write (withRecord, record), and writer's EnqueueDerived for an index
+// event alone (emitIndex). The one thing this application adds to them is the payload, which
+// datachanges.Event builds.
+//
+// TestEveryWriteIsRecorded holds every exported write to that, and names the few that are
+// bookkeeping rather than change — and so deliberately announce nothing — with the reason.
 type repository struct {
 	database.Client
-	tracer            tracing.Tracer
-	logger            logging.Logger
-	generatedQuerier  generated.Querier
-	roster            platformidentity.DirectoryReader
-	auditLogEntryRepo audit.Repository
-	emitter           *webhooks.Emitter
-	recorder          *platformrecording.Recorder
-	writer            *outbox.Writer
+	tracer           tracing.Tracer
+	logger           logging.Logger
+	generatedQuerier generated.Querier
+	emitter          *webhooks.Emitter
+	recorder         *platformrecording.Recorder
+	writer           *outbox.Writer
 
 	// uploads answers what a bridge row's uploaded_media_id names. The media
 	// itself lives in platform-go's upload registry, whose table this repository's
@@ -55,12 +55,11 @@ type repository struct {
 //
 // emitter, recorder and writer are platform's recording spine — see internal/recordingspine for
 // how a process builds them. They are the same three in every process, and a write made through a
-// repository built without them fails rather than writing a row nothing announced.
+// repository built without them fails rather than writing a row nothing announced. The writes
+// exempt from announcing are named, with their reasons, in TestEveryWriteIsRecorded.
 func ProvideMealPlanningRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-	auditLogEntryRepo audit.Repository,
-	roster platformidentity.DirectoryReader,
 	client database.Client,
 	emitter *webhooks.Emitter,
 	recorder *platformrecording.Recorder,
@@ -70,18 +69,16 @@ func ProvideMealPlanningRepository(
 	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
 
 	c := &repository{
-		Client:            client,
-		readDB:            client.Reader(),
-		writeDB:           client.Writer(),
-		tracer:            tracer,
-		generatedQuerier:  generated.New(),
-		auditLogEntryRepo: auditLogEntryRepo,
-		roster:            roster,
-		emitter:           emitter,
-		recorder:          recorder,
-		writer:            writer,
-		uploads:           uploads,
-		logger:            logging.NewNamedLogger(logger, o11yName),
+		Client:           client,
+		readDB:           client.Reader(),
+		writeDB:          client.Writer(),
+		tracer:           tracer,
+		generatedQuerier: generated.New(),
+		emitter:          emitter,
+		recorder:         recorder,
+		writer:           writer,
+		uploads:          uploads,
+		logger:           logging.NewNamedLogger(logger, o11yName),
 	}
 
 	return c
@@ -120,33 +117,53 @@ func (q *repository) emit(ctx context.Context, tx database.Tx, logger logging.Lo
 	return q.emitter.Emit(ctx, tx, datachanges.Scope(msg.AccountID), event)
 }
 
-// record writes entry to the audit log and publishes the event describing the same write, both
+// withRecord is withEvent for the writes that are audited as well as announced: the audit entry,
+// the event and the write share one transaction, so none of the three survives without the others.
+func (q *repository) withRecord(
+	ctx context.Context,
+	logger logging.Logger,
+	entry *platformrecording.Entry,
+	eventType, accountID string,
+	metadata map[string]any,
+	write func(tx database.Tx) error,
+) error {
+	return q.WithTransaction(ctx, func(tx database.Tx) error {
+		if err := write(tx); err != nil {
+			return err
+		}
+
+		return q.record(ctx, tx, logger, eventType, accountID, metadata, entry)
+	})
+}
+
+// record writes entries to the audit log and publishes the event describing the same write, all
 // on tx, through platform's Recorder. Who did it is the principal on the context.
 //
-// The entry is one audit.NewEntry built: its Scope is the chain this application's attribution
-// rule chose for it, and the event fans out within that same scope.
+// The event and the entries share one scope, because platform's Recorder takes one: the chain
+// audit.ScopeFor files the event's account and actor under, so an entry lands in the account
+// whose subscribers hear about it, and in the actor's own chain when the write happened in no
+// account. accountID is resolved exactly as emit resolves it; see datachanges.Event.
 func (q *repository) record(
 	ctx context.Context,
 	tx database.Tx,
 	logger logging.Logger,
-	entry *platformaudit.Entry,
 	eventType, accountID string,
 	metadata map[string]any,
+	entries ...*platformrecording.Entry,
 ) error {
 	event, msg := datachanges.Event(ctx, logger, eventType, accountID, metadata)
 
-	scope := entry.Scope
-	if scope == (tenancy.Scope{}) {
-		scope = datachanges.Scope(msg.AccountID)
-	}
+	return q.recorder.Record(ctx, tx, audit.ScopeFor(msg.AccountID, msg.UserID), event, entries...)
+}
 
-	return q.recorder.Record(ctx, tx, scope, event, &platformrecording.Entry{
-		ResourceType: entry.ResourceType,
-		ResourceID:   entry.ResourceID,
-		EventType:    entry.EventType,
-		Changes:      entry.Changes,
-		Metadata:     entry.Metadata,
-	})
+// auditEntry is the caller-supplied half of an audit entry, which is all platform's Recorder
+// takes: the actor comes off the context, and the scope off the event; see record.
+func auditEntry(resourceType, resourceID string, eventType platformaudit.EventType) *platformrecording.Entry {
+	return &platformrecording.Entry{
+		ResourceType: resourceType,
+		ResourceID:   resourceID,
+		EventType:    eventType,
+	}
 }
 
 // emitIndex enqueues the index events a trigger implies, without announcing anything.

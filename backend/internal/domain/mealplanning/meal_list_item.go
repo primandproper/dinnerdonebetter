@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -10,11 +9,14 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-func init() {
-	gob.Register(new(MealListItem))
-	gob.Register(new(MealListItemCreationRequestInput))
-	gob.Register(new(MealListItemUpdateRequestInput))
-}
+const (
+	// MealListItemCreatedServiceEventType indicates a meal list item was created.
+	MealListItemCreatedServiceEventType = "meal_list_item_created"
+	// MealListItemUpdatedServiceEventType indicates a meal list item was updated.
+	MealListItemUpdatedServiceEventType = "meal_list_item_updated"
+	// MealListItemArchivedServiceEventType indicates a meal list item was archived.
+	MealListItemArchivedServiceEventType = "meal_list_item_archived"
+)
 
 type (
 	// MealListItem represents a single entry in a meal list.

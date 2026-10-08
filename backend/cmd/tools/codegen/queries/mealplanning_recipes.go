@@ -88,6 +88,28 @@ func buildRecipesQueries(database string) []*Query {
 					)),
 				},
 				{
+					// The owner-scoped existence check a write to a recipe's children asks
+					// before it touches them. A recipe is readable by anyone; only its
+					// author may change what it is made of.
+					Annotation: QueryAnnotation{
+						Name: "CheckRecipeOwnership",
+						Type: OneType,
+					},
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
+	SELECT %s.%s
+	FROM %s
+	WHERE %s.%s IS NULL
+		AND %s.%s = sqlc.arg(%s)
+		AND %s.%s = sqlc.arg(%s)
+);`,
+						recipesTableName, idColumn,
+						recipesTableName,
+						recipesTableName, archivedAtColumn,
+						recipesTableName, idColumn, idColumn,
+						recipesTableName, createdByUserColumn, createdByUserColumn,
+					)),
+				},
+				{
 					Annotation: QueryAnnotation{
 						Name: "GetRecipeByID",
 						Type: ManyType,

@@ -33,6 +33,7 @@ import (
 
 	"github.com/primandproper/platform-go/v15/service"
 	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
+	"github.com/primandproper/primitives-go/v2/clock"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
 
 	"github.com/samber/do/v2"
@@ -67,6 +68,7 @@ func BuildInjector(
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
+	do.ProvideValue[clock.Clock](i, clock.NewClock())
 
 	service.Register(i, &cfg.Service)
 
@@ -79,7 +81,7 @@ func BuildInjector(
 	// is the cost of moving the gather off the message queue and onto a claimed row: the
 	// process that claims has to be able to answer. It is paid once at startup — the pools and
 	// the tracer are constructed here regardless — rather than per request.
-	auditlogentries.RegisterAuditLogRepository(i)
+	auditlogentries.RegisterAuditLog(i)
 	auditlogentries.RegisterPlatformReader(i)
 	// And the recorder, which the recording spine registered below files every write's
 	// entry through.

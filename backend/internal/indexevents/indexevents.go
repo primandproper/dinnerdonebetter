@@ -45,8 +45,8 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	"github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
@@ -89,57 +89,57 @@ var rules = []searchsync.Rule{
 	rule(identity.EventUserArchived.String(), identityindexing.IndexTypeUsers, "userID", searchsync.OpDelete),
 
 	// Meals.
-	rule(types.MealCreatedServiceEventType, mealplanningindexing.IndexTypeMeals, mealplanningkeys.MealIDKey, searchsync.OpUpsert),
-	rule(types.MealArchivedServiceEventType, mealplanningindexing.IndexTypeMeals, mealplanningkeys.MealIDKey, searchsync.OpDelete),
+	rule(types.MealCreatedServiceEventType, searchindex.IndexTypeMeals, mealplanningkeys.MealIDKey, searchsync.OpUpsert),
+	rule(types.MealArchivedServiceEventType, searchindex.IndexTypeMeals, mealplanningkeys.MealIDKey, searchsync.OpDelete),
 
 	// Recipes, and everything under them. The indexed recipe document embeds each step's
 	// preparation name and the names of its ingredients, instruments and vessels, so a write to
 	// any of those reindexes the recipe — which is why every row here reads RecipeIDKey, and why
 	// archiving a sub-entity is an upsert.
-	rule(types.RecipeCreatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeUpdatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeArchivedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpDelete),
+	rule(types.RecipeCreatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpDelete),
 
-	rule(RecipeStepCreatedIndexTrigger, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepUpdatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepArchivedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(RecipeStepCreatedIndexTrigger, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
 
-	rule(types.RecipeStepIngredientCreatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepIngredientUpdatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepIngredientArchivedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepIngredientCreatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepIngredientUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepIngredientArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
 
-	rule(types.RecipeStepInstrumentCreatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepInstrumentUpdatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepInstrumentArchivedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepInstrumentCreatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepInstrumentUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepInstrumentArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
 
-	rule(types.RecipeStepVesselCreatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepVesselUpdatedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
-	rule(types.RecipeStepVesselArchivedServiceEventType, mealplanningindexing.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepVesselCreatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepVesselUpdatedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
+	rule(types.RecipeStepVesselArchivedServiceEventType, searchindex.IndexTypeRecipes, mealplanningkeys.RecipeIDKey, searchsync.OpUpsert),
 
 	// The catalog entities, each its own index and its own document.
-	rule(types.ValidIngredientCreatedServiceEventType, mealplanningindexing.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpUpsert),
-	rule(types.ValidIngredientUpdatedServiceEventType, mealplanningindexing.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpUpsert),
-	rule(types.ValidIngredientArchivedServiceEventType, mealplanningindexing.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpDelete),
+	rule(types.ValidIngredientCreatedServiceEventType, searchindex.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpUpsert),
+	rule(types.ValidIngredientUpdatedServiceEventType, searchindex.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpUpsert),
+	rule(types.ValidIngredientArchivedServiceEventType, searchindex.IndexTypeValidIngredients, mealplanningkeys.ValidIngredientIDKey, searchsync.OpDelete),
 
-	rule(types.ValidIngredientStateCreatedServiceEventType, mealplanningindexing.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpUpsert),
-	rule(types.ValidIngredientStateUpdatedServiceEventType, mealplanningindexing.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpUpsert),
-	rule(types.ValidIngredientStateArchivedServiceEventType, mealplanningindexing.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpDelete),
+	rule(types.ValidIngredientStateCreatedServiceEventType, searchindex.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpUpsert),
+	rule(types.ValidIngredientStateUpdatedServiceEventType, searchindex.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpUpsert),
+	rule(types.ValidIngredientStateArchivedServiceEventType, searchindex.IndexTypeValidIngredientStates, mealplanningkeys.ValidIngredientStateIDKey, searchsync.OpDelete),
 
-	rule(types.ValidInstrumentCreatedServiceEventType, mealplanningindexing.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpUpsert),
-	rule(types.ValidInstrumentUpdatedServiceEventType, mealplanningindexing.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpUpsert),
-	rule(types.ValidInstrumentArchivedServiceEventType, mealplanningindexing.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpDelete),
+	rule(types.ValidInstrumentCreatedServiceEventType, searchindex.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpUpsert),
+	rule(types.ValidInstrumentUpdatedServiceEventType, searchindex.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpUpsert),
+	rule(types.ValidInstrumentArchivedServiceEventType, searchindex.IndexTypeValidInstruments, mealplanningkeys.ValidInstrumentIDKey, searchsync.OpDelete),
 
-	rule(types.ValidMeasurementUnitCreatedServiceEventType, mealplanningindexing.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpUpsert),
-	rule(types.ValidMeasurementUnitUpdatedServiceEventType, mealplanningindexing.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpUpsert),
-	rule(types.ValidMeasurementUnitArchivedServiceEventType, mealplanningindexing.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpDelete),
+	rule(types.ValidMeasurementUnitCreatedServiceEventType, searchindex.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpUpsert),
+	rule(types.ValidMeasurementUnitUpdatedServiceEventType, searchindex.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpUpsert),
+	rule(types.ValidMeasurementUnitArchivedServiceEventType, searchindex.IndexTypeValidMeasurementUnits, mealplanningkeys.ValidMeasurementUnitIDKey, searchsync.OpDelete),
 
-	rule(types.ValidPreparationCreatedServiceEventType, mealplanningindexing.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpUpsert),
-	rule(types.ValidPreparationUpdatedServiceEventType, mealplanningindexing.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpUpsert),
-	rule(types.ValidPreparationArchivedServiceEventType, mealplanningindexing.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpDelete),
+	rule(types.ValidPreparationCreatedServiceEventType, searchindex.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpUpsert),
+	rule(types.ValidPreparationUpdatedServiceEventType, searchindex.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpUpsert),
+	rule(types.ValidPreparationArchivedServiceEventType, searchindex.IndexTypeValidPreparations, mealplanningkeys.ValidPreparationIDKey, searchsync.OpDelete),
 
-	rule(types.ValidVesselCreatedServiceEventType, mealplanningindexing.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpUpsert),
-	rule(types.ValidVesselUpdatedServiceEventType, mealplanningindexing.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpUpsert),
-	rule(types.ValidVesselArchivedServiceEventType, mealplanningindexing.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpDelete),
+	rule(types.ValidVesselCreatedServiceEventType, searchindex.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpUpsert),
+	rule(types.ValidVesselUpdatedServiceEventType, searchindex.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpUpsert),
+	rule(types.ValidVesselArchivedServiceEventType, searchindex.IndexTypeValidVessels, mealplanningkeys.ValidVesselIDKey, searchsync.OpDelete),
 }
 
 // Rules is the table, as a fresh slice: platform validates and keeps what it is handed, and a

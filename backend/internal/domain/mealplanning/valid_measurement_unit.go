@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -24,12 +23,6 @@ const (
 var (
 	errMustBeEitherMetricOrImperial = errors.New("cannot be both metric and imperial")
 )
-
-func init() {
-	gob.Register(new(ValidMeasurementUnit))
-	gob.Register(new(ValidMeasurementUnitCreationRequestInput))
-	gob.Register(new(ValidMeasurementUnitUpdateRequestInput))
-}
 
 type (
 	/*
@@ -53,25 +46,6 @@ type (
 		Universal     bool       `json:"universal"`
 		Metric        bool       `json:"metric"`
 		Imperial      bool       `json:"imperial"`
-	}
-
-	// NullableValidMeasurementUnit represents a nullable valid measurement unit.
-	NullableValidMeasurementUnit struct {
-		_ struct{} `json:"-"`
-
-		CreatedAt     *time.Time
-		LastUpdatedAt *time.Time
-		ArchivedAt    *time.Time
-		Name          *string
-		IconPath      *string
-		ID            *string
-		Description   *string
-		PluralName    *string
-		Slug          *string
-		Volumetric    *bool
-		Universal     *bool
-		Metric        *bool
-		Imperial      *bool
 	}
 
 	// ValidMeasurementUnitCreationRequestInput represents what a user could set as input for creating valid measurement units.

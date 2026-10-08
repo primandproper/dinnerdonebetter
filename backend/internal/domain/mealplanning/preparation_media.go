@@ -7,6 +7,11 @@ import (
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 )
 
+const (
+	// PreparationMediaCreatedServiceEventType indicates media was added to a valid preparation.
+	PreparationMediaCreatedServiceEventType = "preparation_media_created"
+)
+
 // PreparationMediaRow represents a row from preparation_media table.
 type PreparationMediaRow struct {
 	CreatedAt          time.Time

@@ -39,3 +39,20 @@ func MembersOfAccount(
 
 	return members, nil
 }
+
+// AccountRoster reads account rosters through one directory and one query executor, for a
+// caller that wants the roster without carrying either.
+type AccountRoster struct {
+	directory platformidentity.DirectoryReader
+	q         database.SQLQueryExecutor
+}
+
+// NewAccountRoster returns an AccountRoster over directory, reading through q.
+func NewAccountRoster(directory platformidentity.DirectoryReader, q database.SQLQueryExecutor) *AccountRoster {
+	return &AccountRoster{directory: directory, q: q}
+}
+
+// MembersOfAccount reads the ids of every user in an account.
+func (r *AccountRoster) MembersOfAccount(ctx context.Context, accountID string) ([]string, error) {
+	return MembersOfAccount(ctx, r.directory, r.q, accountID)
+}

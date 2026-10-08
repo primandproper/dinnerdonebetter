@@ -8,6 +8,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
+	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
@@ -166,14 +167,9 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 	require.NoError(t, err)
 	_, err = dbc.GetFinalizedMealPlanOptionsForMealPlan(ctx, createdMealPlans[0].ID)
 	require.NoError(t, err)
-	_, err = dbc.FetchMissingVotesForMealPlan(ctx, createdMealPlans[0].ID, accountID)
-	require.NoError(t, err)
 
 	// delete
 	for _, mealPlan := range createdMealPlans {
-		_, err = dbc.AttemptToFinalizeMealPlan(ctx, mealPlan.ID, accountID)
-		require.Error(t, err)
-		require.ErrorIs(t, err, ErrAlreadyFinalized)
 		require.NoError(t, dbc.ArchiveMealPlan(ctx, mealPlan.ID, accountID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, dbc, accountID, []pgtesting.ExpectedAuditEntry{
@@ -286,20 +282,9 @@ func TestQuerier_Integration_GetChosenMealNamesForMealPlans(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotContains(t, names, event.ID)
 
-	// FinalizeMealPlanOption runs the election rather than just setting a flag, so it
-	// needs a vote from every member of the account before it will choose anything.
-	for i, opt := range event.Options {
-		vote := fakes.BuildFakeMealPlanOptionVote()
-		vote.BelongsToMealPlanOption = opt.ID
-		vote.ByUser = user.ID
-		vote.Abstain = false
-		vote.Rank = uint8(i)
-		createMealPlanOptionVoteForTest(t, ctx, created.ID, event.ID, vote, dbc)
-	}
-
-	chosen, err := dbc.FinalizeMealPlanOption(ctx, created.ID, event.ID, option.ID, account.ID)
-	require.NoError(t, err)
-	require.True(t, chosen, "the election did not settle on an option")
+	require.NoError(t, dbc.RecordMealPlanTally(ctx, created, &types.MealPlanTally{
+		Decisions: []*types.MealPlanEventDecision{{MealPlanEventID: event.ID, MealPlanOptionID: option.ID}},
+	}))
 
 	names, err = dbc.GetChosenMealNamesForMealPlans(ctx, []string{created.ID})
 	require.NoError(t, err)
@@ -313,6 +298,74 @@ func TestQuerier_Integration_GetChosenMealNamesForMealPlans(t *testing.T) {
 	names, err = dbc.GetChosenMealNamesForMealPlans(ctx, nil)
 	require.NoError(t, err)
 	assert.Empty(t, names)
+}
+
+// RecordMealPlanTally decides nothing: these pin that it writes down exactly what it was handed.
+func TestQuerier_Integration_RecordMealPlanTally(t *testing.T) {
+	t.Run("finalizing", func(t *testing.T) {
+		ctx := t.Context()
+		dbc, _ := buildDatabaseClientForTest(t)
+
+		user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+		account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+		recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+		meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+		otherMeal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+		exampleMealPlan := buildContestedMealPlanForIntegrationTest(user.ID, meal, otherMeal)
+		exampleMealPlan.BelongsToAccount = account.ID
+		created := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+		event := created.Events[0]
+		winner := event.Options[1]
+
+		require.NoError(t, dbc.RecordMealPlanTally(ctx, created, &types.MealPlanTally{
+			Decisions: []*types.MealPlanEventDecision{{MealPlanEventID: event.ID, MealPlanOptionID: winner.ID, Tiebroken: true}},
+			Finalized: true,
+		}))
+
+		finalized, err := dbc.GetMealPlan(ctx, created.ID, account.ID)
+		require.NoError(t, err)
+		assert.Equal(t, string(types.MealPlanStatusFinalized), finalized.Status)
+		for _, option := range finalized.Events[0].Options {
+			assert.Equal(t, option.ID == winner.ID, option.Chosen, "option %s", option.ID)
+		}
+
+		msgs := decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+		finalizedEvent := findEvent(msgs, types.MealPlanFinalizedServiceEventType)
+		require.NotNil(t, finalizedEvent, "no finalized event was enqueued")
+		assert.Equal(t, account.ID, finalizedEvent.AccountID)
+		assert.Equal(t, created.ID, finalizedEvent.Context[mealplanningkeys.MealPlanIDKey])
+	})
+
+	t.Run("choosing without finalizing", func(t *testing.T) {
+		ctx := t.Context()
+		dbc, _ := buildDatabaseClientForTest(t)
+
+		user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+		account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+		recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+		meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+		otherMeal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+		exampleMealPlan := buildContestedMealPlanForIntegrationTest(user.ID, meal, otherMeal)
+		exampleMealPlan.BelongsToAccount = account.ID
+		created := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+		event := created.Events[0]
+
+		require.NoError(t, dbc.RecordMealPlanTally(ctx, created, &types.MealPlanTally{
+			Decisions: []*types.MealPlanEventDecision{{MealPlanEventID: event.ID, MealPlanOptionID: event.Options[0].ID}},
+		}))
+
+		stillOpen, err := dbc.GetMealPlan(ctx, created.ID, account.ID)
+		require.NoError(t, err)
+		assert.Equal(t, string(types.MealPlanStatusAwaitingVotes), stillOpen.Status)
+		assert.True(t, stillOpen.Events[0].Options[0].Chosen)
+
+		msgs := decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+		assert.Nil(t, findEvent(msgs, types.MealPlanFinalizedServiceEventType))
+	})
 }
 
 func TestQuerier_Integration_GetMealPlanIDsVotedOnByUser(t *testing.T) {
@@ -482,64 +535,6 @@ func TestQuerier_ArchiveMealPlan(T *testing.T) {
 		c := buildInertClientForTest(t)
 
 		assert.Error(t, c.ArchiveMealPlan(ctx, exampleMealPlan.ID, ""))
-	})
-}
-
-func TestQuerier_AttemptToFinalizeCompleteMealPlan(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with invalid meal plan MealPlanTaskID", func(t *testing.T) {
-		t.Parallel()
-
-		exampleAccountID := fake.BuildFakeID()
-		ctx := t.Context()
-
-		c := buildInertClientForTest(t)
-
-		actual, err := c.AttemptToFinalizeMealPlan(ctx, "", exampleAccountID)
-		assert.False(t, actual)
-		assert.Error(t, err)
-	})
-
-	T.Run("with invalid account MealPlanTaskID", func(t *testing.T) {
-		t.Parallel()
-
-		exampleMealPlan := fakes.BuildFakeMealPlan()
-		ctx := t.Context()
-
-		c := buildInertClientForTest(t)
-
-		actual, err := c.AttemptToFinalizeMealPlan(ctx, exampleMealPlan.ID, "")
-		assert.False(t, actual)
-		assert.Error(t, err)
-	})
-}
-
-func TestQuerier_FetchMissingVotesForMealPlan(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with missing meal plan MealPlanTaskID", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-		exampleAccountID := fake.BuildFakeID()
-
-		actual, err := c.FetchMissingVotesForMealPlan(ctx, "", exampleAccountID)
-		require.Error(t, err)
-		assert.Nil(t, actual)
-	})
-
-	T.Run("with missing account MealPlanTaskID", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-		exampleMealPlan := fakes.BuildFakeMealPlan()
-
-		actual, err := c.FetchMissingVotesForMealPlan(ctx, exampleMealPlan.ID, "")
-		require.Error(t, err)
-		assert.Nil(t, actual)
 	})
 }
 

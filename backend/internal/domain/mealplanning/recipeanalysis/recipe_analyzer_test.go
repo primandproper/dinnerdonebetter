@@ -13,8 +13,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
 )
 
 func newAnalyzerForTest(t *testing.T) *recipeAnalyzer {
@@ -1025,84 +1023,5 @@ func TestRecipeAnalyzer_ValidateRecipeCreationRequestInputIsDAG(T *testing.T) {
 
 		err := g.ValidateRecipeCreationRequestInputIsDAG(ctx, input)
 		assert.NoError(t, err)
-	})
-}
-
-func TestFindUnitigsByLength(T *testing.T) {
-	T.Parallel()
-
-	T.Run("example graph", func(t *testing.T) {
-		t.Parallel()
-
-		g := simple.NewDirectedGraph()
-
-		// Helper to add edges using character aliases
-		addEdge := func(u, v rune) {
-			uid, vid := int64(u), int64(v)
-			if g.Node(uid) == nil {
-				g.AddNode(simple.Node(uid))
-			}
-			if g.Node(vid) == nil {
-				g.AddNode(simple.Node(vid))
-			}
-			g.SetEdge(g.NewEdge(g.Node(uid), g.Node(vid)))
-		}
-
-		// Reconstruct the Mermaid graph
-		// Path 1
-		addEdge('A', 'B')
-		addEdge('B', 'C')
-		addEdge('C', 'G')
-		// Path 2
-		addEdge('D', 'E')
-		addEdge('E', 'F')
-		addEdge('F', 'G')
-		// Central Chain
-		addEdge('G', 'H')
-		addEdge('H', 'I')
-		addEdge('I', 'J')
-		addEdge('J', 'K')
-		// Split 1
-		addEdge('K', 'L')
-		addEdge('L', 'M')
-		addEdge('M', 'N')
-		addEdge('N', 'R')
-		// Split 2
-		addEdge('K', 'O')
-		addEdge('O', 'P')
-		addEdge('P', 'Q')
-		addEdge('Q', 'R')
-
-		res := FindUnitigsByLength(g)
-
-		// Length 3: [A-B-C-G], [D-E-F-G] (2 chains)
-		// Length 4: [G-H-I-J-K], [K-L-M-N-R], [K-O-P-Q-R] (3 chains)
-		expected := map[int][][]graph.Node{
-			5: {
-				{
-					g.Node(int64('G')),
-					g.Node(int64('H')),
-					g.Node(int64('I')),
-					g.Node(int64('J')),
-					g.Node(int64('K')),
-				},
-			},
-			4: {
-				{
-					g.Node(int64('A')),
-					g.Node(int64('B')),
-					g.Node(int64('C')),
-					g.Node(int64('G')),
-				},
-				{
-					g.Node(int64('D')),
-					g.Node(int64('E')),
-					g.Node(int64('F')),
-					g.Node(int64('G')),
-				},
-			},
-		}
-
-		assert.Equal(t, expected, res)
 	})
 }

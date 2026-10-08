@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -11,13 +10,11 @@ import (
 const (
 	// RecipeMediaCreatedServiceEventType indicates recipe media was created.
 	RecipeMediaCreatedServiceEventType = "recipe_media_created"
+	// RecipeMediaUpdatedServiceEventType indicates recipe media was updated.
+	RecipeMediaUpdatedServiceEventType = "recipe_media_updated"
+	// RecipeMediaArchivedServiceEventType indicates recipe media was archived.
+	RecipeMediaArchivedServiceEventType = "recipe_media_archived"
 )
-
-func init() {
-	gob.Register(new(RecipeMedia))
-	gob.Register(new(RecipeMediaCreationRequestInput))
-	gob.Register(new(RecipeMediaUpdateRequestInput))
-}
 
 type (
 	// RecipeMedia represents recipe media.

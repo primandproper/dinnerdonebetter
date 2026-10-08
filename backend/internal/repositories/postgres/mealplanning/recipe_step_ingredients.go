@@ -306,13 +306,7 @@ func (q *repository) GetRecipeStepIngredients(ctx context.Context, recipeID, rec
 	logger = logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -512,21 +506,10 @@ func (q *repository) CreateRecipeStepIngredient(ctx context.Context, recipeID st
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
-	// Get the recipe ID from the step
-	step, err := q.getRecipeStepByID(ctx, q.readDB, input.BelongsToRecipeStep)
-	if err != nil {
-		return nil, observability.PrepareError(err, span, "fetching recipe step")
-	}
-
-	// Validate no circular dependency if this ingredient has a cross-recipe reference
-	if err = q.validateNoCircularDependencyForIngredient(ctx, step.BelongsToRecipe, input.RecipeStepProductRecipeID); err != nil {
-		return nil, observability.PrepareError(err, span, "validating ingredient dependencies")
-	}
-
 	var created *mealplanning.RecipeStepIngredient
 
 	// The write and its event share a transaction.
-	if err = q.withEvent(ctx, q.logger, mealplanning.RecipeStepIngredientCreatedServiceEventType, "", map[string]any{
+	if err := q.withEvent(ctx, q.logger, mealplanning.RecipeStepIngredientCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:               recipeID,
 		mealplanningkeys.RecipeStepIDKey:           input.BelongsToRecipeStep,
 		mealplanningkeys.RecipeStepIngredientIDKey: input.ID,
@@ -553,23 +536,12 @@ func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, recipeID st
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepIngredientIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIngredientIDKey, updated.ID)
 
-	// Get the recipe ID from the step
-	step, err := q.getRecipeStepByID(ctx, q.readDB, updated.BelongsToRecipeStep)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching recipe step")
-	}
-
-	// Validate no circular dependency if this ingredient has a cross-recipe reference
-	if err = q.validateNoCircularDependencyForIngredient(ctx, step.BelongsToRecipe, updated.RecipeStepProductRecipeID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "validating ingredient dependencies")
-	}
-
 	var ingredientID *string
 	if updated.Ingredient != nil {
 		ingredientID = &updated.Ingredient.ID
 	}
 
-	if err = q.withEvent(ctx, logger, mealplanning.RecipeStepIngredientUpdatedServiceEventType, "", map[string]any{
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepIngredientUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:               recipeID,
 		mealplanningkeys.RecipeStepIDKey:           updated.BelongsToRecipeStep,
 		mealplanningkeys.RecipeStepIngredientIDKey: updated.ID,

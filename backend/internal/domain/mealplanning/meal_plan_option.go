@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -20,12 +19,6 @@ const (
 	// MealPlanOptionFinalizedCreatedServiceEventType indicates a meal plan option was finalized.
 	MealPlanOptionFinalizedCreatedServiceEventType = "meal_plan_option_finalized"
 )
-
-func init() {
-	gob.Register(new(MealPlanOption))
-	gob.Register(new(MealPlanOptionCreationRequestInput))
-	gob.Register(new(MealPlanOptionUpdateRequestInput))
-}
 
 type (
 	// MealPlanOption represents a meal plan option.
@@ -93,7 +86,6 @@ type (
 		CreateMealPlanOption(ctx context.Context, input *MealPlanOptionDatabaseCreationInput) (*MealPlanOption, error)
 		UpdateMealPlanOption(ctx context.Context, updated *MealPlanOption) error
 		ArchiveMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) error
-		FinalizeMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, accountID string) (changed bool, err error)
 	}
 )
 

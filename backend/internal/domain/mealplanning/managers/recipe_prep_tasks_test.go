@@ -2,6 +2,7 @@ package managers
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -54,21 +55,44 @@ func TestRecipeManager_CreateRecipePrepTask(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipePrepTask()
 		fakeInput := fakes.BuildFakeRecipePrepTaskCreationRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
 			CreateRecipePrepTaskFunc: func(_ context.Context, _ *types.RecipePrepTaskDatabaseCreationInput) (*types.RecipePrepTask, error) {
 				return expected, nil
 			},
 		}
 		attachRepositoryToManager(rm, db)
 
-		actual, err := rm.CreateRecipePrepTask(ctx, exampleRecipeID, fakeInput)
+		actual, err := rm.CreateRecipePrepTask(ctx, exampleRecipeID, exampleOwnerID, fakeInput)
 		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 
 		assert.Len(t, db.CreateRecipePrepTaskCalls(), 1)
+	})
+
+	T.Run("with a caller who does not own the recipe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		actual, err := rm.CreateRecipePrepTask(ctx, exampleRecipeID, exampleOwnerID, fakes.BuildFakeRecipePrepTaskCreationRequestInput())
+		require.ErrorIs(t, err, sql.ErrNoRows)
+		assert.Nil(t, actual)
+
+		assert.Empty(t, db.CreateRecipePrepTaskCalls())
 	})
 }
 
@@ -112,10 +136,12 @@ func TestRecipeManager_UpdateRecipePrepTask(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
 		exampleRecipePrepTask := fakes.BuildFakeRecipePrepTask()
 		exampleInput := fakes.BuildFakeRecipePrepTaskUpdateRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
 			GetRecipePrepTaskFunc: func(_ context.Context, recipeID string, recipePrepTaskID string) (*types.RecipePrepTask, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipePrepTask.ID, recipePrepTaskID)
@@ -128,10 +154,31 @@ func TestRecipeManager_UpdateRecipePrepTask(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		require.NoError(t, rm.UpdateRecipePrepTask(ctx, exampleRecipeID, exampleRecipePrepTask.ID, exampleInput))
+		require.NoError(t, rm.UpdateRecipePrepTask(ctx, exampleRecipeID, exampleRecipePrepTask.ID, exampleOwnerID, exampleInput))
 
 		assert.Len(t, db.GetRecipePrepTaskCalls(), 1)
 		assert.Len(t, db.UpdateRecipePrepTaskCalls(), 1)
+	})
+
+	T.Run("with a caller who does not own the recipe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		err := rm.UpdateRecipePrepTask(ctx, exampleRecipeID, fake.BuildFakeID(), exampleOwnerID, fakes.BuildFakeRecipePrepTaskUpdateRequestInput())
+		require.ErrorIs(t, err, sql.ErrNoRows)
+
+		assert.Empty(t, db.GetRecipePrepTaskCalls())
+		assert.Empty(t, db.UpdateRecipePrepTaskCalls())
 	})
 }
 
@@ -145,9 +192,11 @@ func TestRecipeManager_ArchiveRecipePrepTask(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
 		expected := fakes.BuildFakeRecipePrepTask()
 
 		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
 			ArchiveRecipePrepTaskFunc: func(_ context.Context, recipeID string, recipePrepTaskID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, expected.ID, recipePrepTaskID)
@@ -157,8 +206,28 @@ func TestRecipeManager_ArchiveRecipePrepTask(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		require.NoError(t, rm.ArchiveRecipePrepTask(ctx, exampleRecipeID, expected.ID))
+		require.NoError(t, rm.ArchiveRecipePrepTask(ctx, exampleRecipeID, expected.ID, exampleOwnerID))
 
 		assert.Len(t, db.ArchiveRecipePrepTaskCalls(), 1)
+	})
+
+	T.Run("with a caller who does not own the recipe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		err := rm.ArchiveRecipePrepTask(ctx, exampleRecipeID, fake.BuildFakeID(), exampleOwnerID)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+
+		assert.Empty(t, db.ArchiveRecipePrepTaskCalls())
 	})
 }

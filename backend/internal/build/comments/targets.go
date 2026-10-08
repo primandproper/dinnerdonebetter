@@ -10,6 +10,16 @@ and should not: comments is generic machinery, and a target type belongs to
 whoever is being commented on. So each domain contributes its own entry — the
 types it accepts comments on, and the existence check behind each where it can
 answer one — and this package merges them.
+
+# Tenancy
+
+Every comment is filed under tenancy.Global(), and that is a decision rather
+than a default. A comment is about a recipe, a meal, a meal plan or an issue
+report, and the first of those is readable across accounts — so scoping
+comments by account would make one recipe's discussion look different depending
+on who was reading it, which is not what a discussion is. Household-private
+targets are protected by the checks the owning service already runs before it
+delegates here, not by the column.
 */
 package comments
 

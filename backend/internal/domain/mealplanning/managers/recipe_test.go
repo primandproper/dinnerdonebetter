@@ -2,6 +2,7 @@ package managers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -114,6 +115,207 @@ func TestRecipeManager_CreateRecipe(T *testing.T) {
 		assert.Len(t, analyzer.ValidateRecipeCreationRequestInputIsDAGCalls(), 1)
 		// a recipe that fails DAG validation is never persisted.
 		assert.Empty(t, db.CreateRecipeCalls())
+	})
+
+	T.Run("populates the fields the bridge rows it names imply", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		fakeCreatorID := fake.BuildFakeID()
+		expected := fakes.BuildFakeRecipe()
+		fakeInput := fakes.BuildFakeRecipeCreationRequestInput()
+
+		exampleValidIngredientPreparation := fakes.BuildFakeValidIngredientPreparation()
+		exampleValidIngredientPreparation.Preparation.ID = fakeInput.Steps[0].PreparationID
+		fakeInput.Steps[0].Ingredients[0].ValidIngredientPreparationID = &exampleValidIngredientPreparation.ID
+
+		analyzer := &recipeanalysis.RecipeAnalyzerMock{
+			ValidateRecipeCreationRequestInputIsDAGFunc: func(context.Context, *types.RecipeCreationRequestInput) error {
+				return nil
+			},
+		}
+
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientPreparationsByIDsFunc: func(_ context.Context, ids []string) (map[string]*types.ValidIngredientPreparation, error) {
+				assert.Equal(t, []string{exampleValidIngredientPreparation.ID}, ids)
+
+				return map[string]*types.ValidIngredientPreparation{exampleValidIngredientPreparation.ID: exampleValidIngredientPreparation}, nil
+			},
+			GetValidIngredientMeasurementUnitsByIDsFunc: func(_ context.Context, ids []string) (map[string]*types.ValidIngredientMeasurementUnit, error) {
+				assert.Empty(t, ids)
+
+				return map[string]*types.ValidIngredientMeasurementUnit{}, nil
+			},
+			GetValidPreparationInstrumentsByIDsFunc: func(_ context.Context, ids []string) (map[string]*types.ValidPreparationInstrument, error) {
+				assert.Empty(t, ids)
+
+				return map[string]*types.ValidPreparationInstrument{}, nil
+			},
+			GetValidPreparationVesselsByIDsFunc: func(_ context.Context, ids []string) (map[string]*types.ValidPreparationVessel, error) {
+				assert.Empty(t, ids)
+
+				return map[string]*types.ValidPreparationVessel{}, nil
+			},
+			CreateRecipeFunc: func(_ context.Context, input *types.RecipeDatabaseCreationInput) (*types.Recipe, error) {
+				require.NotNil(t, input.Steps[0].Ingredients[0].IngredientID)
+				assert.Equal(t, exampleValidIngredientPreparation.Ingredient.ID, *input.Steps[0].Ingredients[0].IngredientID)
+
+				return expected, nil
+			},
+			GetRecipeFunc: func(_ context.Context, recipeID string) (*types.Recipe, error) {
+				assert.Equal(t, expected.ID, recipeID)
+
+				return expected, nil
+			},
+		}
+		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
+
+		actual, err := rm.CreateRecipe(ctx, fakeCreatorID, fakeInput)
+		require.NoError(t, err)
+		assert.Equal(t, expected, actual)
+
+		assert.Len(t, db.GetValidIngredientPreparationsByIDsCalls(), 1)
+		assert.Len(t, db.CreateRecipeCalls(), 1)
+	})
+
+	T.Run("with a bridge row that does not exist", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		fakeCreatorID := fake.BuildFakeID()
+		fakeInput := fakes.BuildFakeRecipeCreationRequestInput()
+
+		exampleValidIngredientPreparationID := fake.BuildFakeID()
+		fakeInput.Steps[0].Ingredients[0].ValidIngredientPreparationID = &exampleValidIngredientPreparationID
+
+		analyzer := &recipeanalysis.RecipeAnalyzerMock{
+			ValidateRecipeCreationRequestInputIsDAGFunc: func(context.Context, *types.RecipeCreationRequestInput) error {
+				return nil
+			},
+		}
+
+		db := &mealplanningmock.RepositoryMock{
+			GetValidIngredientPreparationsByIDsFunc: func(_ context.Context, ids []string) (map[string]*types.ValidIngredientPreparation, error) {
+				assert.Equal(t, []string{exampleValidIngredientPreparationID}, ids)
+
+				return map[string]*types.ValidIngredientPreparation{}, nil
+			},
+			GetValidIngredientMeasurementUnitsByIDsFunc: func(context.Context, []string) (map[string]*types.ValidIngredientMeasurementUnit, error) {
+				return map[string]*types.ValidIngredientMeasurementUnit{}, nil
+			},
+			GetValidPreparationInstrumentsByIDsFunc: func(context.Context, []string) (map[string]*types.ValidPreparationInstrument, error) {
+				return map[string]*types.ValidPreparationInstrument{}, nil
+			},
+			GetValidPreparationVesselsByIDsFunc: func(context.Context, []string) (map[string]*types.ValidPreparationVessel, error) {
+				return map[string]*types.ValidPreparationVessel{}, nil
+			},
+		}
+		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
+
+		actual, err := rm.CreateRecipe(ctx, fakeCreatorID, fakeInput)
+		require.ErrorIs(t, err, types.ErrInvalidRecipeInput)
+		require.ErrorContains(t, err, exampleValidIngredientPreparationID)
+		assert.Nil(t, actual)
+
+		assert.Empty(t, db.CreateRecipeCalls())
+	})
+
+	T.Run("with a product from a recipe whose own dependencies form a cycle", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		fakeCreatorID := fake.BuildFakeID()
+		fakeInput := fakes.BuildFakeRecipeCreationRequestInput()
+
+		// The new recipe's ID is minted inside the manager, so nothing stored can name it yet;
+		// the cycle a creation can walk into is one among the recipes it draws on.
+		productRecipe := fakes.BuildFakeRecipe()
+		otherRecipe := fakes.BuildFakeRecipe()
+		productRecipe.Steps[0].Ingredients[0].RecipeStepProductRecipeID = &otherRecipe.ID
+		otherRecipe.Steps[0].Ingredients[0].RecipeStepProductRecipeID = &productRecipe.ID
+		fakeInput.Steps[0].Ingredients[0].RecipeStepProductRecipeID = &productRecipe.ID
+
+		analyzer := &recipeanalysis.RecipeAnalyzerMock{
+			ValidateRecipeCreationRequestInputIsDAGFunc: func(context.Context, *types.RecipeCreationRequestInput) error {
+				return nil
+			},
+		}
+
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeFunc: func(_ context.Context, recipeID string) (*types.Recipe, error) {
+				switch recipeID {
+				case productRecipe.ID:
+					return productRecipe, nil
+				case otherRecipe.ID:
+					return otherRecipe, nil
+				default:
+					t.Errorf("unexpected recipe read: %s", recipeID)
+					return nil, sql.ErrNoRows
+				}
+			},
+		}
+		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
+
+		actual, err := rm.CreateRecipe(ctx, fakeCreatorID, fakeInput)
+		require.ErrorIs(t, err, types.ErrInvalidRecipeInput)
+		require.ErrorContains(t, err, productRecipe.ID)
+		assert.Nil(t, actual)
+
+		assert.Len(t, db.GetRecipeCalls(), 2)
+		assert.Empty(t, db.CreateRecipeCalls())
+	})
+
+	T.Run("with a product from a recipe that is not there", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		fakeCreatorID := fake.BuildFakeID()
+		expected := fakes.BuildFakeRecipe()
+		fakeInput := fakes.BuildFakeRecipeCreationRequestInput()
+
+		exampleProductRecipeID := fake.BuildFakeID()
+		fakeInput.Steps[0].Ingredients[0].RecipeStepProductRecipeID = &exampleProductRecipeID
+
+		analyzer := &recipeanalysis.RecipeAnalyzerMock{
+			ValidateRecipeCreationRequestInputIsDAGFunc: func(context.Context, *types.RecipeCreationRequestInput) error {
+				return nil
+			},
+		}
+
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeFunc: func(_ context.Context, recipeID string) (*types.Recipe, error) {
+				switch recipeID {
+				case exampleProductRecipeID:
+					// a recipe that is not there draws on nothing, so it cannot close a cycle.
+					return nil, sql.ErrNoRows
+				case expected.ID:
+					return expected, nil
+				default:
+					t.Errorf("unexpected recipe read: %s", recipeID)
+					return nil, sql.ErrNoRows
+				}
+			},
+			CreateRecipeFunc: func(_ context.Context, input *types.RecipeDatabaseCreationInput) (*types.Recipe, error) {
+				assert.Equal(t, fakeCreatorID, input.CreatedByUser)
+
+				return expected, nil
+			},
+		}
+		attachRepositoryAndAnalyzerToManager(rm, db, analyzer)
+
+		actual, err := rm.CreateRecipe(ctx, fakeCreatorID, fakeInput)
+		require.NoError(t, err)
+		assert.Equal(t, expected, actual)
+
+		assert.Len(t, db.CreateRecipeCalls(), 1)
 	})
 }
 
@@ -221,14 +423,14 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		index := &mocksearch.IndexMock[eatingindexing.RecipeSearchSubset]{
-			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.RecipeSearchSubset], error) {
+		index := &mocksearch.IndexMock[searchindex.RecipeSearchSubset]{
+			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[searchindex.RecipeSearchSubset], error) {
 				assert.Equal(t, exampleQuery, req.Query)
 				assert.Equal(t, 11, req.Limit)
 				assert.Equal(t, textsearch.Cursor(cursor), req.Cursor)
 
-				return &textsearch.SearchResults[eatingindexing.RecipeSearchSubset]{
-					Hits:       []*eatingindexing.RecipeSearchSubset{{ID: expected.ID}},
+				return &textsearch.SearchResults[searchindex.RecipeSearchSubset]{
+					Hits:       []*searchindex.RecipeSearchSubset{{ID: expected.ID}},
 					NextCursor: textsearch.Cursor("cursor-for-the-next-page"),
 				}, nil
 			},
@@ -269,8 +471,8 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		}
 		attachRepositoryToManager(rm, db)
 
-		index := &mocksearch.IndexMock[eatingindexing.RecipeSearchSubset]{
-			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.RecipeSearchSubset], error) {
+		index := &mocksearch.IndexMock[searchindex.RecipeSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[searchindex.RecipeSearchSubset], error) {
 				return nil, errors.New("elasticsearch is down")
 			},
 		}
@@ -298,8 +500,8 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		db := &mealplanningmock.RepositoryMock{}
 		attachRepositoryToManager(rm, db)
 
-		index := &mocksearch.IndexMock[eatingindexing.RecipeSearchSubset]{
-			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.RecipeSearchSubset], error) {
+		index := &mocksearch.IndexMock[searchindex.RecipeSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[searchindex.RecipeSearchSubset], error) {
 				return nil, textsearch.ErrInvalidCursor
 			},
 		}
@@ -329,9 +531,9 @@ func TestRecipeManager_SearchRecipes(T *testing.T) {
 		db := &mealplanningmock.RepositoryMock{}
 		attachRepositoryToManager(rm, db)
 
-		index := &mocksearch.IndexMock[eatingindexing.RecipeSearchSubset]{
-			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.RecipeSearchSubset], error) {
-				return &textsearch.SearchResults[eatingindexing.RecipeSearchSubset]{}, nil
+		index := &mocksearch.IndexMock[searchindex.RecipeSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[searchindex.RecipeSearchSubset], error) {
+				return &textsearch.SearchResults[searchindex.RecipeSearchSubset]{}, nil
 			},
 		}
 		attachRecipeSearchIndexToManager(rm, index)
@@ -355,6 +557,7 @@ func TestRecipeManager_UpdateRecipe(T *testing.T) {
 		rm := buildRecipeManagerForTest(t)
 
 		exampleRecipe := fakes.BuildFakeRecipe()
+		exampleOwnerID := fake.BuildFakeID()
 		exampleInput := fakes.BuildFakeRecipeUpdateRequestInput()
 
 		db := &mealplanningmock.RepositoryMock{
@@ -363,13 +566,16 @@ func TestRecipeManager_UpdateRecipe(T *testing.T) {
 
 				return exampleRecipe, nil
 			},
-			UpdateRecipeFunc: func(_ context.Context, _ *types.Recipe) error {
+			UpdateRecipeFunc: func(_ context.Context, updated *types.Recipe, ownerID string) error {
+				assert.Equal(t, exampleRecipe.ID, updated.ID)
+				assert.Equal(t, exampleOwnerID, ownerID)
+
 				return nil
 			},
 		}
 		attachRepositoryToManager(rm, db)
 
-		require.NoError(t, rm.UpdateRecipe(ctx, exampleRecipe.ID, exampleInput))
+		require.NoError(t, rm.UpdateRecipe(ctx, exampleRecipe.ID, exampleOwnerID, exampleInput))
 
 		assert.Len(t, db.GetRecipeCalls(), 1)
 		assert.Len(t, db.UpdateRecipeCalls(), 1)
@@ -542,5 +748,130 @@ func TestRecipeManager_CloneRecipe(T *testing.T) {
 
 		assert.Len(t, db.GetRecipeCalls(), 1)
 		assert.Len(t, db.CreateRecipeCalls(), 1)
+	})
+
+	T.Run("with a product from a recipe whose dependencies form a cycle", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		original := fakes.BuildFakeRecipe()
+		productRecipe := fakes.BuildFakeRecipe()
+		exampleOwnerID := fake.BuildFakeID()
+
+		// The original draws on a recipe that draws back on it, so the clone, drawing on the
+		// same recipe, walks into the cycle.
+		original.Steps[0].Ingredients[0].RecipeStepProductRecipeID = &productRecipe.ID
+		productRecipe.Steps[0].Ingredients[0].RecipeStepProductRecipeID = &original.ID
+
+		db := &mealplanningmock.RepositoryMock{
+			GetRecipeFunc: func(_ context.Context, recipeID string) (*types.Recipe, error) {
+				switch recipeID {
+				case original.ID:
+					return original, nil
+				case productRecipe.ID:
+					return productRecipe, nil
+				default:
+					t.Errorf("unexpected recipe read: %s", recipeID)
+					return nil, sql.ErrNoRows
+				}
+			},
+		}
+		attachRepositoryToManager(rm, db)
+
+		actual, err := rm.CloneRecipe(ctx, original.ID, exampleOwnerID)
+		require.ErrorIs(t, err, types.ErrInvalidRecipeInput)
+		require.ErrorContains(t, err, productRecipe.ID)
+		assert.Nil(t, actual)
+
+		assert.Empty(t, db.CreateRecipeCalls())
+	})
+}
+
+func TestRecipeManager_AddRecipeImage(T *testing.T) {
+	T.Parallel()
+
+	T.Run("attaches for the author", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+		exampleUploadedMediaID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
+			AddRecipeImageFunc: func(_ context.Context, recipeID, uploadedMediaID, uploadedByUser string) error {
+				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleUploadedMediaID, uploadedMediaID)
+				assert.Equal(t, exampleOwnerID, uploadedByUser)
+
+				return nil
+			},
+		}
+		attachRepositoryToManager(rm, db)
+
+		require.NoError(t, rm.AddRecipeImage(ctx, exampleRecipeID, exampleUploadedMediaID, exampleOwnerID))
+		assert.Len(t, db.AddRecipeImageCalls(), 1)
+	})
+
+	T.Run("with a caller who does not own the recipe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		err := rm.AddRecipeImage(ctx, exampleRecipeID, fake.BuildFakeID(), exampleOwnerID)
+		require.ErrorIs(t, err, sql.ErrNoRows)
+		assert.Empty(t, db.AddRecipeImageCalls())
+	})
+}
+
+func TestRecipeManager_AuthorizeRecipeImageUpload(T *testing.T) {
+	T.Parallel()
+
+	T.Run("allows the author", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, true),
+		}
+		attachRepositoryToManager(rm, db)
+
+		require.NoError(t, rm.AuthorizeRecipeImageUpload(ctx, exampleRecipeID, exampleOwnerID))
+	})
+
+	T.Run("with a caller who does not own the recipe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		rm := buildRecipeManagerForTest(t)
+
+		exampleRecipeID := fake.BuildFakeID()
+		exampleOwnerID := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			RecipeIsOwnedByFunc: recipeIsOwnedByStub(t, exampleRecipeID, exampleOwnerID, false),
+		}
+		attachRepositoryToManager(rm, db)
+
+		require.ErrorIs(t, rm.AuthorizeRecipeImageUpload(ctx, exampleRecipeID, exampleOwnerID), sql.ErrNoRows)
 	})
 }

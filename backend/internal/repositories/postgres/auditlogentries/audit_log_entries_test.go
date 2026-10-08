@@ -23,20 +23,20 @@ import (
 const resourceTypeForTest = "example"
 
 // recordForTest appends one entry to an account's chain and hands back what was
-// written, chain fields included — Record writes those back into the entry it was
-// given, which is how a caller notarizes what it just recorded.
+// written, chain fields included — the recorder writes those back into the entry it
+// was given, which is how a caller notarizes what it just recorded.
 //
 // It records inside a transaction rather than against the pool, because that is
 // the only way a repository is allowed to record: Record holds the scope's chain
 // row for the length of the caller's transaction, and against the pool that lock
 // lapses before the INSERT it exists to protect.
-func recordForTest(t *testing.T, ctx context.Context, dbc *repository, client database.Client, account *identity.Account, user *identity.User) *platformaudit.Entry {
+func recordForTest(t *testing.T, ctx context.Context, dbc *Log, client database.Client, account *identity.Account, user *identity.User) *platformaudit.Entry {
 	t.Helper()
 
 	entry := audit.NewEntry(user.ID, account.ID, resourceTypeForTest, identifiers.New(), platformaudit.EventUpdated)
 
 	require.NoError(t, client.WithTransaction(ctx, func(tx database.Tx) error {
-		return dbc.Record(ctx, tx, entry)
+		return dbc.Recorder().Record(ctx, tx, entry.Scope, entry)
 	}))
 
 	require.NotEmpty(t, entry.ID, "Record assigns an ID")
@@ -130,7 +130,7 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 	}
 
 	require.NoError(t, client.WithTransaction(ctx, func(tx database.Tx) error {
-		return dbc.Record(ctx, tx, entry)
+		return dbc.Recorder().Record(ctx, tx, entry.Scope, entry)
 	}))
 
 	// Record writes back what was actually stored, redaction included, so the value
@@ -149,23 +149,4 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 	require.NoError(t, client.Reader().QueryRowContext(ctx,
 		"SELECT change_set FROM "+branding.TablePrefix+"_audit_log_entries WHERE id = $1", entry.ID).Scan(&raw))
 	assert.NotContains(t, string(raw), "hunter2")
-}
-
-// TestQuerier_Integration_RecordRefusesAnUnscopedEntry pins the guard that keeps an entry
-// out of the log when nobody decided which chain it belongs to. Every read refuses the zero
-// scope, so recording one would write an entry nothing can find.
-func TestQuerier_Integration_RecordRefusesAnUnscopedEntry(t *testing.T) {
-	ctx := t.Context()
-	dbc, client := buildDatabaseClientForTest(t)
-
-	err := client.WithTransaction(ctx, func(tx database.Tx) error {
-		return dbc.Record(ctx, tx, &platformaudit.Entry{
-			Actor:        platformaudit.Actor{ID: identifiers.New(), Type: platformaudit.ActorUser},
-			ResourceType: resourceTypeForTest,
-			ResourceID:   identifiers.New(),
-			EventType:    platformaudit.EventCreated,
-		})
-	})
-
-	require.ErrorIs(t, err, errUnscopedEntry)
 }

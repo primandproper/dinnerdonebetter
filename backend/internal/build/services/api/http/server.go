@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 
+	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
-	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
 	"github.com/primandproper/primitives-go/v2/healthcheck"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -38,7 +38,7 @@ func RegisterAPIRouter(i do.Injector) {
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[auth.AuthDataService](i),
-			do.MustInvoke[*paymentswebhook.WebhookHandler](i),
+			do.MustInvoke[*paymentsbuild.WebhookHandlers](i),
 			do.MustInvoke[healthcheck.Registry](i),
 			do.MustInvoke[*PlatformSurfaces](i),
 			authorizeThrottle,

@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -21,12 +20,6 @@ const (
 	minRating int8 = -10
 	maxRating int8 = 10
 )
-
-func init() {
-	gob.Register(new(UserIngredientPreference))
-	gob.Register(new(UserIngredientPreferenceCreationRequestInput))
-	gob.Register(new(UserIngredientPreferenceUpdateRequestInput))
-}
 
 type (
 	// UserIngredientPreference represents a user ingredient preference.

@@ -42,18 +42,3 @@ const (
 	// a subscription cannot be made without it.
 	ReadWebhookEventTypesPermission = webhooksgrpc.PermissionReadEventTypes
 )
-
-var (
-	// WebhooksPermissions contains all webhook-related permissions.
-	WebhooksPermissions = []Permission{
-		SaveWebhookEndpointsPermission,
-		ReadWebhookEndpointsPermission,
-		ArchiveWebhookEndpointsPermission,
-		RotateWebhookSecretPermission,
-		AddWebhookSubscriptionsPermission,
-		ReadWebhookSubscriptionsPermission,
-		ArchiveWebhookSubscriptionsPermission,
-		ReadWebhookAttemptsPermission,
-		ReadWebhookEventTypesPermission,
-	}
-)

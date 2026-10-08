@@ -6,7 +6,6 @@ import (
 	"errors"
 	"sort"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
@@ -16,6 +15,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -268,13 +268,7 @@ func (q *repository) GetMeals(ctx context.Context, filter *filtering.QueryFilter
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*mealplanning.Meal
@@ -374,13 +368,7 @@ func (q *repository) GetMealsCreatedByUser(ctx context.Context, userID string, f
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*mealplanning.Meal
@@ -565,13 +553,7 @@ func (q *repository) SearchForMeals(ctx context.Context, mealNameQuery string, f
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*mealplanning.Meal
@@ -680,7 +662,7 @@ func (q *repository) createMeal(ctx context.Context, querier database.Tx, input 
 	}
 
 	for _, recipeID := range input.Components {
-		if err := q.CreateMealComponent(ctx, querier, x.ID, recipeID); err != nil {
+		if err := q.createMealComponent(ctx, querier, x.ID, recipeID); err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "creating meal recipe")
 		}
 	}
@@ -725,8 +707,8 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 	return x, nil
 }
 
-// CreateMealComponent creates a meal component in the database.
-func (q *repository) CreateMealComponent(ctx context.Context, querier database.Tx, mealID string, input *mealplanning.MealComponentDatabaseCreationInput) error {
+// createMealComponent creates a meal component in the database.
+func (q *repository) createMealComponent(ctx context.Context, querier database.Tx, mealID string, input *mealplanning.MealComponentDatabaseCreationInput) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -797,8 +779,8 @@ func (q *repository) ArchiveMeal(ctx context.Context, mealID, userID string) err
 	if userID == "" {
 		return platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	if err := q.withEvent(ctx, logger, mealplanning.MealArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealIDKey: mealID,
@@ -840,11 +822,16 @@ func (q *repository) AddMealImage(ctx context.Context, mealID, uploadedMediaID, 
 	logger := q.logger.WithValue(mealplanningkeys.MealIDKey, mealID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
 
-	if err := q.generatedQuerier.CreateMealImage(ctx, q.writeDB, &generated.CreateMealImageParams{
-		ID:              identifiers.New(),
-		BelongsToMeal:   mealID,
-		UploadedMediaID: uploadedMediaID,
-		UploadedByUser:  uploadedByUser,
+	if err := q.withEvent(ctx, logger, mealplanning.MealImageCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealIDKey:          mealID,
+		mealplanningkeys.UploadedMediaIDKey: uploadedMediaID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateMealImage(ctx, tx, &generated.CreateMealImageParams{
+			ID:              identifiers.New(),
+			BelongsToMeal:   mealID,
+			UploadedMediaID: uploadedMediaID,
+			UploadedByUser:  uploadedByUser,
+		})
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "creating meal image")
 	}

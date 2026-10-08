@@ -6,6 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,9 +64,16 @@ func TestAuthenticationService_AuthorizationServerMetadataHandler(T *testing.T) 
 		res := httptest.NewRecorder()
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/.well-known/oauth-authorization-server", http.NoBody)
 
-		buildTestService(t).AuthorizationServerMetadataHandler(res, req)
+		// Over the server the API server builds, since whether registration is advertised is
+		// decided there.
+		s, err := ProvideService(loggingnoop.NewLogger(), buildProvidedOAuth2Server(t), tracingnoop.NewTracerProvider())
+		require.NoError(t, err)
+
+		s.AuthorizationServerMetadataHandler(res, req)
 
 		require.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+		assert.Equal(t, "public, max-age=3600", res.Header().Get("Cache-Control"))
 
 		var metadata map[string]any
 		require.NoError(t, json.Unmarshal(res.Body.Bytes(), &metadata))

@@ -115,25 +115,3 @@ func PlatformPolicy() []platformauthz.Role {
 		},
 	}
 }
-
-// PlatformGrants converts a session's checkers into the platform's Grants.
-//
-// Service-wide and per-account authority are handed over as separate sets and
-// unioned by the platform, which is exactly how this package already treats
-// them: a permission held in either place is held.
-func PlatformGrants(service, account any) platformauthz.Grants {
-	sets := make([]*platformauthz.PermissionSet, 0, 2)
-
-	for _, checker := range []any{service, account} {
-		lister, ok := checker.(PermissionLister)
-		if !ok || lister == nil {
-			continue
-		}
-
-		// NewGrants drops nil and empty sets, so a principal with authority in
-		// only one scope needs no special case here.
-		sets = append(sets, lister.GrantedPermissions())
-	}
-
-	return platformauthz.NewGrants(sets...)
-}

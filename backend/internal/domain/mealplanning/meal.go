@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -36,16 +35,13 @@ const (
 	MealCreatedServiceEventType = "meal_created"
 	// MealArchivedServiceEventType indicates a meal was archived.
 	MealArchivedServiceEventType = "meal_archived"
+	// MealImageCreatedServiceEventType indicates an image was added to a meal.
+	MealImageCreatedServiceEventType = "meal_image_created"
 )
 
 var (
 	errOneMainMinimumRequired = errors.New("at least one main required for meal creation")
 )
-
-func init() {
-	gob.Register(new(Meal))
-	gob.Register(new(MealCreationRequestInput))
-}
 
 type (
 	// Meal represents a meal.

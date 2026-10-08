@@ -36,7 +36,7 @@ func (m *mealPlanningManager) ListRecipePrepTask(ctx context.Context, recipeID s
 	return results, nil
 }
 
-func (m *mealPlanningManager) CreateRecipePrepTask(ctx context.Context, recipeID string, input *types.RecipePrepTaskCreationRequestInput) (*types.RecipePrepTask, error) {
+func (m *mealPlanningManager) CreateRecipePrepTask(ctx context.Context, recipeID, ownerID string, input *types.RecipePrepTaskCreationRequestInput) (*types.RecipePrepTask, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -51,6 +51,10 @@ func (m *mealPlanningManager) CreateRecipePrepTask(ctx context.Context, recipeID
 	convertedInput.BelongsToRecipe = recipeID
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, convertedInput.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipePrepTaskIDKey, convertedInput.ID)
+
+	if err := m.requireRecipeOwnership(ctx, recipeID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	created, err := m.db.CreateRecipePrepTask(ctx, convertedInput)
 	if err != nil {
@@ -79,7 +83,7 @@ func (m *mealPlanningManager) ReadRecipePrepTask(ctx context.Context, recipeID, 
 	return x, nil
 }
 
-func (m *mealPlanningManager) UpdateRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID string, input *types.RecipePrepTaskUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID, ownerID string, input *types.RecipePrepTaskUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -94,6 +98,10 @@ func (m *mealPlanningManager) UpdateRecipePrepTask(ctx context.Context, recipeID
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
 
+	if err := m.requireRecipeOwnership(ctx, recipeID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
+
 	existingRecipePrepTask, err := m.db.GetRecipePrepTask(ctx, recipeID, recipePrepTaskID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "retrieving existing recipe prep task")
@@ -107,7 +115,7 @@ func (m *mealPlanningManager) UpdateRecipePrepTask(ctx context.Context, recipeID
 	return nil
 }
 
-func (m *mealPlanningManager) ArchiveRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID string) error {
+func (m *mealPlanningManager) ArchiveRecipePrepTask(ctx context.Context, recipeID, recipePrepTaskID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -117,6 +125,10 @@ func (m *mealPlanningManager) ArchiveRecipePrepTask(ctx context.Context, recipeI
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipePrepTaskIDKey, recipePrepTaskID)
+
+	if err := m.requireRecipeOwnership(ctx, recipeID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	if err := m.db.ArchiveRecipePrepTask(ctx, recipeID, recipePrepTaskID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe prep task")

@@ -138,7 +138,7 @@ The `Recipe` object is the central entity in the meal planning system. It repres
   - A "Caesar Salad" recipe might use "Caesar Dressing" as an ingredient, so "Caesar Dressing" would appear in the salad's `AssociatedRecipes`
   - A "Chicken Parmesan" recipe might use "Marinara Sauce" as an ingredient, so "Marinara Sauce" would appear in the chicken's `AssociatedRecipes`
   - A "Salad" recipe uses "Croutons", which uses "Infused Olive Oil". Fetching the Salad recipe returns both Croutons and Infused Olive Oil in a flat list, and both will have empty `AssociatedRecipes` arrays
-- **Note**: This field is read-only and automatically populated by the repository layer. It cannot be set directly when creating or updating recipes. The relationship is established by setting `RecipeStepProductRecipeID` on recipe step ingredients
+- **Note**: This field is read-only and automatically populated by the repository layer. It cannot be set directly when creating or updating recipes. The relationship is established by setting `RecipeStepProductRecipeID` on recipe step ingredients, and a relationship that would lead back to the recipe is refused on write (see [Validation Rules](#validation-rules))
 
 ## Content Fields
 
@@ -676,6 +676,38 @@ This creates 4 patties, each 4 ounces (16 ounces total). When the recipe is scal
 - **Step Requirements**: Each step must have at least one instrument OR vessel (not necessarily both), and a preparation method
 - **Component Type**: Must be one of the predefined meal component types
 - **Bridge Table ID Requirements**: See below
+- **Products flow one way**: Within a recipe, steps must form a DAG (`recipeanalysis`'
+  `ValidateRecipeCreationRequestInputIsDAG`). Across recipes, a recipe may not draw a product —
+  through `RecipeStepProductRecipeID` — from a recipe that, somewhere down the line, draws on it
+  (`mealplanning.CheckRecipeDependencies`). The cross-recipe half is checked on recipe creation,
+  cloning, and every recipe step ingredient creation or update that names another recipe.
+
+### Where the Rules Live
+
+Every rule above is the meal planning manager's to enforce
+(`internal/domain/mealplanning/managers`). The manager validates the request's shape, then — in
+`checkRecipeForCreation`, which creation and cloning share — the rules that need a read: the
+bridge rows (through `recipevalidator`) and the cross-recipe dependencies. The repository writes
+what it is handed and decides nothing. A refusal wraps `mealplanning.ErrInvalidRecipeInput`, which
+reaches a gRPC client as `InvalidArgument`.
+
+### Who May Change a Recipe
+
+Anyone may read a recipe; only its author may change it or anything it is made of. The manager
+methods that write to a recipe or its children take the caller's user ID as `ownerID`:
+
+- `UpdateRecipe` and `ArchiveRecipe` bind it in the statement itself (`created_by_user = $n`), so
+  a recipe somebody else wrote matches no row.
+- Writes to a recipe's steps, prep tasks, and the ingredients, instruments, vessels, products and
+  completion conditions of its steps ask the database first (`RecipeIsOwnedBy`, and for anything
+  beneath a step, that the step is the recipe's).
+- Image uploads ask twice: `AuthorizeRecipeImageUpload` / `AuthorizeRecipeStepImageUpload` before
+  the RPC reads a byte of the image, so a refusal costs the client one message rather than the
+  object, and `AddRecipeImage` / `AddRecipeStepImage` again when the upload is attached.
+
+Either way a caller who does not own the recipe gets `sql.ErrNoRows`, which reaches a gRPC client
+as `NotFound`. The gRPC handlers read the caller from the session and pass it down; they do not
+check ownership themselves.
 
 ### Bridge Table Validation
 

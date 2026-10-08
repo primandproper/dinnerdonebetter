@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -14,6 +15,7 @@ import (
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/saga"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	pglock "github.com/primandproper/primitives-go/v2/distributedlock/postgres"
@@ -45,7 +47,7 @@ func StartSagaWorker(
 		return nil, fmt.Errorf("building outbox writer: %w", err)
 	}
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, metricsnoop.NewMetricsProvider(), databaseClient)
+	auditRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, metricsnoop.NewMetricsProvider(), databaseClient)
 	if err != nil {
 		return nil, fmt.Errorf("building audit log repository: %w", err)
 	}
@@ -72,7 +74,9 @@ func StartSagaWorker(
 	registry := saga.NewRegistry()
 	if err = mealplanfinalization.Register(
 		registry,
-		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads),
+		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads),
+		ddbidentity.NewAccountRoster(identityStore, databaseClient.Reader()),
+		clock.NewClock(),
 		recipeanalysis.NewRecipeAnalyzer(logger, tracerProvider),
 		grocerylistpreparation.NewGroceryListCreator(logger, tracerProvider),
 		logger,

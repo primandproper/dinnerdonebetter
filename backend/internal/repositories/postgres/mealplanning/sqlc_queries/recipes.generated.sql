@@ -59,6 +59,15 @@ LIMIT COALESCE(sqlc.narg(result_limit), 50);
 -- name: ArchiveRecipe :execrows
 UPDATE recipes SET archived_at = CURRENT_TIMESTAMP WHERE archived_at IS NULL AND created_by_user = sqlc.arg(created_by_user) AND id = sqlc.arg(id);
 
+-- name: CheckRecipeOwnership :one
+SELECT EXISTS (
+	SELECT recipes.id
+	FROM recipes
+	WHERE recipes.archived_at IS NULL
+		AND recipes.id = sqlc.arg(id)
+		AND recipes.created_by_user = sqlc.arg(created_by_user)
+);
+
 -- name: GetRecipeByID :many
 SELECT
 	recipes.id,

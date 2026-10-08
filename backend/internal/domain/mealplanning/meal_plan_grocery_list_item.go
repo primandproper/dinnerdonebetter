@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -28,13 +27,9 @@ const (
 	MealPlanGroceryListItemUpdatedServiceEventType = "meal_plan_grocery_list_item_updated"
 	// MealPlanGroceryListItemArchivedServiceEventType indicates a meal plan grocery list item was archived.
 	MealPlanGroceryListItemArchivedServiceEventType = "meal_plan_grocery_list_item_archived"
+	// MealPlanGroceryListInitializationUndoneServiceEventType indicates the grocery list items a meal plan's finalization created were removed.
+	MealPlanGroceryListInitializationUndoneServiceEventType = "meal_plan_grocery_list_initialization_undone"
 )
-
-func init() {
-	gob.Register(new(MealPlanGroceryListItem))
-	gob.Register(new(MealPlanGroceryListItemCreationRequestInput))
-	gob.Register(new(MealPlanGroceryListItemUpdateRequestInput))
-}
 
 type (
 	// MealPlanGroceryListItem represents a meal plan grocery list item.
@@ -132,8 +127,9 @@ type (
 		// UndoMealPlanGroceryListInitialization is InitializeMealPlanGroceryList's compensation:
 		// it deletes the named items and clears the flag, in the one transaction that wrote
 		// them. Only the IDs the caller passes are removed, so anything a user added to the
-		// list themselves survives.
-		UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID string, itemIDs []string) error
+		// list themselves survives. accountID is the one InitializeMealPlanGroceryList was
+		// given, so the removal is announced to whoever heard about the items.
+		UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID, accountID string, itemIDs []string) error
 		UpdateMealPlanGroceryListItem(ctx context.Context, updated *MealPlanGroceryListItem) error
 		ArchiveMealPlanGroceryListItem(ctx context.Context, mealPlanGroceryListItemID string) error
 	}

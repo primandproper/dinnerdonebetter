@@ -26,12 +26,3 @@ const (
 	// itself recorded.
 	ReadAnyAuditLogEntriesPermission = auditgrpc.PermissionReadAnyEntries
 )
-
-var (
-	// AuditPermissions contains all audit-related permissions.
-	AuditPermissions = []Permission{
-		ReadAuditLogEntriesPermission,
-		VerifyAuditChainPermission,
-		ReadAnyAuditLogEntriesPermission,
-	}
-)

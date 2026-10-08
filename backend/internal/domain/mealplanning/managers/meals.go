@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -119,7 +118,7 @@ func (m *mealPlanningManager) SearchMeals(ctx context.Context, query string, use
 // searchMealsViaIndex searches meals via the external search index. Returns (nil, err) on search failure or GetMealsWithIDs failure, and (nil, errIndexHadNothing) on an empty first page.
 func (m *mealPlanningManager) searchMealsViaIndex(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error) {
 	results, err := searchpagination.Hydrated(ctx, m.mealsSearchIndex, query, filter,
-		func(subset *eatingindexing.MealSearchSubset) string { return subset.ID },
+		func(subset *searchindex.MealSearchSubset) string { return subset.ID },
 		m.db.GetMealsWithIDs,
 	)
 	if err != nil {
@@ -143,10 +142,10 @@ func (m *mealPlanningManager) ArchiveMeal(ctx context.Context, mealID, ownerID s
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealIDKey: mealID,
-		identitykeys.UserIDKey:     ownerID,
+		platformkeys.UserIDKey:     ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	if err := m.db.ArchiveMeal(ctx, mealID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal")

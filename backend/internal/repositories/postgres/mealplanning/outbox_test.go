@@ -2,20 +2,24 @@ package mealplanning
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -277,7 +281,7 @@ func TestQuerier_Integration_IndexEventsCommitWithTheirWrite(t *testing.T) {
 	dbc, _ := buildDatabaseClientForTest(t)
 
 	indexRows := func() []outboxRow {
-		return fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeValidVessels)
+		return fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeValidVessels)
 	}
 
 	// create
@@ -321,7 +325,7 @@ func TestQuerier_Integration_IndexEventRollsBackWithItsWrite(t *testing.T) {
 	// row that never changed could still have been announced to the index.
 	require.Error(t, dbc.ArchiveValidVessel(ctx, "nonexistent"))
 
-	assert.Empty(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeValidVessels))
+	assert.Empty(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeValidVessels))
 }
 
 func TestQuerier_Integration_RecipeCreationEnqueuesOneIndexEvent(t *testing.T) {
@@ -332,7 +336,7 @@ func TestQuerier_Integration_RecipeCreationEnqueuesOneIndexEvent(t *testing.T) {
 	// the other of the two shapes a write takes in this package.
 	created := createRecipeForTest(t, ctx, nil, dbc, false)
 
-	events := decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes))
+	events := decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeRecipes))
 	require.Len(t, events, 1)
 	assert.Equal(t, created.ID, events[0].DocumentID)
 	assert.Equal(t, searchsync.OpUpsert, events[0].Op)
@@ -346,7 +350,7 @@ func TestQuerier_Integration_RecipeStepWritesReindexTheirRecipe(t *testing.T) {
 	recipe := createRecipeForTest(t, ctx, buildRecipeForTestCreation(t, ctx, user.ID, dbc), dbc, false)
 
 	recipeEvents := func() []searchsync.Event {
-		return decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes))
+		return decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeRecipes))
 	}
 
 	// The recipe's own creation is one event; every write below is a change to the same
@@ -380,7 +384,7 @@ func TestQuerier_Integration_RecipeStepCreationIsAtomicWithItsIndexEvent(t *test
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	recipe := createRecipeForTest(t, ctx, buildRecipeForTestCreation(t, ctx, user.ID, dbc), dbc, false)
 
-	before := len(decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes)))
+	before := len(decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeRecipes)))
 
 	// A step naming a preparation that does not exist fails partway through the write. It used
 	// to run outside a transaction, so the step row survived a failure among its children;
@@ -392,9 +396,196 @@ func TestQuerier_Integration_RecipeStepCreationIsAtomicWithItsIndexEvent(t *test
 	_, err := dbc.CreateRecipeStep(ctx, doomed)
 	require.Error(t, err)
 
-	assert.Len(t, decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, mealplanningindexing.IndexTypeRecipes)), before)
+	assert.Len(t, decodeIndexEvents(t, fetchOutboxRows(ctx, t, dbc.writeDB, searchindex.IndexTypeRecipes)), before)
 
 	exists, err := dbc.RecipeStepExists(ctx, recipe.ID, doomed.ID)
 	require.NoError(t, err)
 	assert.False(t, exists, "the step row should have rolled back with its index event")
+}
+
+func TestQuerier_Integration_ListWritesAnnounceThemselves(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	mealList, err := dbc.CreateMealList(ctx, buildMealListForTest(user.ID))
+	require.NoError(t, err)
+	mealListItem, err := dbc.CreateMealListItem(ctx, buildMealListItemForTest(mealList.ID, meal.ID))
+	require.NoError(t, err)
+	require.NoError(t, dbc.UpdateMealListItem(ctx, mealListItem))
+	require.NoError(t, dbc.ArchiveMealListItem(ctx, mealListItem.ID, mealList.ID))
+	require.NoError(t, dbc.UpdateMealList(ctx, mealList))
+	require.NoError(t, dbc.ArchiveMealList(ctx, mealList.ID, user.ID))
+
+	recipeList, err := dbc.CreateRecipeList(ctx, buildRecipeListForTest(user.ID))
+	require.NoError(t, err)
+	recipeListItem, err := dbc.CreateRecipeListItem(ctx, buildRecipeListItemForTest(recipeList.ID, recipe.ID))
+	require.NoError(t, err)
+	require.NoError(t, dbc.UpdateRecipeListItem(ctx, recipeListItem))
+	require.NoError(t, dbc.ArchiveRecipeListItem(ctx, recipeListItem.ID, recipeList.ID))
+	require.NoError(t, dbc.UpdateRecipeList(ctx, recipeList))
+	require.NoError(t, dbc.ArchiveRecipeList(ctx, recipeList.ID, user.ID))
+
+	msgs := decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic))
+
+	for eventType, want := range map[string]map[string]string{
+		types.MealListCreatedServiceEventType:        {mealplanningkeys.MealListIDKey: mealList.ID},
+		types.MealListUpdatedServiceEventType:        {mealplanningkeys.MealListIDKey: mealList.ID},
+		types.MealListArchivedServiceEventType:       {mealplanningkeys.MealListIDKey: mealList.ID},
+		types.MealListItemCreatedServiceEventType:    {mealplanningkeys.MealListIDKey: mealList.ID, mealplanningkeys.MealListItemIDKey: mealListItem.ID},
+		types.MealListItemUpdatedServiceEventType:    {mealplanningkeys.MealListIDKey: mealList.ID, mealplanningkeys.MealListItemIDKey: mealListItem.ID},
+		types.MealListItemArchivedServiceEventType:   {mealplanningkeys.MealListIDKey: mealList.ID, mealplanningkeys.MealListItemIDKey: mealListItem.ID},
+		types.RecipeListCreatedServiceEventType:      {mealplanningkeys.RecipeListIDKey: recipeList.ID},
+		types.RecipeListUpdatedServiceEventType:      {mealplanningkeys.RecipeListIDKey: recipeList.ID},
+		types.RecipeListArchivedServiceEventType:     {mealplanningkeys.RecipeListIDKey: recipeList.ID},
+		types.RecipeListItemCreatedServiceEventType:  {mealplanningkeys.RecipeListIDKey: recipeList.ID, mealplanningkeys.RecipeListItemIDKey: recipeListItem.ID},
+		types.RecipeListItemUpdatedServiceEventType:  {mealplanningkeys.RecipeListIDKey: recipeList.ID, mealplanningkeys.RecipeListItemIDKey: recipeListItem.ID},
+		types.RecipeListItemArchivedServiceEventType: {mealplanningkeys.RecipeListIDKey: recipeList.ID, mealplanningkeys.RecipeListItemIDKey: recipeListItem.ID},
+	} {
+		event := findEvent(msgs, eventType)
+		require.NotNil(t, event, "no %s event was enqueued", eventType)
+
+		for key, value := range want {
+			assert.Equal(t, value, event.Context[key], "%s names the wrong %s", eventType, key)
+		}
+	}
+
+	// A write that changed nothing announces nothing.
+	before := len(msgs)
+	require.ErrorIs(t, dbc.ArchiveMealList(ctx, mealList.ID, user.ID), sql.ErrNoRows)
+	assert.Len(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic), before)
+}
+
+func TestQuerier_Integration_MealPlanEventEntriesAreFiledUnderTheAccount(t *testing.T) {
+	ctx := t.Context()
+	dbc, auditLog := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+	recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	exampleMealPlan := buildMealPlanForIntegrationTest(user.ID, meal)
+	exampleMealPlan.BelongsToAccount = account.ID
+	mealPlan := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+
+	entriesFor := func(resourceType, resourceID string) []*platformaudit.Entry {
+		t.Helper()
+
+		page, err := auditLog.Reader().List(ctx, dbc.readDB, tenancy.Of(account.ID), &platformaudit.Query{
+			ResourceType: resourceType,
+			ResourceID:   resourceID,
+		}, nil)
+		require.NoError(t, err)
+
+		return page.Data
+	}
+
+	// The events a meal plan is created with are recorded beside it, in its account's chain.
+	// They used to be filed in the global chain, which no account's read reaches.
+	require.Len(t, entriesFor(resourceTypeMealPlans, mealPlan.ID), 1)
+	require.NotEmpty(t, mealPlan.Events)
+	for _, event := range mealPlan.Events {
+		assert.Len(t, entriesFor(resourceTypeMealPlanEvents, event.ID), 1, "meal plan event %s has no entry in its account's chain", event.ID)
+	}
+
+	// A meal plan event written knowing only its meal plan is filed under the account the request
+	// is acting in, by the requester, and announced to that same account.
+	sessionCtx := sessions.AttachToContext(ctx, &sessions.ContextData{
+		Requester:       sessions.RequesterInfo{UserID: user.ID},
+		ActiveAccountID: account.ID,
+	})
+
+	exampleEvent := buildMealPlanEventForIntegrationTest(meal)
+	exampleEvent.BelongsToMealPlan = mealPlan.ID
+
+	created, err := dbc.CreateMealPlanEvent(sessionCtx, converters.ConvertMealPlanEventToMealPlanEventDatabaseCreationInput(exampleEvent))
+	require.NoError(t, err)
+
+	entries := entriesFor(resourceTypeMealPlanEvents, created.ID)
+	require.Len(t, entries, 1)
+	assert.Equal(t, platformaudit.EventCreated, entries[0].EventType)
+	assert.Equal(t, user.ID, entries[0].Actor.ID)
+
+	announced := findEvent(decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic)), types.MealPlanEventCreatedServiceEventType)
+	require.NotNil(t, announced, "no created event was enqueued")
+	assert.Equal(t, account.ID, announced.AccountID)
+	assert.Equal(t, created.ID, announced.Context[mealplanningkeys.MealPlanEventIDKey])
+}
+
+func TestQuerier_Integration_FinalizationUndoAnnouncesWhatItRemoved(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+	recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	exampleMealPlan := buildMealPlanForIntegrationTest(user.ID, meal)
+	exampleMealPlan.BelongsToAccount = account.ID
+	mealPlan := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+
+	ingredient := createValidIngredientForTest(t, ctx, nil, dbc)
+	unit := createValidMeasurementUnitForTest(t, ctx, nil, dbc)
+
+	countEvents := func(eventType string) (found int) {
+		for _, msg := range decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic)) {
+			if msg.EventType == eventType {
+				found++
+				assert.Equal(t, mealPlan.ID, msg.Context[mealplanningkeys.MealPlanIDKey])
+			}
+		}
+
+		return found
+	}
+
+	// An undo that had nothing to undo removed nothing anybody heard about, and says nothing.
+	require.NoError(t, dbc.UndoMealPlanTaskCreation(ctx, mealPlan.ID, account.ID, nil))
+	require.NoError(t, dbc.UndoMealPlanGroceryListInitialization(ctx, mealPlan.ID, account.ID, nil))
+	assert.Zero(t, countEvents(types.MealPlanTaskCreationUndoneServiceEventType))
+	assert.Zero(t, countEvents(types.MealPlanGroceryListInitializationUndoneServiceEventType))
+
+	// One that removes the items their creation announced announces that, to the same account.
+	created, err := dbc.InitializeMealPlanGroceryList(ctx, mealPlan.ID, account.ID, []*types.MealPlanGroceryListItemDatabaseCreationInput{{
+		ID:                     identifiers.New(),
+		BelongsToMealPlan:      mealPlan.ID,
+		ValidIngredientID:      ingredient.ID,
+		ValidMeasurementUnitID: unit.ID,
+		Status:                 types.MealPlanGroceryListItemStatusNeeds,
+		MinQuantityNeeded:      1,
+	}})
+	require.NoError(t, err)
+	require.Len(t, created, 1)
+
+	require.NoError(t, dbc.UndoMealPlanGroceryListInitialization(ctx, mealPlan.ID, account.ID, []string{created[0].ID}))
+	require.Equal(t, 1, countEvents(types.MealPlanGroceryListInitializationUndoneServiceEventType))
+
+	undone := findEvent(decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic)), types.MealPlanGroceryListInitializationUndoneServiceEventType)
+	assert.Equal(t, account.ID, undone.AccountID, "a background job has no session, so the account has to come from the caller")
+
+	// The task step is the same shape: created to the account, undone to the account.
+	tasks, err := dbc.CreateMealPlanTasksForMealPlan(ctx, mealPlan.ID, account.ID, []*types.MealPlanTaskDatabaseCreationInput{{
+		ID:                  identifiers.New(),
+		MealPlanOptionID:    mealPlan.Events[0].Options[0].ID,
+		CreationExplanation: t.Name(),
+	}})
+	require.NoError(t, err)
+	require.Len(t, tasks, 1)
+
+	createdTask := findEvent(decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic)), types.MealPlanTaskCreatedServiceEventType)
+	require.NotNil(t, createdTask)
+	assert.Equal(t, account.ID, createdTask.AccountID)
+
+	require.NoError(t, dbc.UndoMealPlanTaskCreation(ctx, mealPlan.ID, account.ID, []string{tasks[0].ID}))
+	require.Equal(t, 1, countEvents(types.MealPlanTaskCreationUndoneServiceEventType))
+
+	undoneTask := findEvent(decodeDataChangeMessages(t, fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic)), types.MealPlanTaskCreationUndoneServiceEventType)
+	require.NotNil(t, undoneTask)
+	assert.Equal(t, account.ID, undoneTask.AccountID, "a background job has no session, so the account has to come from the caller")
 }

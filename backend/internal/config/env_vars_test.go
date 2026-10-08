@@ -17,15 +17,3 @@ func TestShouldCeaseOperation(T *testing.T) {
 		assert.True(t, ShouldCeaseOperation())
 	})
 }
-
-func TestRunningInKubernetes(T *testing.T) {
-	T.Run("unset", func(t *testing.T) {
-		assert.False(t, RunningInKubernetes())
-	})
-
-	T.Run("set", func(t *testing.T) {
-		t.Setenv(RunningInKubernetesEnvVarKey, "true")
-
-		assert.True(t, RunningInKubernetes())
-	})
-}

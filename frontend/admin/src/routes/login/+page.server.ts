@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { adminSignIn, isTransient, PlatformError, SignInReason } from '@primandproper/platform-client';
-import { landingAfterSignIn } from '$lib/auth/required-actions';
+import { landingAfterSignIn } from '@dinnerdonebetter/session';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

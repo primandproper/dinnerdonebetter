@@ -1,7 +1,7 @@
 package api
 
 import (
-	paymentshttp "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
+	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 
@@ -21,7 +21,7 @@ func RegisterHTTPServerServices(i do.Injector) {
 	analyticscfg.RegisterEventReporter(i)
 
 	// services
-	paymentshttp.RegisterPaymentsHTTP(i)
+	paymentsbuild.RegisterWebhookHandlers(i)
 
 	// routes
 	RegisterPlatformSurfaces(i)

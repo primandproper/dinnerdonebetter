@@ -35,6 +35,7 @@ func TestMealPlanDatabaseCreationInput_Validate(T *testing.T) {
 			VotingDeadline:   time.Now().Add(24 * time.Hour),
 			BelongsToAccount: t.Name(),
 			CreatedByUser:    t.Name(),
+			Status:           string(MealPlanStatusAwaitingVotes),
 		}
 
 		assert.NoError(t, x.ValidateWithContext(t.Context()))
@@ -152,7 +153,9 @@ func TestMealPlanCreationRequestInput_Validate(T *testing.T) {
 			},
 		}
 
-		err := x.ValidateWithContext(t.Context())
+		require.NoError(t, x.ValidateWithContext(t.Context()))
+
+		err := x.ValidateVotingDeadline(now)
 		require.Error(t, err)
 		assert.Equal(t, errInvalidVotingDeadline, err)
 	})

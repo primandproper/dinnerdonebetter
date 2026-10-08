@@ -11,6 +11,7 @@ import (
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -45,8 +46,8 @@ func (m *mealPlanningManager) AnnotateMealPlanSummaries(ctx context.Context, use
 		return nil, platformerrors.ErrEmptyInputParameter
 	}
 
-	logger := m.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger := m.logger.WithSpan(span).WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	annotations := &types.MealPlanSummaryAnnotations{
 		ChosenMealNamesByEventID: map[string]string{},
@@ -91,6 +92,10 @@ func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creat
 		return nil, observability.PrepareError(err, span, "validating input")
 	}
 
+	if err := input.ValidateVotingDeadline(m.clock.Now()); err != nil {
+		return nil, observability.PrepareError(err, span, "validating voting deadline")
+	}
+
 	if creatorID == "" {
 		return nil, platformerrors.ErrEmptyInputParameter
 	}
@@ -102,6 +107,7 @@ func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creat
 	convertedInput := converters.ConvertMealPlanCreationRequestInputToMealPlanDatabaseCreationInput(input)
 	convertedInput.CreatedByUser = creatorID
 	convertedInput.BelongsToAccount = ownerID
+	convertedInput.Status = string(types.InitialMealPlanStatus(convertedInput.Events))
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.MealPlanIDKey, convertedInput.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, convertedInput.ID)
@@ -124,10 +130,10 @@ func (m *mealPlanningManager) ReadMealPlan(ctx context.Context, mealPlanID, owne
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: mealPlanID,
-		identitykeys.UserIDKey:         ownerID,
+		platformkeys.UserIDKey:         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	mealPlan, err := m.db.GetMealPlan(ctx, mealPlanID, ownerID)
 	if err != nil {
@@ -151,10 +157,10 @@ func (m *mealPlanningManager) UpdateMealPlan(ctx context.Context, mealPlanID, ow
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: mealPlanID,
-		identitykeys.UserIDKey:         ownerID,
+		platformkeys.UserIDKey:         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	existingMealPlan, err := m.db.GetMealPlan(ctx, mealPlanID, ownerID)
 	if err != nil {
@@ -175,10 +181,10 @@ func (m *mealPlanningManager) ArchiveMealPlan(ctx context.Context, mealPlanID, o
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: mealPlanID,
-		identitykeys.UserIDKey:         ownerID,
+		platformkeys.UserIDKey:         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	if err := m.db.ArchiveMealPlan(ctx, mealPlanID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan")
@@ -193,20 +199,25 @@ func (m *mealPlanningManager) FinalizeMealPlan(ctx context.Context, mealPlanID, 
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: mealPlanID,
-		identitykeys.UserIDKey:         ownerID,
+		platformkeys.UserIDKey:         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
-	finalized, err := m.db.AttemptToFinalizeMealPlan(ctx, mealPlanID, ownerID)
+	tally, err := types.FinalizeMealPlan(ctx, m.db, m.electorate, mealPlanID, ownerID, m.clock.Now(), types.RandomTiebreak)
 	if err != nil {
 		return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan")
 	}
 
+	logger.WithValue("finalized", tally.Finalized).
+		WithValue("decisions", len(tally.Decisions)).
+		WithValue("awaiting_votes_from", tally.AwaitingVotesFrom).
+		Info("meal plan tallied")
+
 	// only enter the plan into the pipeline when it actually finalized.
-	if finalized {
+	if tally.Finalized {
 		m.startFinalizationPipeline(ctx, mealPlanID, ownerID, logger, span)
 	}
 
-	return finalized, nil
+	return tally.Finalized, nil
 }

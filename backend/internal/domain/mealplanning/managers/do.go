@@ -3,12 +3,14 @@ package managers
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/primitives-go/v2/messagequeue"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -29,8 +31,8 @@ func RegisterManagers(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[mealplanning.Repository](i),
-			do.MustInvoke[*queuescfg.Config](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
+			identity.NewAccountRoster(do.MustInvoke[platformidentity.Store](i), do.MustInvoke[database.Client](i).Reader()),
+			do.MustInvoke[clock.Clock](i),
 			do.MustInvoke[recipeanalysis.RecipeAnalyzer](i),
 			do.MustInvoke[*textsearchcfg.Config](i),
 			do.MustInvoke[metrics.Provider](i),

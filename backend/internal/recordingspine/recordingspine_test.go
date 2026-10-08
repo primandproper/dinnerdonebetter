@@ -8,7 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	platformauditmock "github.com/primandproper/platform-go/v15/audit/mock"
 	"github.com/primandproper/platform-go/v15/outbox"
@@ -35,7 +35,7 @@ func TestNewWriter(T *testing.T) {
 		executor := &mockdatabase.SQLQueryExecutorMock{
 			ExecContextFunc: func(_ context.Context, _ string, args ...any) (sql.Result, error) {
 				for _, arg := range args {
-					if topic, ok := arg.(string); ok && topic == mealplanningindexing.IndexTypeRecipes {
+					if topic, ok := arg.(string); ok && topic == searchindex.IndexTypeRecipes {
 						topics = append(topics, topic)
 					}
 				}
@@ -54,7 +54,7 @@ func TestNewWriter(T *testing.T) {
 			},
 		}))
 
-		assert.Equal(t, []string{mealplanningindexing.IndexTypeRecipes}, topics)
+		assert.Equal(t, []string{searchindex.IndexTypeRecipes}, topics)
 	})
 }
 

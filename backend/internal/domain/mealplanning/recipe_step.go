@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -25,12 +24,6 @@ const (
 var (
 	errOneInstrumentOrVesselRequired = errors.New("at least one instrument or vessel is required")
 )
-
-func init() {
-	gob.Register(new(RecipeStep))
-	gob.Register(new(RecipeStepCreationRequestInput))
-	gob.Register(new(RecipeStepUpdateRequestInput))
-}
 
 type (
 	// RecipeStep represents a recipe step.

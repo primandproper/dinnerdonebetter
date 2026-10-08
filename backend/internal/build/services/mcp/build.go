@@ -49,7 +49,7 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	authentication.RegisterAuth(i)
 
 	// repositories
-	auditrepo.RegisterAuditLogRepository(i)
+	auditrepo.RegisterAuditLog(i)
 	// The platform recorder behind it, which the recording spine registered below files
 	// every write's entry through.
 	auditrepo.RegisterPlatformRecorder(i)

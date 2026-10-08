@@ -131,14 +131,14 @@ func TestBuildInjector_RegistersEverySearcherTheReindexJobResolves(t *testing.T)
 
 	for _, name := range []string{
 		"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing.UserTextSearcher",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing.RecipeTextSearcher",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing.MealTextSearcher",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing.ValidIngredientTextSearcher",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing.ValidInstrumentTextSearcher",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing.ValidMeasurementUnitTextSearcher",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing.ValidPreparationTextSearcher",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing.ValidIngredientStateTextSearcher",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing.ValidVesselTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.RecipeTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.MealTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidIngredientTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidInstrumentTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidMeasurementUnitTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidPreparationTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidIngredientStateTextSearcher",
+		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex.ValidVesselTextSearcher",
 	} {
 		assert.True(t, declared[name], "the search index Registry resolves %s and this container does not declare it", name)
 	}

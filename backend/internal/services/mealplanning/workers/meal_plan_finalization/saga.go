@@ -8,9 +8,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
 	"github.com/primandproper/platform-go/v15/saga"
+	"github.com/primandproper/primitives-go/v2/clock"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/retry"
@@ -18,7 +18,7 @@ import (
 
 // errNotFinalizable indicates a plan the finalize step could not finalize.
 //
-// It is unretryable. AttemptToFinalizeMealPlan finalizes when every vote is in or the voting
+// It is unretryable. mealplanning.FinalizeMealPlan finalizes when every vote is in or the voting
 // deadline has passed, and the starter only ever picks plans whose deadline is already behind
 // them — so a plan that reaches this is one whose ballots the tally could not resolve, and no
 // number of retries changes a ballot.
@@ -45,6 +45,8 @@ var errNotFinalizable = platformerrors.New("meal plan could not be finalized")
 // it.
 func steps(
 	dataManager mealplanning.Repository,
+	electorate mealplanning.MealPlanElectorate,
+	wallClock clock.Clock,
 	analyzer recipeanalysis.RecipeAnalyzer,
 	groceryListCreator grocerylistpreparation.GroceryListCreator,
 	logger logging.Logger,
@@ -53,7 +55,7 @@ func steps(
 		{
 			Name: mealplanning.MealPlanFinalizationStepFinalize,
 			Do: func(ctx context.Context, state *mealplanning.MealPlanFinalizationState) error {
-				return finalize(ctx, dataManager, logger, state)
+				return finalize(ctx, dataManager, electorate, wallClock, logger, state)
 			},
 		},
 		{
@@ -81,14 +83,16 @@ func steps(
 func finalize(
 	ctx context.Context,
 	dataManager mealplanning.Repository,
+	electorate mealplanning.MealPlanElectorate,
+	wallClock clock.Clock,
 	logger logging.Logger,
 	state *mealplanning.MealPlanFinalizationState,
 ) error {
 	l := logger.WithValue(mealplanningkeys.MealPlanIDKey, state.MealPlanID)
 
-	finalized, err := dataManager.AttemptToFinalizeMealPlan(ctx, state.MealPlanID, state.AccountID)
+	tally, err := mealplanning.FinalizeMealPlan(ctx, dataManager, electorate, state.MealPlanID, state.AccountID, wallClock.Now(), mealplanning.RandomTiebreak)
 	switch {
-	case errors.Is(err, mealplanningrepo.ErrAlreadyFinalized):
+	case errors.Is(err, mealplanning.ErrAlreadyFinalized):
 		// Already done, by a user request or by this step on an earlier attempt whose result
 		// never made it into the instance row. Either way the step's effect is in place, which
 		// is the whole of what it promises.
@@ -97,7 +101,7 @@ func finalize(
 		return nil
 	case err != nil:
 		return err
-	case !finalized:
+	case !tally.Finalized:
 		return retry.Unretryable(platformerrors.Wrapf(errNotFinalizable, "meal plan %q", state.MealPlanID))
 	}
 
@@ -154,7 +158,7 @@ func createTasks(
 		}
 	}
 
-	created, err := dataManager.CreateMealPlanTasksForMealPlan(ctx, state.MealPlanID, inputs)
+	created, err := dataManager.CreateMealPlanTasksForMealPlan(ctx, state.MealPlanID, state.AccountID, inputs)
 	if err != nil {
 		return err
 	}
@@ -180,7 +184,7 @@ func undoCreateTasks(
 		return nil
 	}
 
-	if err := dataManager.UndoMealPlanTaskCreation(ctx, state.MealPlanID, state.CreatedTaskIDs); err != nil {
+	if err := dataManager.UndoMealPlanTaskCreation(ctx, state.MealPlanID, state.AccountID, state.CreatedTaskIDs); err != nil {
 		return err
 	}
 
@@ -243,7 +247,7 @@ func undoInitializeGroceryList(
 		return nil
 	}
 
-	if err := dataManager.UndoMealPlanGroceryListInitialization(ctx, state.MealPlanID, state.CreatedGroceryListItemIDs); err != nil {
+	if err := dataManager.UndoMealPlanGroceryListInitialization(ctx, state.MealPlanID, state.AccountID, state.CreatedGroceryListItemIDs); err != nil {
 		return err
 	}
 

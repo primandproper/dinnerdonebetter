@@ -1,15 +1,16 @@
 /*
-Package payments mounts platform-go's billing surface.
+Package payments mounts platform-go's billing surface and builds the payment
+providers' webhook endpoints.
 
 There is no service of this application's own any more, and two of its RPCs are
 gone rather than moved. CreateSubscription and UpdateSubscription had no
 counterpart on platform's surface and were not supposed to: a subscription is
 what a payment provider reports, and billing/grpc's writes are the archives and
 the product catalog. This application already worked that way in practice — the
-RevenueCat webhook is what opens and moves a subscription, through
-internal/domain/payments/manager — so the two RPCs were a second door onto rows
-the provider owns. The repository methods behind them stay, because that is the
-door the provider comes through.
+providers' webhooks are what open and move a subscription, through billing/sync
+(see webhooks.go) — so the two RPCs were a second door onto rows the provider
+owns. The store methods behind them stay, because that is the door the provider
+comes through.
 
 The scope is global rather than per-account: this application keeps one billing
 ledger and distinguishes accounts by the belongs_to_account column on the rows,

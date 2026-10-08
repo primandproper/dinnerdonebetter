@@ -1,27 +1,24 @@
 /*
-Package payments is this application's half of the payments domain: what a
-payment provider's webhook means to an account, the namespace the billing
-tables carry, the tenancy they are kept under, and the data change events a
-write emits.
+Package payments is this application's half of the payments domain: where a
+payment provider's subscription lands among this application's accounts and
+products, and the tenancy the billing tables are kept under.
 
 The stored half is platform-go's. github.com/primandproper/platform-go/v15/billing
 owns the catalog, the subscriptions, the one-time purchases and the ledger of
 payment attempts: the schema, the paging, the tenancy column, the uniqueness that
 turns a redelivered webhook into a collision instead of a second row, and the
 guarded status writes that make a replayed event an answer rather than a
-failure. capitalism, also platform's, is the wire to Stripe and RevenueCat. This
-package neither reimplements nor wraps either.
+failure. capitalism, also platform's, is the wire to Stripe and RevenueCat, and
+billing/sync and billing/http are the webhook endpoint between the two. This
+package neither reimplements nor wraps any of them.
 
 What it holds is what platform declines to decide:
 
-  - Which of a provider's events changes what about an account. That is
-    [PaymentProcessor], which turns a verified delivery into a
-    [ParsedWebhookEvent], and the manager, which applies one to the store and to
-    the account's billing standing.
+  - Which account and which product a subscription nobody holds yet belongs to.
+    That is [StripePlace] and [RevenueCatPlace], the billing/sync Place for each
+    provider; see placement.go.
   - Which capitalism.SubscriptionStatus leaves an account entitled, which
     internal/entitlements writes down as the plan chooser.
-  - The mapping from a subscription's status onto identity.Account's coarse
-    billing status, which includes a suspension no processor reports.
 
 # One catalog, in the global scope
 

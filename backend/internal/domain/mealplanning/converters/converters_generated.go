@@ -267,6 +267,7 @@ func ConvertMealPlanToMealPlanDatabaseCreationInput(x *mealplanning.MealPlan) *m
 		ID:               x.ID,
 		ElectionMethod:   x.ElectionMethod,
 		CreatedByUser:    x.CreatedByUser,
+		Status:           x.Status,
 		Events:           events,
 		Selections:       selections,
 	}

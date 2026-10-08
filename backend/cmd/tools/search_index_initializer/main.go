@@ -23,6 +23,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
@@ -157,7 +158,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 		}
 	}()
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, client)
+	auditRepo, err := auditlogentries.ProvideAuditLog(logger, tracerProvider, nil, client)
 	if err != nil {
 		return fmt.Errorf("building audit log repository: %w", err)
 	}
@@ -187,7 +188,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 		return fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
 
 	searchCfg := &textsearchcfg.Config{
 		Provider: searchProvider,
@@ -243,56 +244,56 @@ func reindexOne(
 		}
 
 		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
-	case mealplanningindexing.IndexTypeMeals:
+	case searchindex.IndexTypeMeals:
 		source, err := mealplanningindexing.NewMealSource(mealPlanningRepo)
 		if err != nil {
 			return err
 		}
 
 		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
-	case mealplanningindexing.IndexTypeRecipes:
+	case searchindex.IndexTypeRecipes:
 		source, err := mealplanningindexing.NewRecipeSource(mealPlanningRepo)
 		if err != nil {
 			return err
 		}
 
 		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
-	case mealplanningindexing.IndexTypeValidIngredients:
+	case searchindex.IndexTypeValidIngredients:
 		source, err := mealplanningindexing.NewValidIngredientSource(mealPlanningRepo)
 		if err != nil {
 			return err
 		}
 
 		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
-	case mealplanningindexing.IndexTypeValidInstruments:
+	case searchindex.IndexTypeValidInstruments:
 		source, err := mealplanningindexing.NewValidInstrumentSource(mealPlanningRepo)
 		if err != nil {
 			return err
 		}
 
 		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
-	case mealplanningindexing.IndexTypeValidMeasurementUnits:
+	case searchindex.IndexTypeValidMeasurementUnits:
 		source, err := mealplanningindexing.NewValidMeasurementUnitSource(mealPlanningRepo)
 		if err != nil {
 			return err
 		}
 
 		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
-	case mealplanningindexing.IndexTypeValidPreparations:
+	case searchindex.IndexTypeValidPreparations:
 		source, err := mealplanningindexing.NewValidPreparationSource(mealPlanningRepo)
 		if err != nil {
 			return err
 		}
 
 		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
-	case mealplanningindexing.IndexTypeValidIngredientStates:
+	case searchindex.IndexTypeValidIngredientStates:
 		source, err := mealplanningindexing.NewValidIngredientStateSource(mealPlanningRepo)
 		if err != nil {
 			return err
 		}
 
 		return build(ctx, searchCfg, source, o11y, wipe, batchSize)
-	case mealplanningindexing.IndexTypeValidVessels:
+	case searchindex.IndexTypeValidVessels:
 		source, err := mealplanningindexing.NewValidVesselSource(mealPlanningRepo)
 		if err != nil {
 			return err
@@ -356,14 +357,14 @@ func build[E, T any](
 func knownIndexTypes() []string {
 	types := []string{
 		identityindexing.IndexTypeUsers,
-		mealplanningindexing.IndexTypeMeals,
-		mealplanningindexing.IndexTypeRecipes,
-		mealplanningindexing.IndexTypeValidIngredients,
-		mealplanningindexing.IndexTypeValidInstruments,
-		mealplanningindexing.IndexTypeValidMeasurementUnits,
-		mealplanningindexing.IndexTypeValidPreparations,
-		mealplanningindexing.IndexTypeValidIngredientStates,
-		mealplanningindexing.IndexTypeValidVessels,
+		searchindex.IndexTypeMeals,
+		searchindex.IndexTypeRecipes,
+		searchindex.IndexTypeValidIngredients,
+		searchindex.IndexTypeValidInstruments,
+		searchindex.IndexTypeValidMeasurementUnits,
+		searchindex.IndexTypeValidPreparations,
+		searchindex.IndexTypeValidIngredientStates,
+		searchindex.IndexTypeValidVessels,
 	}
 	slices.Sort(types)
 

@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
@@ -18,6 +19,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func buildServiceImplForRecipesTest(t *testing.T) *serviceImpl {
@@ -28,73 +31,6 @@ func buildServiceImplForRecipesTest(t *testing.T) *serviceImpl {
 		logger:   loggingnoop.NewLogger(),
 		comments: &commentsmock.StoreMock{},
 	}
-}
-
-func TestServiceImpl_verifyRecipeOwnership(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		s := buildServiceImplForRecipesTest(t)
-
-		exampleRecipeID := fake.BuildFakeID()
-		exampleUserID := fake.BuildFakeID()
-
-		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
-			Requester: sessions.RequesterInfo{UserID: exampleUserID},
-		})
-
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
-		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-		}
-		s.mealPlanningManager = mrm
-
-		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
-		userID, err := s.verifyRecipeOwnership(ctx, exampleRecipeID, s.logger, span)
-		require.NoError(t, err)
-		assert.Equal(t, exampleUserID, userID)
-
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
-	})
-
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		s := buildServiceImplForRecipesTest(t)
-
-		exampleRecipeID := fake.BuildFakeID()
-		exampleUserID := fake.BuildFakeID()
-
-		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
-			Requester: sessions.RequesterInfo{UserID: exampleUserID},
-		})
-
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
-		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-		}
-		s.mealPlanningManager = mrm
-
-		_, span := tracing.NewTracerForTest(t.Name()).StartSpan(ctx)
-		_, err := s.verifyRecipeOwnership(ctx, exampleRecipeID, s.logger, span)
-		require.Error(t, err)
-
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
-	})
 }
 
 func TestServiceImpl_ArchiveRecipe(T *testing.T) {
@@ -115,14 +51,7 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 			},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
 			ArchiveRecipeFunc: func(_ context.Context, recipeID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleUserID, ownerID)
@@ -141,12 +70,11 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeCalls(), 1)
 		assert.Empty(t, cm.ArchiveCommentCalls())
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -159,13 +87,12 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			ArchiveRecipeFunc: func(_ context.Context, recipeID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -173,8 +100,9 @@ func TestServiceImpl_ArchiveRecipe(T *testing.T) {
 		res, err := s.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: exampleRecipeID})
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.ArchiveRecipeCalls(), 1)
 	})
 }
 
@@ -195,17 +123,11 @@ func TestServiceImpl_ArchiveRecipePrepTask(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			ArchiveRecipePrepTaskFunc: func(_ context.Context, recipeID string, recipePrepTaskID string) error {
+			ArchiveRecipePrepTaskFunc: func(_ context.Context, recipeID string, recipePrepTaskID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipePrepTaskID, recipePrepTaskID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -219,11 +141,10 @@ func TestServiceImpl_ArchiveRecipePrepTask(T *testing.T) {
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipePrepTaskCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -237,13 +158,13 @@ func TestServiceImpl_ArchiveRecipePrepTask(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			ArchiveRecipePrepTaskFunc: func(_ context.Context, recipeID string, recipePrepTaskID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipePrepTaskID, recipePrepTaskID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -254,8 +175,9 @@ func TestServiceImpl_ArchiveRecipePrepTask(T *testing.T) {
 		})
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.ArchiveRecipePrepTaskCalls(), 1)
 	})
 }
 
@@ -617,17 +539,11 @@ func TestServiceImpl_ArchiveRecipeStep(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			ArchiveRecipeStepFunc: func(_ context.Context, recipeID string, recipeStepID string) error {
+			ArchiveRecipeStepFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -641,11 +557,10 @@ func TestServiceImpl_ArchiveRecipeStep(T *testing.T) {
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -659,13 +574,13 @@ func TestServiceImpl_ArchiveRecipeStep(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			ArchiveRecipeStepFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -676,8 +591,9 @@ func TestServiceImpl_ArchiveRecipeStep(T *testing.T) {
 		})
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.ArchiveRecipeStepCalls(), 1)
 	})
 }
 
@@ -699,18 +615,12 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			ArchiveRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string) error {
+			ArchiveRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
 				assert.Equal(t, exampleRecipeStepCompletionConditionID, recipeStepCompletionConditionID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -725,11 +635,10 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepCompletionConditionCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -744,13 +653,14 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			ArchiveRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleRecipeStepCompletionConditionID, recipeStepCompletionConditionID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -762,8 +672,9 @@ func TestServiceImpl_ArchiveRecipeStepCompletionCondition(T *testing.T) {
 		})
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.ArchiveRecipeStepCompletionConditionCalls(), 1)
 	})
 }
 
@@ -785,18 +696,12 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			ArchiveRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string) error {
+			ArchiveRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
 				assert.Equal(t, exampleRecipeStepIngredientID, recipeStepIngredientID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -811,11 +716,10 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepIngredientCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -830,13 +734,14 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			ArchiveRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleRecipeStepIngredientID, recipeStepIngredientID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -848,8 +753,9 @@ func TestServiceImpl_ArchiveRecipeStepIngredient(T *testing.T) {
 		})
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.ArchiveRecipeStepIngredientCalls(), 1)
 	})
 }
 
@@ -871,18 +777,12 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			ArchiveRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string) error {
+			ArchiveRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
 				assert.Equal(t, exampleRecipeStepInstrumentID, recipeStepInstrumentID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -897,11 +797,10 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepInstrumentCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -916,13 +815,14 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			ArchiveRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleRecipeStepInstrumentID, recipeStepInstrumentID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -934,8 +834,9 @@ func TestServiceImpl_ArchiveRecipeStepInstrument(T *testing.T) {
 		})
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.ArchiveRecipeStepInstrumentCalls(), 1)
 	})
 }
 
@@ -957,18 +858,12 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			ArchiveRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepProductID string) error {
+			ArchiveRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepProductID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
 				assert.Equal(t, exampleRecipeStepProductID, recipeStepProductID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -983,11 +878,10 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepProductCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1002,13 +896,14 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			ArchiveRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepProductID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleRecipeStepProductID, recipeStepProductID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1020,8 +915,9 @@ func TestServiceImpl_ArchiveRecipeStepProduct(T *testing.T) {
 		})
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.ArchiveRecipeStepProductCalls(), 1)
 	})
 }
 
@@ -1043,18 +939,12 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			ArchiveRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepVesselID string) error {
+			ArchiveRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepVesselID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
 				assert.Equal(t, exampleRecipeStepVesselID, recipeStepVesselID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -1069,11 +959,10 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 		assert.NotNil(t, res)
 		require.NoError(t, err)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.ArchiveRecipeStepVesselCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1088,13 +977,14 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			ArchiveRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepVesselID string, ownerID string) error {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleRecipeStepVesselID, recipeStepVesselID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1106,8 +996,9 @@ func TestServiceImpl_ArchiveRecipeStepVessel(T *testing.T) {
 		})
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.ArchiveRecipeStepVesselCalls(), 1)
 	})
 }
 
@@ -1204,16 +1095,10 @@ func TestServiceImpl_CreateRecipePrepTask(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipePrepTaskFunc: func(_ context.Context, recipeID string, ownerID string, _ *mealplanning.RecipePrepTaskCreationRequestInput) (*mealplanning.RecipePrepTask, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			CreateRecipePrepTaskFunc: func(_ context.Context, recipeID string, _ *mealplanning.RecipePrepTaskCreationRequestInput) (*mealplanning.RecipePrepTask, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return exampleCreatedRecipePrepTask, nil
 			},
@@ -1228,11 +1113,10 @@ func TestServiceImpl_CreateRecipePrepTask(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipePrepTask.ID, actual.Created.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.CreateRecipePrepTaskCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1245,13 +1129,12 @@ func TestServiceImpl_CreateRecipePrepTask(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipePrepTaskFunc: func(_ context.Context, recipeID string, ownerID string, _ *mealplanning.RecipePrepTaskCreationRequestInput) (*mealplanning.RecipePrepTask, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return nil, sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1262,8 +1145,9 @@ func TestServiceImpl_CreateRecipePrepTask(T *testing.T) {
 		res, err := s.CreateRecipePrepTask(ctx, exampleInput)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.CreateRecipePrepTaskCalls(), 1)
 	})
 }
 
@@ -1324,16 +1208,10 @@ func TestServiceImpl_CreateRecipeStep(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipeStepFunc: func(_ context.Context, recipeID string, ownerID string, _ *mealplanning.RecipeStepCreationRequestInput) (*mealplanning.RecipeStep, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			CreateRecipeStepFunc: func(_ context.Context, recipeID string, _ *mealplanning.RecipeStepCreationRequestInput) (*mealplanning.RecipeStep, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return exampleCreatedRecipeStep, nil
 			},
@@ -1348,11 +1226,10 @@ func TestServiceImpl_CreateRecipeStep(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStep.ID, actual.Created.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.CreateRecipeStepCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1365,13 +1242,12 @@ func TestServiceImpl_CreateRecipeStep(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipeStepFunc: func(_ context.Context, recipeID string, ownerID string, _ *mealplanning.RecipeStepCreationRequestInput) (*mealplanning.RecipeStep, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return nil, sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1382,8 +1258,9 @@ func TestServiceImpl_CreateRecipeStep(T *testing.T) {
 		res, err := s.CreateRecipeStep(ctx, exampleInput)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.CreateRecipeStepCalls(), 1)
 	})
 }
 
@@ -1405,17 +1282,11 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			CreateRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *mealplanning.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) (*mealplanning.RecipeStepCompletionCondition, error) {
+			CreateRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) (*mealplanning.RecipeStepCompletionCondition, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return exampleCreatedRecipeStepCompletionCondition, nil
 			},
@@ -1431,11 +1302,10 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepCompletionCondition.ID, actual.Created.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.CreateRecipeStepCompletionConditionCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1449,13 +1319,13 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepCompletionConditionForExistingRecipeCreationRequestInput) (*mealplanning.RecipeStepCompletionCondition, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return nil, sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1467,8 +1337,9 @@ func TestServiceImpl_CreateRecipeStepCompletionCondition(T *testing.T) {
 		res, err := s.CreateRecipeStepCompletionCondition(ctx, exampleInput)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.CreateRecipeStepCompletionConditionCalls(), 1)
 	})
 }
 
@@ -1490,17 +1361,11 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			CreateRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *mealplanning.RecipeStepIngredientCreationRequestInput) (*mealplanning.RecipeStepIngredient, error) {
+			CreateRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepIngredientCreationRequestInput) (*mealplanning.RecipeStepIngredient, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return exampleCreatedRecipeStepIngredient, nil
 			},
@@ -1516,11 +1381,10 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepIngredient.ID, actual.Created.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.CreateRecipeStepIngredientCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1534,13 +1398,13 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepIngredientCreationRequestInput) (*mealplanning.RecipeStepIngredient, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return nil, sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1552,8 +1416,9 @@ func TestServiceImpl_CreateRecipeStepIngredient(T *testing.T) {
 		res, err := s.CreateRecipeStepIngredient(ctx, exampleInput)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.CreateRecipeStepIngredientCalls(), 1)
 	})
 }
 
@@ -1575,17 +1440,11 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			CreateRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *mealplanning.RecipeStepInstrumentCreationRequestInput) (*mealplanning.RecipeStepInstrument, error) {
+			CreateRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepInstrumentCreationRequestInput) (*mealplanning.RecipeStepInstrument, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return exampleCreatedRecipeStepInstrument, nil
 			},
@@ -1601,11 +1460,10 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepInstrument.ID, actual.Created.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.CreateRecipeStepInstrumentCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1619,13 +1477,13 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepInstrumentCreationRequestInput) (*mealplanning.RecipeStepInstrument, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return nil, sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1637,8 +1495,9 @@ func TestServiceImpl_CreateRecipeStepInstrument(T *testing.T) {
 		res, err := s.CreateRecipeStepInstrument(ctx, exampleInput)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.CreateRecipeStepInstrumentCalls(), 1)
 	})
 }
 
@@ -1660,17 +1519,11 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			CreateRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *mealplanning.RecipeStepProductCreationRequestInput) (*mealplanning.RecipeStepProduct, error) {
+			CreateRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepProductCreationRequestInput) (*mealplanning.RecipeStepProduct, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return exampleCreatedRecipeStepProduct, nil
 			},
@@ -1686,11 +1539,10 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepProduct.ID, actual.Created.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.CreateRecipeStepProductCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1704,13 +1556,13 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepProductCreationRequestInput) (*mealplanning.RecipeStepProduct, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return nil, sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1722,8 +1574,9 @@ func TestServiceImpl_CreateRecipeStepProduct(T *testing.T) {
 		res, err := s.CreateRecipeStepProduct(ctx, exampleInput)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.CreateRecipeStepProductCalls(), 1)
 	})
 }
 
@@ -1745,17 +1598,11 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRecipeID, recipeID)
-
-				return exampleRecipe, nil
-			},
-			CreateRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *mealplanning.RecipeStepVesselCreationRequestInput) (*mealplanning.RecipeStepVessel, error) {
+			CreateRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepVesselCreationRequestInput) (*mealplanning.RecipeStepVessel, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
 				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return exampleCreatedRecipeStepVessel, nil
 			},
@@ -1771,11 +1618,10 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleCreatedRecipeStepVessel.ID, actual.Created.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.CreateRecipeStepVesselCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -1789,13 +1635,13 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRecipeID, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			CreateRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepVesselCreationRequestInput) (*mealplanning.RecipeStepVessel, error) {
 				assert.Equal(t, exampleRecipeID, recipeID)
+				assert.Equal(t, exampleRecipeStepID, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return nil, sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -1807,8 +1653,9 @@ func TestServiceImpl_CreateRecipeStepVessel(T *testing.T) {
 		res, err := s.CreateRecipeStepVessel(ctx, exampleInput)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.CreateRecipeStepVesselCalls(), 1)
 	})
 }
 
@@ -2583,16 +2430,15 @@ func TestServiceImpl_UpdateRecipe(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleResponse.CreatedByUser = exampleUserID
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
 			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
 
 				return exampleResponse, nil
 			},
-			UpdateRecipeFunc: func(_ context.Context, recipeID string, _ *mealplanning.RecipeUpdateRequestInput) error {
+			UpdateRecipeFunc: func(_ context.Context, recipeID string, ownerID string, _ *mealplanning.RecipeUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -2603,11 +2449,11 @@ func TestServiceImpl_UpdateRecipe(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 2) // the service re-reads the record after updating it
+		assert.Len(t, mrm.ReadRecipeCalls(), 1) // the service reads the record back after updating it
 		assert.Len(t, mrm.UpdateRecipeCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -2620,13 +2466,12 @@ func TestServiceImpl_UpdateRecipe(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			UpdateRecipeFunc: func(_ context.Context, recipeID string, ownerID string, _ *mealplanning.RecipeUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -2634,8 +2479,9 @@ func TestServiceImpl_UpdateRecipe(T *testing.T) {
 		res, err := s.UpdateRecipe(ctx, exampleRequest)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.UpdateRecipeCalls(), 1)
 	})
 }
 
@@ -2656,17 +2502,11 @@ func TestServiceImpl_UpdateRecipePrepTask(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRequest.RecipeId, recipeID)
-
-				return exampleRecipe, nil
-			},
-			UpdateRecipePrepTaskFunc: func(_ context.Context, recipeID string, recipePrepTaskID string, _ *mealplanning.RecipePrepTaskUpdateRequestInput) error {
+			UpdateRecipePrepTaskFunc: func(_ context.Context, recipeID string, recipePrepTaskID string, ownerID string, _ *mealplanning.RecipePrepTaskUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
 				assert.Equal(t, exampleRequest.RecipePrepTaskId, recipePrepTaskID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -2683,12 +2523,11 @@ func TestServiceImpl_UpdateRecipePrepTask(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.UpdateRecipePrepTaskCalls(), 1)
 		assert.Len(t, mrm.ReadRecipePrepTaskCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -2701,13 +2540,13 @@ func TestServiceImpl_UpdateRecipePrepTask(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			UpdateRecipePrepTaskFunc: func(_ context.Context, recipeID string, recipePrepTaskID string, ownerID string, _ *mealplanning.RecipePrepTaskUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleRequest.RecipePrepTaskId, recipePrepTaskID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -2715,8 +2554,9 @@ func TestServiceImpl_UpdateRecipePrepTask(T *testing.T) {
 		res, err := s.UpdateRecipePrepTask(ctx, exampleRequest)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.UpdateRecipePrepTaskCalls(), 1)
 	})
 }
 
@@ -2777,17 +2617,11 @@ func TestServiceImpl_UpdateRecipeStep(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRequest.RecipeId, recipeID)
-
-				return exampleRecipe, nil
-			},
-			UpdateRecipeStepFunc: func(_ context.Context, recipeID string, recipeStepID string, _ *mealplanning.RecipeStepUpdateRequestInput) error {
+			UpdateRecipeStepFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
 				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -2804,12 +2638,11 @@ func TestServiceImpl_UpdateRecipeStep(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.UpdateRecipeStepCalls(), 1)
 		assert.Len(t, mrm.ReadRecipeStepCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -2822,13 +2655,13 @@ func TestServiceImpl_UpdateRecipeStep(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			UpdateRecipeStepFunc: func(_ context.Context, recipeID string, recipeStepID string, ownerID string, _ *mealplanning.RecipeStepUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -2836,8 +2669,9 @@ func TestServiceImpl_UpdateRecipeStep(T *testing.T) {
 		res, err := s.UpdateRecipeStep(ctx, exampleRequest)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.UpdateRecipeStepCalls(), 1)
 	})
 }
 
@@ -2858,18 +2692,12 @@ func TestServiceImpl_UpdateRecipeStepCompletionCondition(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRequest.RecipeId, recipeID)
-
-				return exampleRecipe, nil
-			},
-			UpdateRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string, _ *mealplanning.RecipeStepCompletionConditionUpdateRequestInput) error {
+			UpdateRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string, ownerID string, _ *mealplanning.RecipeStepCompletionConditionUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
 				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
 				assert.Equal(t, exampleRequest.RecipeStepCompletionConditionId, recipeStepCompletionConditionID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -2887,12 +2715,11 @@ func TestServiceImpl_UpdateRecipeStepCompletionCondition(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.UpdateRecipeStepCompletionConditionCalls(), 1)
 		assert.Len(t, mrm.ReadRecipeStepCompletionConditionCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -2905,13 +2732,14 @@ func TestServiceImpl_UpdateRecipeStepCompletionCondition(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			UpdateRecipeStepCompletionConditionFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepCompletionConditionID string, ownerID string, _ *mealplanning.RecipeStepCompletionConditionUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
+				assert.Equal(t, exampleRequest.RecipeStepCompletionConditionId, recipeStepCompletionConditionID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -2919,8 +2747,9 @@ func TestServiceImpl_UpdateRecipeStepCompletionCondition(T *testing.T) {
 		res, err := s.UpdateRecipeStepCompletionCondition(ctx, exampleRequest)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.UpdateRecipeStepCompletionConditionCalls(), 1)
 	})
 }
 
@@ -2941,18 +2770,12 @@ func TestServiceImpl_UpdateRecipeStepIngredient(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRequest.RecipeId, recipeID)
-
-				return exampleRecipe, nil
-			},
-			UpdateRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string, _ *mealplanning.RecipeStepIngredientUpdateRequestInput) error {
+			UpdateRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string, ownerID string, _ *mealplanning.RecipeStepIngredientUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
 				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
 				assert.Equal(t, exampleRequest.RecipeStepIngredientId, recipeStepIngredientID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -2970,12 +2793,11 @@ func TestServiceImpl_UpdateRecipeStepIngredient(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.UpdateRecipeStepIngredientCalls(), 1)
 		assert.Len(t, mrm.ReadRecipeStepIngredientCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -2988,13 +2810,14 @@ func TestServiceImpl_UpdateRecipeStepIngredient(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			UpdateRecipeStepIngredientFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepIngredientID string, ownerID string, _ *mealplanning.RecipeStepIngredientUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
+				assert.Equal(t, exampleRequest.RecipeStepIngredientId, recipeStepIngredientID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -3002,8 +2825,9 @@ func TestServiceImpl_UpdateRecipeStepIngredient(T *testing.T) {
 		res, err := s.UpdateRecipeStepIngredient(ctx, exampleRequest)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.UpdateRecipeStepIngredientCalls(), 1)
 	})
 }
 
@@ -3024,18 +2848,12 @@ func TestServiceImpl_UpdateRecipeStepInstrument(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRequest.RecipeId, recipeID)
-
-				return exampleRecipe, nil
-			},
-			UpdateRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string, _ *mealplanning.RecipeStepInstrumentUpdateRequestInput) error {
+			UpdateRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string, ownerID string, _ *mealplanning.RecipeStepInstrumentUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
 				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
 				assert.Equal(t, exampleRequest.RecipeStepInstrumentId, recipeStepInstrumentID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -3053,12 +2871,11 @@ func TestServiceImpl_UpdateRecipeStepInstrument(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.UpdateRecipeStepInstrumentCalls(), 1)
 		assert.Len(t, mrm.ReadRecipeStepInstrumentCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -3071,13 +2888,14 @@ func TestServiceImpl_UpdateRecipeStepInstrument(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			UpdateRecipeStepInstrumentFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepInstrumentID string, ownerID string, _ *mealplanning.RecipeStepInstrumentUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
+				assert.Equal(t, exampleRequest.RecipeStepInstrumentId, recipeStepInstrumentID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -3085,8 +2903,9 @@ func TestServiceImpl_UpdateRecipeStepInstrument(T *testing.T) {
 		res, err := s.UpdateRecipeStepInstrument(ctx, exampleRequest)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.UpdateRecipeStepInstrumentCalls(), 1)
 	})
 }
 
@@ -3107,18 +2926,12 @@ func TestServiceImpl_UpdateRecipeStepProduct(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRequest.RecipeId, recipeID)
-
-				return exampleRecipe, nil
-			},
-			UpdateRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepProductID string, _ *mealplanning.RecipeStepProductUpdateRequestInput) error {
+			UpdateRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepProductID string, ownerID string, _ *mealplanning.RecipeStepProductUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
 				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
 				assert.Equal(t, exampleRequest.RecipeStepProductId, recipeStepProductID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -3136,12 +2949,11 @@ func TestServiceImpl_UpdateRecipeStepProduct(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.UpdateRecipeStepProductCalls(), 1)
 		assert.Len(t, mrm.ReadRecipeStepProductCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -3154,13 +2966,14 @@ func TestServiceImpl_UpdateRecipeStepProduct(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			UpdateRecipeStepProductFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepProductID string, ownerID string, _ *mealplanning.RecipeStepProductUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
+				assert.Equal(t, exampleRequest.RecipeStepProductId, recipeStepProductID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -3168,8 +2981,9 @@ func TestServiceImpl_UpdateRecipeStepProduct(T *testing.T) {
 		res, err := s.UpdateRecipeStepProduct(ctx, exampleRequest)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.UpdateRecipeStepProductCalls(), 1)
 	})
 }
 
@@ -3190,18 +3004,12 @@ func TestServiceImpl_UpdateRecipeStepVessel(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: exampleUserID}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
-				assert.Equal(t, exampleRequest.RecipeId, recipeID)
-
-				return exampleRecipe, nil
-			},
-			UpdateRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepVesselID string, _ *mealplanning.RecipeStepVesselUpdateRequestInput) error {
+			UpdateRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepVesselID string, ownerID string, _ *mealplanning.RecipeStepVesselUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
 				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
 				assert.Equal(t, exampleRequest.RecipeStepVesselId, recipeStepVesselID)
+				assert.Equal(t, exampleUserID, ownerID)
 
 				return nil
 			},
@@ -3219,12 +3027,11 @@ func TestServiceImpl_UpdateRecipeStepVessel(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, exampleResponse.ID, res.Updated.Id)
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
 		assert.Len(t, mrm.UpdateRecipeStepVesselCalls(), 1)
 		assert.Len(t, mrm.ReadRecipeStepVesselCalls(), 1)
 	})
 
-	T.Run("returns permission denied for non-owner", func(t *testing.T) {
+	T.Run("returns not found when the manager refuses a non-owner", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
@@ -3237,13 +3044,14 @@ func TestServiceImpl_UpdateRecipeStepVessel(T *testing.T) {
 			Requester: sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
-		exampleRecipe := &mealplanning.Recipe{ID: exampleRequest.RecipeId, CreatedByUser: fake.BuildFakeID()}
-
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ReadRecipeFunc: func(_ context.Context, recipeID string) (*mealplanning.Recipe, error) {
+			UpdateRecipeStepVesselFunc: func(_ context.Context, recipeID string, recipeStepID string, recipeStepVesselID string, ownerID string, _ *mealplanning.RecipeStepVesselUpdateRequestInput) error {
 				assert.Equal(t, exampleRequest.RecipeId, recipeID)
+				assert.Equal(t, exampleRequest.RecipeStepId, recipeStepID)
+				assert.Equal(t, exampleRequest.RecipeStepVesselId, recipeStepVesselID)
+				assert.Equal(t, exampleUserID, ownerID)
 
-				return exampleRecipe, nil
+				return sql.ErrNoRows
 			},
 		}
 		s.mealPlanningManager = mrm
@@ -3251,7 +3059,8 @@ func TestServiceImpl_UpdateRecipeStepVessel(T *testing.T) {
 		res, err := s.UpdateRecipeStepVessel(ctx, exampleRequest)
 		assert.Nil(t, res)
 		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		assert.Len(t, mrm.ReadRecipeCalls(), 1)
+		assert.Len(t, mrm.UpdateRecipeStepVesselCalls(), 1)
 	})
 }

@@ -5,10 +5,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
-	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	entitlementscfg "github.com/primandproper/platform-go/v15/entitlements/config"
@@ -22,6 +20,7 @@ import (
 	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
+	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
 
 	"github.com/samber/do/v2"
 )
@@ -104,16 +103,12 @@ func RegisterConfigs(i do.Injector) {
 	})
 
 	// From ServicesConfig
-	do.Provide[*identitycfg.Config](i, func(i do.Injector) (*identitycfg.Config, error) {
-		svc := do.MustInvoke[*config.ServicesConfig](i)
-		return &svc.Users, nil
-	})
 	// Domain: mealplanning
 	do.Provide[*mealplanningcfg.Config](i, func(i do.Injector) (*mealplanningcfg.Config, error) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)
 		return &svc.MealPlanning, nil
 	})
-	do.Provide[*uploadedmediacfg.Config](i, func(i do.Injector) (*uploadedmediacfg.Config, error) {
+	do.Provide[*uploadscfg.Config](i, func(i do.Injector) (*uploadscfg.Config, error) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)
 		return &svc.UploadedMedia, nil
 	})

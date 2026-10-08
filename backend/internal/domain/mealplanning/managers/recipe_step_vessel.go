@@ -41,7 +41,7 @@ func (m *mealPlanningManager) ListRecipeStepVessels(ctx context.Context, recipeI
 	return results, nil
 }
 
-func (m *mealPlanningManager) CreateRecipeStepVessel(ctx context.Context, recipeID, recipeStepID string, input *types.RecipeStepVesselCreationRequestInput) (*types.RecipeStepVessel, error) {
+func (m *mealPlanningManager) CreateRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, ownerID string, input *types.RecipeStepVesselCreationRequestInput) (*types.RecipeStepVessel, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -58,6 +58,10 @@ func (m *mealPlanningManager) CreateRecipeStepVessel(ctx context.Context, recipe
 
 	if input.Index == nil {
 		return nil, fmt.Errorf("index is required when creating a recipe step vessel outside of initial recipe creation")
+	}
+
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking recipe ownership")
 	}
 
 	convertedInput := converters.ConvertRecipeStepVesselCreationRequestInputToRecipeStepVesselDatabaseCreationInput(input, 0)
@@ -102,7 +106,7 @@ func (m *mealPlanningManager) ReadRecipeStepVessel(ctx context.Context, recipeID
 	return x, nil
 }
 
-func (m *mealPlanningManager) UpdateRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID string, input *types.RecipeStepVesselUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID, ownerID string, input *types.RecipeStepVesselUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -119,6 +123,10 @@ func (m *mealPlanningManager) UpdateRecipeStepVessel(ctx context.Context, recipe
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepVesselIDKey, recipeStepVesselID)
 
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
+
 	existingRecipeStepVessel, err := m.db.GetRecipeStepVessel(ctx, recipeID, recipeStepID, recipeStepVesselID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "retrieving existing recipe step vessel")
@@ -132,7 +140,7 @@ func (m *mealPlanningManager) UpdateRecipeStepVessel(ctx context.Context, recipe
 	return nil
 }
 
-func (m *mealPlanningManager) ArchiveRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID string) error {
+func (m *mealPlanningManager) ArchiveRecipeStepVessel(ctx context.Context, recipeID, recipeStepID, recipeStepVesselID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -144,6 +152,10 @@ func (m *mealPlanningManager) ArchiveRecipeStepVessel(ctx context.Context, recip
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepVesselIDKey, recipeStepVesselID)
+
+	if err := m.requireRecipeStepOwnership(ctx, recipeID, recipeStepID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking recipe ownership")
+	}
 
 	if err := m.db.ArchiveRecipeStepVessel(ctx, recipeID, recipeStepID, recipeStepVesselID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe step vessel")

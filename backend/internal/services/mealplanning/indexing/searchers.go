@@ -3,6 +3,8 @@ package indexing
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
+
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -18,45 +20,45 @@ import (
 // registers these beside them. The clients are built from the one *textsearchcfg.Config the
 // process provides — which backend, which credentials — and differ only in the index they name.
 func RegisterSearchers(i do.Injector) {
-	do.Provide(i, func(i do.Injector) (RecipeTextSearcher, error) {
-		index, err := newIndex[RecipeSearchSubset](i, IndexTypeRecipes)
+	do.Provide(i, func(i do.Injector) (searchindex.RecipeTextSearcher, error) {
+		index, err := newIndex[searchindex.RecipeSearchSubset](i, searchindex.IndexTypeRecipes)
 
-		return RecipeTextSearcher(index), err
+		return searchindex.RecipeTextSearcher(index), err
 	})
-	do.Provide(i, func(i do.Injector) (MealTextSearcher, error) {
-		index, err := newIndex[MealSearchSubset](i, IndexTypeMeals)
+	do.Provide(i, func(i do.Injector) (searchindex.MealTextSearcher, error) {
+		index, err := newIndex[searchindex.MealSearchSubset](i, searchindex.IndexTypeMeals)
 
-		return MealTextSearcher(index), err
+		return searchindex.MealTextSearcher(index), err
 	})
-	do.Provide(i, func(i do.Injector) (ValidIngredientTextSearcher, error) {
-		index, err := newIndex[ValidIngredientSearchSubset](i, IndexTypeValidIngredients)
+	do.Provide(i, func(i do.Injector) (searchindex.ValidIngredientTextSearcher, error) {
+		index, err := newIndex[searchindex.ValidIngredientSearchSubset](i, searchindex.IndexTypeValidIngredients)
 
-		return ValidIngredientTextSearcher(index), err
+		return searchindex.ValidIngredientTextSearcher(index), err
 	})
-	do.Provide(i, func(i do.Injector) (ValidInstrumentTextSearcher, error) {
-		index, err := newIndex[ValidInstrumentSearchSubset](i, IndexTypeValidInstruments)
+	do.Provide(i, func(i do.Injector) (searchindex.ValidInstrumentTextSearcher, error) {
+		index, err := newIndex[searchindex.ValidInstrumentSearchSubset](i, searchindex.IndexTypeValidInstruments)
 
-		return ValidInstrumentTextSearcher(index), err
+		return searchindex.ValidInstrumentTextSearcher(index), err
 	})
-	do.Provide(i, func(i do.Injector) (ValidMeasurementUnitTextSearcher, error) {
-		index, err := newIndex[ValidMeasurementUnitSearchSubset](i, IndexTypeValidMeasurementUnits)
+	do.Provide(i, func(i do.Injector) (searchindex.ValidMeasurementUnitTextSearcher, error) {
+		index, err := newIndex[searchindex.ValidMeasurementUnitSearchSubset](i, searchindex.IndexTypeValidMeasurementUnits)
 
-		return ValidMeasurementUnitTextSearcher(index), err
+		return searchindex.ValidMeasurementUnitTextSearcher(index), err
 	})
-	do.Provide(i, func(i do.Injector) (ValidPreparationTextSearcher, error) {
-		index, err := newIndex[ValidPreparationSearchSubset](i, IndexTypeValidPreparations)
+	do.Provide(i, func(i do.Injector) (searchindex.ValidPreparationTextSearcher, error) {
+		index, err := newIndex[searchindex.ValidPreparationSearchSubset](i, searchindex.IndexTypeValidPreparations)
 
-		return ValidPreparationTextSearcher(index), err
+		return searchindex.ValidPreparationTextSearcher(index), err
 	})
-	do.Provide(i, func(i do.Injector) (ValidIngredientStateTextSearcher, error) {
-		index, err := newIndex[ValidIngredientStateSearchSubset](i, IndexTypeValidIngredientStates)
+	do.Provide(i, func(i do.Injector) (searchindex.ValidIngredientStateTextSearcher, error) {
+		index, err := newIndex[searchindex.ValidIngredientStateSearchSubset](i, searchindex.IndexTypeValidIngredientStates)
 
-		return ValidIngredientStateTextSearcher(index), err
+		return searchindex.ValidIngredientStateTextSearcher(index), err
 	})
-	do.Provide(i, func(i do.Injector) (ValidVesselTextSearcher, error) {
-		index, err := newIndex[ValidVesselSearchSubset](i, IndexTypeValidVessels)
+	do.Provide(i, func(i do.Injector) (searchindex.ValidVesselTextSearcher, error) {
+		index, err := newIndex[searchindex.ValidVesselSearchSubset](i, searchindex.IndexTypeValidVessels)
 
-		return ValidVesselTextSearcher(index), err
+		return searchindex.ValidVesselTextSearcher(index), err
 	})
 }
 

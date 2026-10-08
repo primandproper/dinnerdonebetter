@@ -1,0 +1,24 @@
+{
+  "name": "@dinnerdonebetter/recipes",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./client-enums": "./src/client-enums.ts",
+    "./client-types": "./src/client-types.ts",
+    "./RecipeCreatorState": "./src/RecipeCreatorState.ts",
+    "./recipeMermaid": "./src/recipeMermaid.ts"
+  },
+  "scripts": {
+    "check": "tsc -p .",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@dinnerdonebetter/api-client": "file:../api-client"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.0"
+  }
+}

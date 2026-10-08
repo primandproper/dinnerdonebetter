@@ -217,13 +217,7 @@ func (q *repository) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context,
 	logger = logger.WithValue(mealplanningkeys.MealPlanIDKey, mealPlanID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -506,7 +500,11 @@ func (q *repository) InitializeMealPlanGroceryList(ctx context.Context, mealPlan
 //
 // It deletes only the IDs it is given — the ones the saga recorded creating — so items a user added
 // to the list themselves are not swept up in an unwind of work that was never theirs.
-func (q *repository) UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID string, itemIDs []string) error {
+//
+// Each of those items was announced when it was created, so their removal is announced too, to the
+// same account. An undo with no items to delete removed nothing a subscriber heard about, and says
+// nothing.
+func (q *repository) UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID, accountID string, itemIDs []string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -523,6 +521,12 @@ func (q *repository) UndoMealPlanGroceryListInitialization(ctx context.Context, 
 		if len(itemIDs) > 0 {
 			if deleteErr := q.generatedQuerier.DeleteMealPlanGroceryListItems(ctx, tx, itemIDs); deleteErr != nil {
 				return observability.PrepareAndLogError(deleteErr, logger, span, "deleting meal plan grocery list items")
+			}
+
+			if emitErr := q.emit(ctx, tx, logger, mealplanning.MealPlanGroceryListInitializationUndoneServiceEventType, accountID, map[string]any{
+				mealplanningkeys.MealPlanIDKey: mealPlanID,
+			}); emitErr != nil {
+				return observability.PrepareError(emitErr, span, "enqueuing meal plan grocery list initialization undone event")
 			}
 		}
 

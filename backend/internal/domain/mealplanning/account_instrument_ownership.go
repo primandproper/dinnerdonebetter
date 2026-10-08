@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -18,12 +17,6 @@ const (
 	// AccountInstrumentOwnershipArchivedServiceEventType indicates an account instrument ownership was archived.
 	AccountInstrumentOwnershipArchivedServiceEventType = "account_instrument_ownership_archived"
 )
-
-func init() {
-	gob.Register(new(AccountInstrumentOwnership))
-	gob.Register(new(AccountInstrumentOwnershipCreationRequestInput))
-	gob.Register(new(AccountInstrumentOwnershipUpdateRequestInput))
-}
 
 type (
 	// AccountInstrumentOwnership represents an account instrument ownership.

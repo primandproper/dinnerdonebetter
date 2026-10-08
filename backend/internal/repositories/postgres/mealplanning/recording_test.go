@@ -7,13 +7,12 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	webhookfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine/recordingspinetest"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	auditmock "github.com/primandproper/platform-go/v15/audit/mock"
@@ -191,47 +190,173 @@ func TestRepository_emit(T *testing.T) {
 func TestRepository_record(T *testing.T) {
 	T.Parallel()
 
-	T.Run("files the entry on the chain the attribution rule chose, and publishes beside it", func(t *testing.T) {
+	T.Run("files the entries on the event's account chain, and publishes beside them", func(t *testing.T) {
 		t.Parallel()
 
 		h := buildRecordingHarness(t)
 		requesterID, accountID := fake.BuildFakeID(), fake.BuildFakeID()
-		entry := audit.NewEntry("", accountID, resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventUpdated)
+		first := auditEntry(resourceTypeMealPlanEvents, fake.BuildFakeID(), platformaudit.EventUpdated)
+		second := auditEntry(resourceTypeMealPlanEvents, fake.BuildFakeID(), platformaudit.EventUpdated)
 
 		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
 			Requester:       sessions.RequesterInfo{UserID: requesterID},
 			ActiveAccountID: accountID,
 		})
 
-		require.NoError(t, h.repo.record(ctx, txForRecordingTest(), loggingnoop.NewLogger(), entry, h.eventType, accountID, nil))
+		require.NoError(t, h.repo.record(ctx, txForRecordingTest(), loggingnoop.NewLogger(), h.eventType, accountID, nil, first, second))
 
-		require.Len(t, h.recorded, 1)
+		// One chain for both entries, the account's.
+		require.Len(t, h.chains, 1)
 		assert.Equal(t, tenancy.Of(accountID), h.chains[0])
-		assert.Equal(t, entry.ResourceType, h.recorded[0].ResourceType)
-		assert.Equal(t, entry.ResourceID, h.recorded[0].ResourceID)
+		require.Len(t, h.recorded, 2)
+		assert.Equal(t, first.ResourceType, h.recorded[0].ResourceType)
+		assert.Equal(t, first.ResourceID, h.recorded[0].ResourceID)
 		assert.Equal(t, platformaudit.EventUpdated, h.recorded[0].EventType)
+		assert.Equal(t, second.ResourceID, h.recorded[1].ResourceID)
 
-		// Who did it is the principal on the context, not whoever the entry was built for.
+		// Who did it is the principal on the context.
 		assert.Equal(t, requesterID, h.recorded[0].Actor.ID)
+		assert.Empty(t, h.recorded[0].Actor.Impersonator)
 
+		// And the event fans out in the scope the entries were filed under.
 		assert.Equal(t, accountID, h.payload(t).AccountID)
 		require.Len(t, h.scopes, 1)
 		assert.Equal(t, tenancy.Of(accountID), h.scopes[0])
 	})
 
+	T.Run("takes the account from the session when the write names none", func(t *testing.T) {
+		t.Parallel()
+
+		// Meal plan events are written knowing only their meal plan. Their entries belong to the
+		// account whose subscribers hear about them, not to the global chain no account reads.
+		h := buildRecordingHarness(t)
+		accountID := fake.BuildFakeID()
+
+		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: fake.BuildFakeID()},
+			ActiveAccountID: accountID,
+		})
+
+		require.NoError(t, h.repo.record(ctx, txForRecordingTest(), loggingnoop.NewLogger(), h.eventType, "", nil,
+			auditEntry(resourceTypeMealPlanEvents, fake.BuildFakeID(), platformaudit.EventCreated)))
+
+		require.Len(t, h.chains, 1)
+		assert.Equal(t, tenancy.Of(accountID), h.chains[0])
+		require.Len(t, h.scopes, 1)
+		assert.Equal(t, tenancy.Of(accountID), h.scopes[0])
+	})
+
+	T.Run("files the actor's own chain when the write happened in no account", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+		userID := fake.BuildFakeID()
+
+		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: userID},
+		})
+
+		require.NoError(t, h.repo.record(ctx, txForRecordingTest(), loggingnoop.NewLogger(), h.eventType, "", nil,
+			auditEntry(resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventCreated)))
+
+		require.Len(t, h.chains, 1)
+		assert.Equal(t, tenancy.Of(userID), h.chains[0])
+	})
+
+	T.Run("names the operator on an impersonated write", func(t *testing.T) {
+		t.Parallel()
+
+		// The entry stays the subject's — it is their data — and the operator is the
+		// second slot that stops it saying they did it.
+		h := buildRecordingHarness(t)
+		subjectID, operatorID, accountID := fake.BuildFakeID(), fake.BuildFakeID(), fake.BuildFakeID()
+
+		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
+			Requester:       sessions.RequesterInfo{UserID: subjectID},
+			ActiveAccountID: accountID,
+			ImpersonatorID:  operatorID,
+		})
+
+		require.NoError(t, h.repo.record(ctx, txForRecordingTest(), loggingnoop.NewLogger(), h.eventType, accountID, nil,
+			auditEntry(resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventUpdated)))
+
+		require.Len(t, h.recorded, 1)
+		assert.Equal(t, subjectID, h.recorded[0].Actor.ID)
+		assert.Equal(t, operatorID, h.recorded[0].Actor.Impersonator)
+	})
+
 	T.Run("records an unattributed write as such", func(t *testing.T) {
 		t.Parallel()
 
-		// A background job: nobody on the context, and no account on the entry.
+		// A background job: nobody on the context, and no account on the write.
 		h := buildRecordingHarness(t)
-		entry := audit.NewEntry("", "", resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventArchived)
 
-		require.NoError(t, h.repo.record(t.Context(), txForRecordingTest(), loggingnoop.NewLogger(), entry, h.eventType, "", nil))
+		require.NoError(t, h.repo.record(t.Context(), txForRecordingTest(), loggingnoop.NewLogger(), h.eventType, "", nil,
+			auditEntry(resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventArchived)))
 
 		require.Len(t, h.recorded, 1)
 		// Recorded under the named absence, never with an empty actor, which audit refuses.
 		assert.Equal(t, platformaudit.ActorUnattributed, h.recorded[0].Actor.ID)
 		assert.True(t, h.chains[0].IsGlobal())
+	})
+
+	T.Run("with a nil entry", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+
+		err := h.repo.record(t.Context(), txForRecordingTest(), loggingnoop.NewLogger(), h.eventType, "", nil, nil)
+		require.ErrorIs(t, err, platformrecording.ErrNilEntry)
+
+		assert.Empty(t, h.recorded)
+		assert.Empty(t, h.enqueued)
+	})
+}
+
+func TestRepository_withRecord(T *testing.T) {
+	T.Parallel()
+
+	T.Run("records the entry and the event after the write", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+		h.repo.Client = &mockdatabase.ClientMock{
+			WithTransactionFunc: func(_ context.Context, fn func(database.Tx) error) error {
+				return fn(txForRecordingTest())
+			},
+		}
+		accountID, resourceID := fake.BuildFakeID(), fake.BuildFakeID()
+
+		var wrote bool
+		require.NoError(t, h.repo.withRecord(t.Context(), loggingnoop.NewLogger(), auditEntry(resourceTypeMealPlans, resourceID, platformaudit.EventCreated), h.eventType, accountID, nil, func(database.Tx) error {
+			wrote = true
+			return nil
+		}))
+
+		assert.True(t, wrote)
+		require.Len(t, h.recorded, 1)
+		assert.Equal(t, resourceID, h.recorded[0].ResourceID)
+		assert.Equal(t, tenancy.Of(accountID), h.chains[0])
+		assert.Equal(t, accountID, h.payload(t).AccountID)
+	})
+
+	T.Run("records nothing when the write fails", func(t *testing.T) {
+		t.Parallel()
+
+		h := buildRecordingHarness(t)
+		h.repo.Client = &mockdatabase.ClientMock{
+			WithTransactionFunc: func(_ context.Context, fn func(database.Tx) error) error {
+				return fn(txForRecordingTest())
+			},
+		}
+
+		err := h.repo.withRecord(t.Context(), loggingnoop.NewLogger(), auditEntry(resourceTypeMealPlans, fake.BuildFakeID(), platformaudit.EventArchived), h.eventType, "", nil, func(database.Tx) error {
+			return sql.ErrNoRows
+		})
+		require.ErrorIs(t, err, sql.ErrNoRows)
+
+		assert.Empty(t, h.recorded)
+		assert.Empty(t, h.enqueued)
 	})
 }
 
@@ -251,7 +376,7 @@ func TestRepository_emitIndex(T *testing.T) {
 				for _, arg := range args {
 					switch v := arg.(type) {
 					case string:
-						if v == mealplanningindexing.IndexTypeRecipes {
+						if v == searchindex.IndexTypeRecipes {
 							topics = append(topics, v)
 						}
 					case []byte:
@@ -279,7 +404,7 @@ func TestRepository_emitIndex(T *testing.T) {
 		// One row, on the recipes index's topic, naming the recipe — and nothing else, because
 		// the trigger is not an event anybody subscribes to.
 		require.Len(t, executor.ExecContextCalls(), 1)
-		assert.Equal(t, []string{mealplanningindexing.IndexTypeRecipes}, topics)
+		assert.Equal(t, []string{searchindex.IndexTypeRecipes}, topics)
 		require.Len(t, events, 1)
 		assert.Equal(t, recipeID, events[0].DocumentID)
 		assert.Equal(t, searchsync.OpUpsert, events[0].Op)

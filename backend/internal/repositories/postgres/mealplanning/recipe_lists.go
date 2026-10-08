@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
@@ -13,6 +12,7 @@ import (
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -36,8 +36,8 @@ func (q *repository) RecipeListExists(ctx context.Context, recipeListID, userID 
 	if userID == "" {
 		return false, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	result, err := q.generatedQuerier.CheckRecipeListExistence(ctx, q.readDB, &generated.CheckRecipeListExistenceParams{
 		ID:            recipeListID,
@@ -60,16 +60,10 @@ func (q *repository) GetRecipeLists(ctx context.Context, userID string, filter *
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*types.RecipeList
@@ -151,11 +145,15 @@ func (q *repository) CreateRecipeList(ctx context.Context, input *types.RecipeLi
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.RecipeListIDKey, input.ID)
 
-	if err := q.generatedQuerier.CreateRecipeList(ctx, q.writeDB, &generated.CreateRecipeListParams{
-		ID:            input.ID,
-		Name:          input.Name,
-		Description:   input.Description,
-		BelongsToUser: input.BelongsToUser,
+	if err := q.withEvent(ctx, logger, types.RecipeListCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey: input.ID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateRecipeList(ctx, tx, &generated.CreateRecipeListParams{
+			ID:            input.ID,
+			Name:          input.Name,
+			Description:   input.Description,
+			BelongsToUser: input.BelongsToUser,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing recipe list creation query")
 	}
@@ -184,18 +182,26 @@ func (q *repository) UpdateRecipeList(ctx context.Context, updated *types.Recipe
 	logger := q.logger.WithValue(mealplanningkeys.RecipeListIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, updated.ID)
 
-	rowsAffected, err := q.generatedQuerier.UpdateRecipeList(ctx, q.writeDB, &generated.UpdateRecipeListParams{
-		Name:          updated.Name,
-		Description:   updated.Description,
-		BelongsToUser: updated.BelongsToUser,
-		ID:            updated.ID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe list")
-	}
+	if err := q.withEvent(ctx, logger, types.RecipeListUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey: updated.ID,
+	}, func(tx database.Tx) error {
+		rowsAffected, writeErr := q.generatedQuerier.UpdateRecipeList(ctx, tx, &generated.UpdateRecipeListParams{
+			Name:          updated.Name,
+			Description:   updated.Description,
+			BelongsToUser: updated.BelongsToUser,
+			ID:            updated.ID,
+		})
+		if writeErr != nil {
+			return observability.PrepareAndLogError(writeErr, logger, span, "updating recipe list")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("recipe list updated")
@@ -213,8 +219,8 @@ func (q *repository) ArchiveRecipeList(ctx context.Context, recipeListID, userID
 	if userID == "" {
 		return platformerrors.ErrInvalidIDProvided
 	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	if recipeListID == "" {
 		return platformerrors.ErrInvalidIDProvided
@@ -222,16 +228,24 @@ func (q *repository) ArchiveRecipeList(ctx context.Context, recipeListID, userID
 	logger = logger.WithValue(mealplanningkeys.RecipeListIDKey, recipeListID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, recipeListID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeList(ctx, q.writeDB, &generated.ArchiveRecipeListParams{
-		BelongsToUser: userID,
-		ID:            recipeListID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe list")
-	}
+	if err := q.withEvent(ctx, logger, types.RecipeListArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey: recipeListID,
+	}, func(tx database.Tx) error {
+		rowsAffected, writeErr := q.generatedQuerier.ArchiveRecipeList(ctx, tx, &generated.ArchiveRecipeListParams{
+			BelongsToUser: userID,
+			ID:            recipeListID,
+		})
+		if writeErr != nil {
+			return observability.PrepareAndLogError(writeErr, logger, span, "archiving recipe list")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("recipe list archived")

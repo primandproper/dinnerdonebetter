@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -18,12 +17,6 @@ const (
 	// ValidPrepTaskConfigArchivedServiceEventType indicates a valid ingredient preparation storage config was archived.
 	ValidPrepTaskConfigArchivedServiceEventType = "valid_prep_task_config_archived"
 )
-
-func init() {
-	gob.Register(new(ValidPrepTaskConfig))
-	gob.Register(new(ValidPrepTaskConfigCreationRequestInput))
-	gob.Register(new(ValidPrepTaskConfigUpdateRequestInput))
-}
 
 type (
 	// ValidPrepTaskConfig represents reusable knowledge about how long

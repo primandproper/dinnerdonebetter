@@ -51,6 +51,37 @@ func buildTestOAuth2Server(t *testing.T, clients platformoauth2clients.Store) *o
 	return srv
 }
 
+// buildProvidedOAuth2Server builds the authorization server the way the API server does, through
+// ProvideOAuth2Server, for a test about a decision that function makes rather than about protocol
+// behavior every server shares.
+func buildProvidedOAuth2Server(t *testing.T) *oauth2server.Server {
+	t.Helper()
+
+	cfg := &oauth2servercfg.Config{Provider: oauth2servercfg.ProviderMemory, Issuer: testIssuer}
+	cfg.EnsureDefaults()
+
+	srv, err := ProvideOAuth2Server(
+		t.Context(),
+		loggingnoop.NewLogger(),
+		tracingnoop.NewTracerProvider(),
+		metricsnoop.NewMetricsProvider(),
+		cfg,
+		// A client rather than nil, which is what the registry decorator wants it
+		// for: resolving a client_id runs on Reader(), outside any transaction,
+		// because /authorize is not inside one. The store this builds is the memory
+		// provider above, so nothing here reaches a database.
+		&databasemock.ClientMock{},
+		oauth2server.SubjectAuthenticatorFunc(func(context.Context, *http.Request) (*oauth2server.Subject, error) {
+			return &oauth2server.Subject{ID: "test_user"}, nil
+		}),
+		nil,
+		&oauth2clientsmock.StoreMock{},
+	)
+	require.NoError(t, err)
+
+	return srv
+}
+
 func buildTestService(t *testing.T) *service {
 	t.Helper()
 
@@ -87,29 +118,19 @@ func TestProvideOAuth2Server(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := &oauth2servercfg.Config{Provider: oauth2servercfg.ProviderMemory, Issuer: testIssuer}
-		cfg.EnsureDefaults()
+		srv := buildProvidedOAuth2Server(t)
 
-		srv, err := ProvideOAuth2Server(
-			t.Context(),
-			loggingnoop.NewLogger(),
-			tracingnoop.NewTracerProvider(),
-			metricsnoop.NewMetricsProvider(),
-			cfg,
-			// A client rather than nil, which is what the registry decorator wants it
-			// for: resolving a client_id runs on Reader(), outside any transaction,
-			// because /authorize is not inside one. The store this builds is the memory
-			// provider above, so nothing here reaches a database.
-			&databasemock.ClientMock{},
-			oauth2server.SubjectAuthenticatorFunc(func(context.Context, *http.Request) (*oauth2server.Subject, error) {
-				return &oauth2server.Subject{ID: "test_user"}, nil
-			}),
-			nil,
-			&oauth2clientsmock.StoreMock{},
-		)
-
-		require.NoError(t, err)
 		assert.Equal(t, testIssuer, srv.Issuer())
+	})
+
+	T.Run("does not serve dynamic registration", func(t *testing.T) {
+		t.Parallel()
+
+		// A client registration here is created through the permission-gated gRPC surface,
+		// not by an anonymous POST, so the discovery document must not name an endpoint.
+		srv := buildProvidedOAuth2Server(t)
+
+		assert.Empty(t, srv.Metadata().RegistrationEndpoint)
 	})
 
 	T.Run("with an issuer the authorization server refuses", func(t *testing.T) {

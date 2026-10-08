@@ -26,7 +26,6 @@ import (
 	webhooksbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
-	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
@@ -47,12 +46,11 @@ import (
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
-	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
-	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
 	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
 	"github.com/primandproper/platform-go/v15/service"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/qrcodes"
 	"github.com/primandproper/primitives-go/v2/random"
 	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
@@ -82,6 +80,7 @@ func BuildInjector(
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
+	do.ProvideValue[clock.Clock](i, clock.NewClock())
 
 	service.Register(i, &cfg.Service)
 
@@ -147,7 +146,7 @@ func BuildInjector(
 	commentstargets.RegisterTargets(i)
 
 	// repositories (core)
-	auditrepo.RegisterAuditLogRepository(i)
+	auditrepo.RegisterAuditLog(i)
 	authrepo.RegisterAuthRepository(i)
 	commentsrepo.RegisterCommentsRepository(i)
 	// What a role grants, read from the policy tables the migrator seeds. The
@@ -168,10 +167,8 @@ func BuildInjector(
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
 	// managers
-	paymentsmanager.RegisterPaymentsDataManager(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
-	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 
 	// services
 	authhttpsvc.RegisterAuthHTTPService(i)
@@ -192,7 +189,6 @@ func BuildInjector(
 	oauth2clientsbuild.RegisterOAuth2ClientsService(i)
 	paymentsbuild.RegisterPaymentsService(i)
 	waitlistsbuild2.RegisterWaitlistsService(i)
-	uploadedmediacfg.RegisterUploadedMediaConfig(i)
 
 	// The saga machinery, minus the worker: this process starts durable processes and does not
 	// advance them. Registered before the domain, which puts its definitions on the registry.

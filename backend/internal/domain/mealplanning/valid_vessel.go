@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -36,12 +35,6 @@ const (
 	VesselShapeOther = "other"
 )
 
-func init() {
-	gob.Register(new(ValidVessel))
-	gob.Register(new(ValidVesselCreationRequestInput))
-	gob.Register(new(ValidVesselUpdateRequestInput))
-}
-
 type (
 	// ValidVessel represents a valid vessel.
 	ValidVessel struct {
@@ -65,30 +58,6 @@ type (
 		IncludeInGeneratedInstructions bool                  `json:"includeInGeneratedInstructions"`
 		DisplayInSummaryLists          bool                  `json:"displayInSummaryLists"`
 		UsableForStorage               bool                  `json:"usableForStorage"`
-	}
-
-	// NullableValidVessel represents a fully nullable valid vessel.
-	NullableValidVessel struct {
-		_ struct{} `json:"-"`
-
-		ID                             *string                       `json:"id"`
-		Name                           *string                       `json:"name"`
-		PluralName                     *string                       `json:"pluralName"`
-		Description                    *string                       `json:"description"`
-		IconPath                       *string                       `json:"iconPath"`
-		UsableForStorage               *bool                         `json:"usableForStorage"`
-		Slug                           *string                       `json:"slug"`
-		DisplayInSummaryLists          *bool                         `json:"displayInSummaryLists"`
-		IncludeInGeneratedInstructions *bool                         `json:"includeInGeneratedInstructions"`
-		Capacity                       *float32                      `json:"capacity"`
-		CapacityUnit                   *NullableValidMeasurementUnit `json:"capacityUnit"`
-		WidthInMillimeters             *float32                      `json:"widthInMillimeters"`
-		LengthInMillimeters            *float32                      `json:"lengthInMillimeters"`
-		HeightInMillimeters            *float32                      `json:"heightInMillimeters"`
-		Shape                          *string                       `json:"shape"`
-		CreatedAt                      *time.Time                    `json:"createdAt"`
-		LastUpdatedAt                  *time.Time                    `json:"lastUpdatedAt"`
-		ArchivedAt                     *time.Time                    `json:"archivedAt"`
 	}
 
 	// ValidVesselCreationRequestInput represents what a user could set as input for creating valid vessels.

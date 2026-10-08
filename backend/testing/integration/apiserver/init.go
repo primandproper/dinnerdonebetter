@@ -10,7 +10,6 @@ import (
 
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -138,7 +137,7 @@ func init() {
 
 	var (
 		server *apiserver.Server
-		dbCfg  *dbcfg.Config
+		dbCfg  *databasecfg.Config
 	)
 
 	server, databaseClient, dbCfg, err = localdev.BuildInProcessServer(ctx, cfg)
@@ -148,7 +147,7 @@ func init() {
 	dbConnStr = dbCfg.ReadConnection.String()
 
 	// create premade admin user
-	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(pillars.Logger, pillars.TracerProvider, nil, databaseClient)
+	auditLogRepo, err := auditlogentries.ProvideAuditLog(pillars.Logger, pillars.TracerProvider, nil, databaseClient)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -156,10 +155,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
-	if !ok {
-		log.Fatal("the audit log repository exposes no platform recorder")
-	}
+	auditRecorder := auditLogRepo.Recorder()
 	// The recording spine the seeded stores record through: the same construction the
 	// server's injector makes, by hand, because this seeding runs beside the server.
 	spine, err := recordingspine.New(ctx, databaseClient, auditRecorder, recordingspine.WithPillars(pillars))
