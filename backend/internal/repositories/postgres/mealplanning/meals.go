@@ -146,19 +146,7 @@ func (q *repository) GetMeal(ctx context.Context, mealID string) (*mealplanning.
 	var meal *mealplanning.Meal
 	for _, result := range results {
 		if meal == nil {
-			meal = &mealplanning.Meal{
-				CreatedAt:            result.CreatedAt,
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ID:                   result.ID,
-				Description:          result.Description,
-				CreatedByUser:        result.CreatedByUser,
-				Name:                 result.Name,
-				Components:           nil,
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				EligibleForMealPlans: result.EligibleForMealPlans,
-			}
+			meal = mealFromRow(result)
 		}
 
 		recipe, recipeErr := q.getRecipe(ctx, result.ComponentRecipeID)
@@ -476,19 +464,7 @@ func (q *repository) GetMealsWithIDs(ctx context.Context, ids []string) ([]*meal
 	for _, result := range results {
 		m, exists := mealsByID[result.ID]
 		if !exists {
-			m = &mealplanning.Meal{
-				CreatedAt:            result.CreatedAt,
-				ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
-				LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ID:                   result.ID,
-				Description:          result.Description,
-				CreatedByUser:        result.CreatedByUser,
-				Name:                 result.Name,
-				Components:           nil,
-				MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
-				MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
-				EligibleForMealPlans: result.EligibleForMealPlans,
-			}
+			m = mealFromRow((*generated.GetMealRow)(result))
 			mealsByID[result.ID] = m
 		}
 
@@ -824,4 +800,25 @@ func (q *repository) AddMealImage(ctx context.Context, mealID, uploadedMediaID, 
 	}
 
 	return nil
+}
+
+// mealFromRow maps the meal columns of a by-ID meal read to its domain type, leaving Components
+// nil for the caller to hydrate. GetMeal and GetMealsWithIDs select the same columns, so the
+// latter's row converts to generated.GetMealRow. The paginated reads cannot come through here:
+// each reaches components through a different join, so their rows differ in nullability and
+// share no type.
+func mealFromRow(result *generated.GetMealRow) *mealplanning.Meal {
+	return &mealplanning.Meal{
+		CreatedAt:            result.CreatedAt,
+		ArchivedAt:           database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:        database.TimePointerFromNullTime(result.LastUpdatedAt),
+		ID:                   result.ID,
+		Description:          result.Description,
+		CreatedByUser:        result.CreatedByUser,
+		Name:                 result.Name,
+		Components:           nil,
+		MinEstimatedPortions: database.Float32FromString(result.MinEstimatedPortions),
+		MaxEstimatedPortions: database.Float32PointerFromNullString(result.MaxEstimatedPortions),
+		EligibleForMealPlans: result.EligibleForMealPlans,
+	}
 }
