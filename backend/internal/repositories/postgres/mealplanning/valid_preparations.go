@@ -53,32 +53,7 @@ func (q *repository) GetValidPreparation(ctx context.Context, validPreparationID
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting random valid preparation")
 	}
 
-	validPreparation := &mealplanning.ValidPreparation{
-		CreatedAt:                   result.CreatedAt,
-		ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
-		IconPath:                    result.IconPath,
-		PastTense:                   result.PastTense,
-		ID:                          result.ID,
-		Name:                        result.Name,
-		Description:                 result.Description,
-		Slug:                        result.Slug,
-		MinIngredientCount:          uint16(result.MinimumIngredientCount),
-		MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
-		MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
-		MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
-		MinVesselCount:              uint16(result.MinimumVesselCount),
-		MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
-		RestrictToIngredients:       result.RestrictToIngredients,
-		TemperatureRequired:         result.TemperatureRequired,
-		TimeEstimateRequired:        result.TimeEstimateRequired,
-		ConditionExpressionRequired: result.ConditionExpressionRequired,
-		ConsumesVessel:              result.ConsumesVessel,
-		OnlyForVessels:              result.OnlyForVessels,
-		YieldsNothing:               result.YieldsNothing,
-	}
-
-	return validPreparation, nil
+	return validPreparationFromRow(result), nil
 }
 
 // GetRandomValidPreparation fetches a valid preparation from the database.
@@ -91,32 +66,7 @@ func (q *repository) GetRandomValidPreparation(ctx context.Context) (*mealplanni
 		return nil, observability.PrepareError(err, span, "getting random valid preparation")
 	}
 
-	validPreparation := &mealplanning.ValidPreparation{
-		CreatedAt:                   result.CreatedAt,
-		ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
-		LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
-		IconPath:                    result.IconPath,
-		PastTense:                   result.PastTense,
-		ID:                          result.ID,
-		Name:                        result.Name,
-		Description:                 result.Description,
-		Slug:                        result.Slug,
-		MinIngredientCount:          uint16(result.MinimumIngredientCount),
-		MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
-		MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
-		MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
-		MinVesselCount:              uint16(result.MinimumVesselCount),
-		MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
-		RestrictToIngredients:       result.RestrictToIngredients,
-		TemperatureRequired:         result.TemperatureRequired,
-		TimeEstimateRequired:        result.TimeEstimateRequired,
-		ConditionExpressionRequired: result.ConditionExpressionRequired,
-		ConsumesVessel:              result.ConsumesVessel,
-		OnlyForVessels:              result.OnlyForVessels,
-		YieldsNothing:               result.YieldsNothing,
-	}
-
-	return validPreparation, nil
+	return validPreparationFromRow((*generated.GetValidPreparationRow)(result)), nil
 }
 
 // SearchForValidPreparations fetches a valid preparation from the database.
@@ -153,30 +103,7 @@ func (q *repository) SearchForValidPreparations(ctx context.Context, query strin
 	x := filtering.Drain(
 		results,
 		func(result *generated.SearchForValidPreparationsRow) *mealplanning.ValidPreparation {
-			return &mealplanning.ValidPreparation{
-				CreatedAt:                   result.CreatedAt,
-				ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
-				LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
-				IconPath:                    result.IconPath,
-				PastTense:                   result.PastTense,
-				ID:                          result.ID,
-				Name:                        result.Name,
-				Description:                 result.Description,
-				Slug:                        result.Slug,
-				MinIngredientCount:          uint16(result.MinimumIngredientCount),
-				MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
-				MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
-				MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
-				MinVesselCount:              uint16(result.MinimumVesselCount),
-				MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
-				RestrictToIngredients:       result.RestrictToIngredients,
-				TemperatureRequired:         result.TemperatureRequired,
-				TimeEstimateRequired:        result.TimeEstimateRequired,
-				ConditionExpressionRequired: result.ConditionExpressionRequired,
-				ConsumesVessel:              result.ConsumesVessel,
-				OnlyForVessels:              result.OnlyForVessels,
-				YieldsNothing:               result.YieldsNothing,
-			}
+			return validPreparationFromListRow((*generated.GetValidPreparationsRow)(result))
 		},
 		func(result *generated.SearchForValidPreparationsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
@@ -214,32 +141,7 @@ func (q *repository) GetValidPreparations(ctx context.Context, filter *filtering
 
 	x = filtering.Drain(
 		results,
-		func(result *generated.GetValidPreparationsRow) *mealplanning.ValidPreparation {
-			return &mealplanning.ValidPreparation{
-				CreatedAt:                   result.CreatedAt,
-				MinIngredientCount:          uint16(result.MinimumIngredientCount),
-				MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
-				MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
-				MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
-				MinVesselCount:              uint16(result.MinimumVesselCount),
-				MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
-				ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
-				LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
-				IconPath:                    result.IconPath,
-				PastTense:                   result.PastTense,
-				ID:                          result.ID,
-				Name:                        result.Name,
-				Description:                 result.Description,
-				Slug:                        result.Slug,
-				RestrictToIngredients:       result.RestrictToIngredients,
-				TemperatureRequired:         result.TemperatureRequired,
-				TimeEstimateRequired:        result.TimeEstimateRequired,
-				ConditionExpressionRequired: result.ConditionExpressionRequired,
-				ConsumesVessel:              result.ConsumesVessel,
-				OnlyForVessels:              result.OnlyForVessels,
-				YieldsNothing:               result.YieldsNothing,
-			}
-		},
+		validPreparationFromListRow,
 		func(result *generated.GetValidPreparationsRow) (int64, int64) {
 			return result.FilteredCount, result.TotalCount
 		},
@@ -267,30 +169,7 @@ func (q *repository) GetValidPreparationsWithIDs(ctx context.Context, ids []stri
 
 	preparations := []*mealplanning.ValidPreparation{}
 	for _, result := range results {
-		preparations = append(preparations, &mealplanning.ValidPreparation{
-			CreatedAt:                   result.CreatedAt,
-			MinIngredientCount:          uint16(result.MinimumIngredientCount),
-			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
-			MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
-			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
-			MinVesselCount:              uint16(result.MinimumVesselCount),
-			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
-			ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
-			IconPath:                    result.IconPath,
-			PastTense:                   result.PastTense,
-			ID:                          result.ID,
-			Name:                        result.Name,
-			Description:                 result.Description,
-			Slug:                        result.Slug,
-			RestrictToIngredients:       result.RestrictToIngredients,
-			TemperatureRequired:         result.TemperatureRequired,
-			TimeEstimateRequired:        result.TimeEstimateRequired,
-			ConditionExpressionRequired: result.ConditionExpressionRequired,
-			ConsumesVessel:              result.ConsumesVessel,
-			OnlyForVessels:              result.OnlyForVessels,
-			YieldsNothing:               result.YieldsNothing,
-		})
+		preparations = append(preparations, validPreparationFromRow((*generated.GetValidPreparationRow)(result)))
 	}
 
 	return preparations, nil
@@ -481,4 +360,63 @@ func (q *repository) ArchiveValidPreparation(ctx context.Context, validPreparati
 
 		return nil
 	})
+}
+
+// validPreparationFromRow maps a valid preparation row to its domain type. Every read that returns
+// valid preparations by ID selects the same columns, so each of those queries' row types converts
+// to generated.GetValidPreparationRow and comes through here.
+func validPreparationFromRow(result *generated.GetValidPreparationRow) *mealplanning.ValidPreparation {
+	return &mealplanning.ValidPreparation{
+		CreatedAt:                   result.CreatedAt,
+		ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
+		IconPath:                    result.IconPath,
+		PastTense:                   result.PastTense,
+		ID:                          result.ID,
+		Name:                        result.Name,
+		Description:                 result.Description,
+		Slug:                        result.Slug,
+		MinIngredientCount:          uint16(result.MinimumIngredientCount),
+		MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
+		MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
+		MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
+		MinVesselCount:              uint16(result.MinimumVesselCount),
+		MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
+		RestrictToIngredients:       result.RestrictToIngredients,
+		TemperatureRequired:         result.TemperatureRequired,
+		TimeEstimateRequired:        result.TimeEstimateRequired,
+		ConditionExpressionRequired: result.ConditionExpressionRequired,
+		ConsumesVessel:              result.ConsumesVessel,
+		OnlyForVessels:              result.OnlyForVessels,
+		YieldsNothing:               result.YieldsNothing,
+	}
+}
+
+// validPreparationFromListRow is validPreparationFromRow for the paginated reads, whose rows also
+// carry the filtered and total counts and so convert to generated.GetValidPreparationsRow instead.
+func validPreparationFromListRow(result *generated.GetValidPreparationsRow) *mealplanning.ValidPreparation {
+	return &mealplanning.ValidPreparation{
+		CreatedAt:                   result.CreatedAt,
+		MinIngredientCount:          uint16(result.MinimumIngredientCount),
+		MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
+		MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
+		MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
+		MinVesselCount:              uint16(result.MinimumVesselCount),
+		MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
+		ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
+		LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
+		IconPath:                    result.IconPath,
+		PastTense:                   result.PastTense,
+		ID:                          result.ID,
+		Name:                        result.Name,
+		Description:                 result.Description,
+		Slug:                        result.Slug,
+		RestrictToIngredients:       result.RestrictToIngredients,
+		TemperatureRequired:         result.TemperatureRequired,
+		TimeEstimateRequired:        result.TimeEstimateRequired,
+		ConditionExpressionRequired: result.ConditionExpressionRequired,
+		ConsumesVessel:              result.ConsumesVessel,
+		OnlyForVessels:              result.OnlyForVessels,
+		YieldsNothing:               result.YieldsNothing,
+	}
 }
