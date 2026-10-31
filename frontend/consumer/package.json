@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@dinnerdonebetter/eslint-config-custom": "file:../packages/eslint-config-custom",
+    "@dinnerdonebetter/token-check": "file:../packages/token-check",
     "@eslint/compat": "2.0.3",
     "@eslint/js": "9.39.4",
     "@playwright/test": "1.58.2",
