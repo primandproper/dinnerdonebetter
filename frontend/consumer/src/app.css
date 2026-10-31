@@ -1,57 +1,64 @@
 /* Design tokens (--pp-*) come from @primandproper/platform-ui's theme, which loads with the library; override one by setting it here. */
-/* Base typography – applied globally so all content uses the design system */
-body {
-  font-family: var(--pp-font-sans);
-  font-size: var(--pp-font-size-base);
-  line-height: var(--pp-line-height-normal);
-  color: var(--pp-color-text);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--pp-font-sans);
-  font-weight: var(--pp-font-weight-semibold);
-  line-height: var(--pp-line-height-tight);
-  color: var(--pp-color-text);
-  margin: 0 0 0.5em;
-}
+/*
+ * Base typography – applied globally so all content uses the design system. It sits in the `base` layer, which
+ * app.html orders beneath the library's `platform-ui` layer: unlayered CSS beats every layer, so outside one these
+ * element rules would override the components' own styles (`p` would take FormField's error text's top margin).
+ */
+@layer base {
+  body {
+    font-family: var(--pp-font-sans);
+    font-size: var(--pp-font-size-base);
+    line-height: var(--pp-line-height-normal);
+    color: var(--pp-color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-h1 {
-  font-size: var(--pp-font-size-3xl);
-}
-h2 {
-  font-size: var(--pp-font-size-2xl);
-}
-h3 {
-  font-size: var(--pp-font-size-xl);
-}
-h4 {
-  font-size: var(--pp-font-size-lg);
-}
-h5 {
-  font-size: var(--pp-font-size-base);
-}
-h6 {
-  font-size: var(--pp-font-size-sm);
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--pp-font-sans);
+    font-weight: var(--pp-font-weight-semibold);
+    line-height: var(--pp-line-height-tight);
+    color: var(--pp-color-text);
+    margin: 0 0 0.5em;
+  }
 
-p {
-  margin: 0 0 1em;
-  line-height: var(--pp-line-height-normal);
-}
+  h1 {
+    font-size: var(--pp-font-size-3xl);
+  }
+  h2 {
+    font-size: var(--pp-font-size-2xl);
+  }
+  h3 {
+    font-size: var(--pp-font-size-xl);
+  }
+  h4 {
+    font-size: var(--pp-font-size-lg);
+  }
+  h5 {
+    font-size: var(--pp-font-size-base);
+  }
+  h6 {
+    font-size: var(--pp-font-size-sm);
+  }
 
-p:last-child {
-  margin-bottom: 0;
-}
+  p {
+    margin: 0 0 1em;
+    line-height: var(--pp-line-height-normal);
+  }
 
-/* Utility for secondary/muted text used in several pages */
-.muted {
-  color: var(--pp-color-text-muted);
-  font-size: var(--pp-font-size-sm);
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Utility for secondary/muted text used in several pages */
+  .muted {
+    color: var(--pp-color-text-muted);
+    font-size: var(--pp-font-size-sm);
+  }
 }
