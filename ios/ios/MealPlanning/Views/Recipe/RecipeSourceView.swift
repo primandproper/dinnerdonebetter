@@ -5,6 +5,7 @@
 //  Displays recipe source as a clickable link when it's a URL, or static attribution text otherwise.
 //
 
+import DesignSystem
 import SwiftUI
 
 struct RecipeSourceView: View {

@@ -3,6 +3,7 @@
 //  ios
 //
 
+import DesignSystem
 import PhotosUI
 import SwiftUI
 

@@ -5,6 +5,7 @@
 //  Fetches a whole meal plan by ID and hands it to a screen that needs one.
 //
 
+import DesignSystem
 import SwiftProtobuf
 import SwiftUI
 

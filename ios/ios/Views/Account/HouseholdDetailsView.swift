@@ -3,6 +3,7 @@
 //  ios
 //
 
+import DesignSystem
 import SwiftUI
 
 struct HouseholdDetailsView: View {
@@ -18,7 +19,7 @@ struct HouseholdDetailsView: View {
       errorIcon: viewModel.errorIcon,
       errorIconColor: viewModel.errorIconColor,
       onRetry: { await viewModel.loadData() },
-      showEnvironmentSelector: viewModel.isServerDownError,
+      errorAccessory: ErrorEnvironmentSelector.accessory(if: viewModel.isServerDownError),
       content: { detailsContent }
     )
     .navigationTitle("Household Details")

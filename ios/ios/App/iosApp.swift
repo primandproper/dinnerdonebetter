@@ -5,6 +5,7 @@
 //  Created by Jeffrey Dorrycott on 12/8/25.
 //
 
+import DesignSystem
 import Observability
 import RevenueCat
 import SwiftUI
@@ -42,6 +43,7 @@ struct IOSApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
+        .dsTheme(Branding.theme)
         .environment(eventReporterService)
         .environment(authManager)
         .environment(userSettingsService)

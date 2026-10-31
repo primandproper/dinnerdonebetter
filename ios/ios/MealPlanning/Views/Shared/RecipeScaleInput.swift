@@ -5,6 +5,7 @@
 //  Scale input with TextField, +/- buttons, and optional portions display.
 //
 
+import DesignSystem
 import SwiftUI
 
 struct RecipeScaleInput: View {

@@ -3,6 +3,7 @@
 //  ios
 //
 
+import DesignSystem
 import SwiftUI
 
 struct HouseholdInstrumentsView: View {
@@ -20,7 +21,7 @@ struct HouseholdInstrumentsView: View {
       errorIcon: viewModel.errorIcon,
       errorIconColor: viewModel.errorIconColor,
       onRetry: { await viewModel.loadData() },
-      showEnvironmentSelector: viewModel.isServerDownError,
+      errorAccessory: ErrorEnvironmentSelector.accessory(if: viewModel.isServerDownError),
       content: { instrumentsContent }
     )
     .navigationTitle("Kitchen Instruments")

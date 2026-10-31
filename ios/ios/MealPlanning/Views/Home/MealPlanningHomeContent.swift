@@ -5,6 +5,7 @@
 //  Meal planning content for the home screen.
 //
 
+import DesignSystem
 import SwiftProtobuf
 import SwiftUI
 

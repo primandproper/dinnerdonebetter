@@ -5,6 +5,7 @@
 //  Side drawer for home screen navigation (Browse, Create Meal Plan, Account).
 //
 
+import DesignSystem
 import SwiftUI
 
 struct HomeDrawerView: View {

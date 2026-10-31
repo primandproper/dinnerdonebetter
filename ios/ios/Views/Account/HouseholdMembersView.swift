@@ -3,6 +3,7 @@
 //  ios
 //
 
+import DesignSystem
 import PlatformClient
 import SwiftUI
 import UIKit
@@ -20,7 +21,7 @@ struct HouseholdMembersView: View {
       errorIcon: viewModel.errorIcon,
       errorIconColor: viewModel.errorIconColor,
       onRetry: { await viewModel.loadData() },
-      showEnvironmentSelector: viewModel.isServerDownError,
+      errorAccessory: ErrorEnvironmentSelector.accessory(if: viewModel.isServerDownError),
       content: { membersContent }
     )
     .navigationTitle("Household Members")

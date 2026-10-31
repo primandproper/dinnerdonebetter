@@ -5,6 +5,7 @@
 //  Created by Auto on 3/7/25.
 //
 
+import DesignSystem
 import SwiftUI
 
 struct ServiceSettingsView: View {
@@ -23,7 +24,7 @@ struct ServiceSettingsView: View {
           errorIcon: viewModel.errorIcon,
           errorIconColor: viewModel.errorIconColor,
           onRetry: { await viewModel.loadData() },
-          showEnvironmentSelector: viewModel.isServerDownError,
+          errorAccessory: ErrorEnvironmentSelector.accessory(if: viewModel.isServerDownError),
           content: { settingsContent(viewModel: viewModel) }
         )
       } else {

@@ -5,6 +5,7 @@
 //  Created by Auto on 12/8/25.
 //
 
+import DesignSystem
 import RevenueCat
 import RevenueCatUI
 import SwiftUI
@@ -86,7 +87,7 @@ struct AccountSettingsView: View {
         errorIcon: viewModel.errorIcon,
         errorIconColor: viewModel.errorIconColor,
         onRetry: { await viewModel.loadData() },
-        showEnvironmentSelector: viewModel.isServerDownError,
+        errorAccessory: ErrorEnvironmentSelector.accessory(if: viewModel.isServerDownError),
         content: { accountSettingsScrollContent(viewModel: viewModel) }
       )
     } else {
