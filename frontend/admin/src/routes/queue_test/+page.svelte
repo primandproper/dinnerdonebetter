@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heading, Button } from '@dinnerdonebetter/ui';
+  import { Heading, Button } from '@primandproper/platform-ui';
 
   let { form } = $props();
 </script>
@@ -31,30 +31,30 @@
 
 <style>
   .subtitle {
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-lg);
+    color: var(--pp-color-text-muted);
+    margin-bottom: var(--pp-space-lg);
   }
   form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--pp-space-md);
     max-width: 20rem;
   }
   label {
     font-weight: 500;
   }
   select {
-    padding: var(--space-sm) var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    padding: var(--pp-space-sm) var(--pp-space-md);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-md);
   }
   .result {
-    margin-top: var(--space-lg);
+    margin-top: var(--pp-space-lg);
   }
   .result.success {
-    color: var(--color-success, green);
+    color: var(--pp-color-success, green);
   }
   .result.error {
-    color: var(--color-error, #b91c1c);
+    color: var(--pp-color-error, #b91c1c);
   }
 </style>

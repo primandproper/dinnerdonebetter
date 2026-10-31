@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heading, Text, Link, Card } from '@dinnerdonebetter/ui';
+  import { Heading, Text, Link, Card } from '@primandproper/platform-ui';
 
   let { data } = $props();
 </script>
@@ -44,11 +44,11 @@
 
 <style>
   .subtitle {
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-lg);
+    color: var(--pp-color-text-muted);
+    margin-bottom: var(--pp-space-lg);
   }
   .error {
-    color: var(--color-error, #b91c1c);
+    color: var(--pp-color-error, #b91c1c);
   }
   .table-wrap {
     overflow-x: auto;
@@ -59,18 +59,18 @@
   }
   .data-table th,
   .data-table td {
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--pp-space-sm) var(--pp-space-md);
     text-align: left;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--pp-color-border);
   }
   .search-form {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-lg);
+    gap: var(--pp-space-sm);
+    margin-bottom: var(--pp-space-lg);
   }
   .search-form input {
-    padding: var(--space-xs) var(--space-sm);
+    padding: var(--pp-space-xs) var(--pp-space-sm);
     min-width: 12rem;
   }
 </style>

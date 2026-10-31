@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heading, Text, Link } from '@dinnerdonebetter/ui';
+  import { Heading, Text, Link } from '@primandproper/platform-ui';
 </script>
 
 <Heading level={1}>Issue Report</Heading>

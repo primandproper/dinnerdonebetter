@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PageContainer, Alert, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, Alert, Link } from '@primandproper/platform-ui';
 
   let { data } = $props();
   const success = data?.success ?? false;

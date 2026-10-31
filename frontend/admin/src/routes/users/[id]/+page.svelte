@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heading, Text, Link, Card } from '@dinnerdonebetter/ui';
+  import { Heading, Text, Link, Card } from '@primandproper/platform-ui';
 
   let { data } = $props();
   const user = data?.user as Record<string, unknown> | null;
@@ -92,31 +92,31 @@
 
 <style>
   .subtitle {
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-lg);
+    color: var(--pp-color-text-muted);
+    margin-bottom: var(--pp-space-lg);
   }
   .error {
-    color: var(--color-error, #b91c1c);
+    color: var(--pp-color-error, #b91c1c);
   }
   .success {
-    color: var(--color-success, #15803d);
-    margin-bottom: var(--space-md);
+    color: var(--pp-color-success, #15803d);
+    margin-bottom: var(--pp-space-md);
   }
   .actions-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--pp-space-md);
     align-items: flex-start;
   }
   .btn {
-    padding: var(--space-xs) var(--space-md);
+    padding: var(--pp-space-xs) var(--pp-space-md);
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.875rem;
   }
   .btn-warning {
-    background: var(--color-warning, #d97706);
+    background: var(--pp-color-warning, #d97706);
     color: white;
   }
   .btn-secondary {
@@ -125,15 +125,15 @@
   }
   .card-title {
     font-size: 1rem;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--pp-space-md);
   }
   .detail-list {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: var(--space-xs) var(--space-lg);
+    gap: var(--pp-space-xs) var(--pp-space-lg);
   }
   .detail-list dt {
-    color: var(--color-text-muted);
+    color: var(--pp-color-text-muted);
   }
   .table-wrap {
     overflow-x: auto;
@@ -144,8 +144,8 @@
   }
   .data-table th,
   .data-table td {
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--pp-space-sm) var(--pp-space-md);
     text-align: left;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--pp-color-border);
   }
 </style>

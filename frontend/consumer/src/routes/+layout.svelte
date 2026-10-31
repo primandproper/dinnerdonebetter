@@ -1,7 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import favicon from '$lib/assets/favicon.svg';
-  import { Link } from '@dinnerdonebetter/ui';
+  import { Link } from '@primandproper/platform-ui';
   import { COMPANY_NAME } from '@dinnerdonebetter/branding';
 
   let { children } = $props();
@@ -45,9 +45,9 @@
     position: sticky;
     top: 0;
     z-index: 50;
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    padding: var(--space-md);
+    background: var(--pp-color-surface);
+    border-bottom: 1px solid var(--pp-color-border);
+    padding: var(--pp-space-md);
   }
   .container {
     max-width: 70vw;
@@ -67,21 +67,21 @@
     }
   }
   .container > div:first-child {
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--pp-font-weight-medium);
     font-size: 1.25rem;
   }
   .layout-links {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--pp-space-md);
   }
   .layout-main {
     flex: 1;
     min-height: 50vh;
   }
   .layout-footer {
-    border-top: 1px solid var(--color-border);
-    background: var(--color-surface);
-    padding: var(--space-md);
+    border-top: 1px solid var(--pp-color-border);
+    background: var(--pp-color-surface);
+    padding: var(--pp-space-md);
     margin-top: auto;
   }
   .layout-footer p,
@@ -91,7 +91,7 @@
   }
   .layout-footer-links {
     display: flex;
-    gap: var(--space-md);
-    margin-top: var(--space-sm);
+    gap: var(--pp-space-md);
+    margin-top: var(--pp-space-sm);
   }
 </style>

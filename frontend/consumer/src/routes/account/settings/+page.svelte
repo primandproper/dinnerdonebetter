@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PageContainer, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, Link } from '@primandproper/platform-ui';
 
   let { data } = $props();
   const hasAccount = data?.hasAccount ?? false;
@@ -42,15 +42,15 @@
   .account-links {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    margin-top: var(--space-lg);
+    gap: var(--pp-space-md);
+    margin-top: var(--pp-space-lg);
   }
   .account-link {
     display: block;
-    padding: var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
+    padding: var(--pp-space-md);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-md);
+    background: var(--pp-color-surface);
     text-decoration: none;
     color: inherit;
   }
@@ -59,7 +59,7 @@
   }
   .account-link-title {
     display: block;
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--pp-font-weight-medium);
   }
   .account-link-subtitle {
     display: block;

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { parseAssertionOptions, serializeAssertion } from '@primandproper/platform-client/webauthn';
-  import { PageContainer, LoginForm, Button, Alert, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, Button, Alert, Link } from '@primandproper/platform-ui';
+  import { LoginForm } from '@primandproper/platform-ui/screens';
 
   let { data, form } = $props();
   const supportsPasskey = browser && typeof PublicKeyCredential !== 'undefined';
@@ -85,11 +86,11 @@
 
 <style>
   .passkey-section {
-    margin-top: var(--space-lg);
+    margin-top: var(--pp-space-lg);
   }
   .divider {
-    margin: var(--space-md) 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
+    margin: var(--pp-space-md) 0;
+    color: var(--pp-color-text-muted);
+    font-size: var(--pp-font-size-sm);
   }
 </style>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heading, Text, Link, Card } from '@dinnerdonebetter/ui';
+  import { Heading, Text, Link, Card } from '@primandproper/platform-ui';
 
   let { data } = $props();
   const item = data?.item as Record<string, unknown> | null;
@@ -24,14 +24,14 @@
 
 <style>
   .error {
-    color: var(--color-error, #b91c1c);
+    color: var(--pp-color-error, #b91c1c);
   }
   .detail-list {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: var(--space-xs) var(--space-lg);
+    gap: var(--pp-space-xs) var(--pp-space-lg);
   }
   .detail-list dt {
-    color: var(--color-text-muted);
+    color: var(--pp-color-text-muted);
   }
 </style>

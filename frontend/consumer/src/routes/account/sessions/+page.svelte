@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { PageContainer, Button, Alert, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, Button, Alert, Link } from '@primandproper/platform-ui';
   import type { ActiveSignIn } from '@primandproper/platform-client/signin/v1';
   import { describeDevice } from '$lib/signins/device';
 
@@ -125,34 +125,34 @@
   .sessions-content {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    margin-top: var(--space-lg);
+    gap: var(--pp-space-lg);
+    margin-top: var(--pp-space-lg);
   }
   .revoke-all-section {
     display: flex;
   }
   .revoke-all-btn {
     font-size: 0.875rem;
-    color: var(--color-error, #c00);
-    border-color: var(--color-error, #c00);
+    color: var(--pp-color-error, #c00);
+    border-color: var(--pp-color-error, #c00);
   }
   .session-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--pp-space-sm);
   }
   .session-card {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--space-md);
-    padding: var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
+    gap: var(--pp-space-md);
+    padding: var(--pp-space-md);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-md);
+    background: var(--pp-color-surface);
   }
   .session-current {
-    border-left: 3px solid var(--color-primary, #c45c3e);
+    border-left: 3px solid var(--pp-color-primary, #c45c3e);
   }
   .session-info {
     flex: 1;
@@ -164,27 +164,27 @@
   .session-header {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    gap: var(--pp-space-sm);
   }
   .session-device {
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--pp-font-weight-medium);
   }
   .current-badge {
     font-size: 0.75rem;
     padding: 0.125rem 0.5rem;
-    border-radius: var(--radius-sm);
-    background: var(--color-primary, #c45c3e);
+    border-radius: var(--pp-radius-sm);
+    background: var(--pp-color-primary, #c45c3e);
     color: #fff;
   }
   .session-details {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--pp-space-md);
     font-size: 0.875rem;
     color: var(--color-muted, #666);
   }
   .session-timestamps {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--pp-space-md);
     font-size: 0.8125rem;
     color: var(--color-muted, #666);
   }
@@ -194,8 +194,8 @@
   .revoke-btn {
     font-size: 0.875rem;
     padding: 0.25rem 0.5rem;
-    color: var(--color-error, #c00);
-    border-color: var(--color-error, #c00);
+    color: var(--pp-color-error, #c00);
+    border-color: var(--pp-color-error, #c00);
   }
   .muted {
     font-size: 0.875rem;

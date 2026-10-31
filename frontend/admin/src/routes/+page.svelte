@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heading, Card } from '@dinnerdonebetter/ui';
+  import { Heading, Card } from '@primandproper/platform-ui';
 
   let { data } = $props();
 </script>
@@ -24,18 +24,18 @@
 
 <style>
   .dashboard-subtitle {
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-lg);
+    color: var(--pp-color-text-muted);
+    margin-bottom: var(--pp-space-lg);
   }
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-    gap: var(--space-lg);
+    gap: var(--pp-space-lg);
   }
   .stat-label {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-xs);
+    font-size: var(--pp-font-size-sm);
+    color: var(--pp-color-text-muted);
+    margin-bottom: var(--pp-space-xs);
   }
   .stat-value {
     font-size: 1.5rem;
