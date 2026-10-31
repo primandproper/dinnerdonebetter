@@ -1,4 +1,8 @@
-/* Design tokens (--pp-*) come from @primandproper/platform-ui's theme, which loads with the library; override one by setting it here. */
+/*
+ * Design tokens (--pp-*) come from @primandproper/platform-ui's theme, which loads with the library. Override one in an
+ * unlayered rule, e.g. `:root { --pp-color-primary: rebeccapurple; }` outside the `@layer base` block below: the theme
+ * sits in the `platform-ui` layer, which app.html orders above `base`, so a token set inside `base` silently loses.
+ */
 
 /*
  * Base typography – applied globally so all content uses the design system. It sits in the `base` layer, which
