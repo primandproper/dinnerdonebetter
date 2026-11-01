@@ -1,5 +1,5 @@
 {
-  "originHash" : "f5fcdbe32cc5e1e11c4b39be7bb2f7c972a7b5838e2d2606b87340ac2edaa5e8",
+  "originHash" : "ff9342ec6943b236d4fc23aa0a5cb0208ef77cb48849988cd040150436fd0d48",
   "pins" : [
     {
       "identity" : "beautiful-mermaid-swift",
@@ -61,6 +61,15 @@
       "location" : "https://github.com/primandproper/platform-swift.git",
       "state" : {
         "revision" : "6a0d3d567dd66610f12e4aab47577593a15d5faf",
+        "version" : "0.0.1"
+      }
+    },
+    {
+      "identity" : "platform-ui-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/primandproper/platform-ui-swift.git",
+      "state" : {
+        "revision" : "0a3f2c2b01fdf2e761d9382d54c380e7fc3992f0",
         "version" : "0.0.1"
       }
     },

@@ -5,6 +5,7 @@
 //  Design System Keep Screen Awake Button - Toggles screen dimming while cooking
 //
 
+import DesignSystem
 import SwiftUI
 import UIKit
 

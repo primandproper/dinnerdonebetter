@@ -7,6 +7,7 @@
 //
 
 import Darwin
+import DesignSystem
 import Foundation
 import GRPCCore
 import Observability

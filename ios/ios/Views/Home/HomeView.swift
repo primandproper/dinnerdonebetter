@@ -6,6 +6,7 @@
 //
 
 import Combine
+import DesignSystem
 import SwiftUI
 
 struct HomeView: View {
@@ -27,7 +28,7 @@ struct HomeView: View {
             errorIcon: viewModel.errorIcon,
             errorIconColor: viewModel.errorIconColor,
             onRetry: { await viewModel.loadData() },
-            showEnvironmentSelector: viewModel.isServerDownError,
+            errorAccessory: ErrorEnvironmentSelector.accessory(if: viewModel.isServerDownError),
             content: {
               VStack(spacing: 0) {
                 // Header: welcome text (flex-grow) + placeholder for overlay hamburger
