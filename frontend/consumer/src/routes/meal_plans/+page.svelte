@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { PageContainer } from '@dinnerdonebetter/ui';
+  import { PageContainer } from '@primandproper/platform-ui';
   import { COMPANY_NAME, APP_STORE_URL } from '@dinnerdonebetter/branding';
 
   let isIOS = $state(false);
@@ -30,13 +30,13 @@
 <style>
   .app-link {
     display: inline-block;
-    margin-top: var(--space-md);
-    padding: var(--space-sm) var(--space-lg);
-    background: var(--color-text);
-    color: var(--color-surface);
+    margin-top: var(--pp-space-md);
+    padding: var(--pp-space-sm) var(--pp-space-lg);
+    background: var(--pp-color-text);
+    color: var(--pp-color-surface);
     text-decoration: none;
-    border-radius: var(--radius-sm);
-    font-weight: var(--font-weight-medium);
+    border-radius: var(--pp-radius-sm);
+    font-weight: var(--pp-font-weight-medium);
   }
   .app-link:hover {
     opacity: 0.9;

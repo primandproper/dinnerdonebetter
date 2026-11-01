@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { Link, PageContainer } from '@dinnerdonebetter/ui';
+  import { Link, PageContainer } from '@primandproper/platform-ui';
 
   const _id = $derived($page.params.id);
 </script>

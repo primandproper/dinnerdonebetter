@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { PageContainer, FormField, Button, Alert, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, FormField, Button, Alert, Link } from '@primandproper/platform-ui';
   import type { ConfigurableSetting } from '$lib/settings/resolutions';
 
   let { data } = $props();
@@ -87,24 +87,24 @@
   .muted {
     color: var(--color-muted, #666);
     text-align: center;
-    padding: var(--space-xl);
+    padding: var(--pp-space-xl);
   }
   .settings-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    margin-top: var(--space-lg);
+    gap: var(--pp-space-md);
+    margin-top: var(--pp-space-lg);
   }
   .setting-card {
-    padding: var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
+    padding: var(--pp-space-md);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-md);
+    background: var(--pp-color-surface);
   }
   .setting-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--pp-space-sm);
   }
   @media (min-width: 640px) {
     .setting-form {
@@ -114,9 +114,9 @@
     }
   }
   .pref-select {
-    padding: var(--space-sm) var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    padding: var(--pp-space-sm) var(--pp-space-md);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-sm);
     font-size: 0.875rem;
     min-width: 8rem;
   }

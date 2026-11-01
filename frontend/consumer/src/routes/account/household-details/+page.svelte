@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { PageContainer, FormField, Input, Button, Alert, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, FormField, Input, Button, Alert, Link } from '@primandproper/platform-ui';
   import type { Account } from '@primandproper/platform-client/identity/v1';
 
   let { data } = $props();
@@ -123,21 +123,21 @@
   .details-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    margin-top: var(--space-lg);
+    gap: var(--pp-space-lg);
+    margin-top: var(--pp-space-lg);
   }
   .address-section {
-    padding: var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
+    padding: var(--pp-space-md);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-md);
+    background: var(--pp-color-surface);
   }
   .address-section legend {
     font-size: 0.875rem;
-    font-weight: var(--font-weight-medium);
-    margin-bottom: var(--space-md);
+    font-weight: var(--pp-font-weight-medium);
+    margin-bottom: var(--pp-space-md);
   }
   .address-section .form-field {
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--pp-space-md);
   }
 </style>

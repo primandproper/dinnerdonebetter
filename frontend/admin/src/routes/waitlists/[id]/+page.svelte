@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Heading, Text, Link } from '@dinnerdonebetter/ui';
+  import { Heading, Text, Link } from '@primandproper/platform-ui';
 
   let { data: _data } = $props();
 </script>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { PageContainer, FormField, Input, Button, Alert } from '@dinnerdonebetter/ui';
+  import { PageContainer, FormField, Input, Button, Alert } from '@primandproper/platform-ui';
 
   let { data, form } = $props();
 </script>
@@ -63,7 +63,7 @@
   .password-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    margin-top: var(--space-lg);
+    gap: var(--pp-space-md);
+    margin-top: var(--pp-space-lg);
   }
 </style>

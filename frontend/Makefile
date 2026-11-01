@@ -4,7 +4,7 @@
 # what is installed in node_modules is not what package.json asks for: an install left over
 # from before a version bump type-checks and builds against the wrong library. `npm ci` fixes it.
 
-# Type-check both apps (svelte-check) and the session and recipes packages (tsc)
+# Type-check both apps (svelte-check) and the session, recipes and token-check packages (tsc)
 check:
 	npm run check
 

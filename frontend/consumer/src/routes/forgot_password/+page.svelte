@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { PageContainer, FormField, Input, Button, Alert, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, FormField, Input, Button, Alert, Link } from '@primandproper/platform-ui';
 
   let { form } = $props();
   const success = form?.success ?? false;
@@ -35,7 +35,7 @@
   .forgot-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    margin: var(--space-lg) 0;
+    gap: var(--pp-space-md);
+    margin: var(--pp-space-lg) 0;
   }
 </style>

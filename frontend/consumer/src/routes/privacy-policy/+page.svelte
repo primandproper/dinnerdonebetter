@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PageContainer, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, Link } from '@primandproper/platform-ui';
 
   let { data } = $props();
   const html = data?.html ?? '';
@@ -19,18 +19,18 @@
   }
   .legal-content :global(h1) {
     font-size: 1.5rem;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--pp-space-md);
   }
   .legal-content :global(h2) {
     font-size: 1.125rem;
-    margin-top: var(--space-lg);
-    margin-bottom: var(--space-sm);
+    margin-top: var(--pp-space-lg);
+    margin-bottom: var(--pp-space-sm);
   }
   .legal-content :global(p) {
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--pp-space-md);
   }
   .legal-content :global(ul) {
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--pp-space-md);
     padding-left: 1.5rem;
   }
 </style>

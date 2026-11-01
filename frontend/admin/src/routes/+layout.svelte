@@ -1,7 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import { page } from '$app/state';
-  import { Link, PageContainer } from '@dinnerdonebetter/ui';
+  import { Link, PageContainer } from '@primandproper/platform-ui';
 
   let { children } = $props();
 
@@ -75,9 +75,9 @@
     min-height: 100vh;
   }
   .layout-header {
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    padding: var(--space-md);
+    background: var(--pp-color-surface);
+    border-bottom: 1px solid var(--pp-color-border);
+    padding: var(--pp-space-md);
   }
   .container {
     max-width: 64rem;
@@ -89,31 +89,31 @@
   }
   .layout-links {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--pp-space-md);
     align-items: center;
   }
   .nav-dropdown {
     position: relative;
   }
   .nav-dropdown-label {
-    color: var(--color-text);
+    color: var(--pp-color-text);
     cursor: pointer;
-    padding: var(--space-xs) 0;
+    padding: var(--pp-space-xs) 0;
   }
   .nav-dropdown-content {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-sm);
+    background: var(--pp-color-surface);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-md);
+    padding: var(--pp-space-sm);
     min-width: 12rem;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--pp-shadow-md);
     z-index: 50;
     flex-direction: column;
-    gap: var(--space-xs);
+    gap: var(--pp-space-xs);
   }
   .nav-dropdown:hover .nav-dropdown-content {
     display: flex;
@@ -125,12 +125,12 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: var(--space-sm);
+    padding: var(--pp-space-sm);
   }
   .mobile-menu-btn span {
     width: 1.25rem;
     height: 2px;
-    background: var(--color-text);
+    background: var(--pp-color-text);
   }
   @media (max-width: 768px) {
     .mobile-menu-btn {
@@ -141,7 +141,7 @@
       width: 100%;
       flex-direction: column;
       align-items: flex-start;
-      padding-top: var(--space-md);
+      padding-top: var(--pp-space-md);
     }
     .layout-links.open {
       display: flex;
@@ -150,7 +150,7 @@
       position: static;
       box-shadow: none;
       border: none;
-      padding-left: var(--space-md);
+      padding-left: var(--pp-space-md);
     }
     .nav-dropdown:hover .nav-dropdown-content {
       display: none;
@@ -158,6 +158,6 @@
   }
   .layout-main {
     flex: 1;
-    padding: var(--space-lg);
+    padding: var(--pp-space-lg);
   }
 </style>

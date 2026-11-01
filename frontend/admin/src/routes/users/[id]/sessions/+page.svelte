@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { Heading, Button, Alert, Link, Card } from '@dinnerdonebetter/ui';
+  import { Heading, Button, Alert, Link, Card } from '@primandproper/platform-ui';
   import type { ActiveSignIn } from '@primandproper/platform-client/signin/v1';
 
   let { data } = $props();
@@ -93,11 +93,11 @@
 
 <style>
   .subtitle {
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-lg);
+    color: var(--pp-color-text-muted);
+    margin-bottom: var(--pp-space-lg);
   }
   .actions-bar {
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--pp-space-md);
   }
   .table-wrap {
     overflow-x: auto;
@@ -108,14 +108,14 @@
   }
   .data-table th,
   .data-table td {
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--pp-space-sm) var(--pp-space-md);
     text-align: left;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--pp-color-border);
   }
   .inline-form {
     display: inline;
   }
   .muted {
-    color: var(--color-text-muted);
+    color: var(--pp-color-text-muted);
   }
 </style>

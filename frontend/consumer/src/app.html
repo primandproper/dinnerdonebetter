@@ -3,6 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- A layer ranks by where it is first named, so this has to come before any stylesheet: see app.css. -->
+    <style>
+      @layer base, platform-ui;
+    </style>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

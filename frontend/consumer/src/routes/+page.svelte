@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PageContainer, Link, Alert } from '@dinnerdonebetter/ui';
+  import { PageContainer, Link, Alert } from '@primandproper/platform-ui';
   import { COMPANY_NAME } from '@dinnerdonebetter/branding';
 
   let { data } = $props();

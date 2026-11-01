@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { PageContainer, FormField, Input, Button, Alert, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, FormField, Input, Button, Alert, Link } from '@primandproper/platform-ui';
   import type { User } from '@primandproper/platform-client/identity/v1';
 
   // Two things this page used to do are gone, and both went with the surface underneath them.
@@ -132,28 +132,28 @@
   .profile-sections {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    margin-top: var(--space-lg);
+    gap: var(--pp-space-lg);
+    margin-top: var(--pp-space-lg);
   }
   .profile-section {
-    padding: var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
+    padding: var(--pp-space-md);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-md);
+    background: var(--pp-color-surface);
   }
   .profile-section h2 {
     font-size: 0.875rem;
-    font-weight: var(--font-weight-medium);
-    margin: 0 0 var(--space-md);
+    font-weight: var(--pp-font-weight-medium);
+    margin: 0 0 var(--pp-space-md);
   }
   .profile-hint {
     font-size: 0.875rem;
     color: var(--color-muted, #666);
-    margin: 0 0 var(--space-md);
+    margin: 0 0 var(--pp-space-md);
   }
   .profile-section form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--pp-space-md);
   }
 </style>

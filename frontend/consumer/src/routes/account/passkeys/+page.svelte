@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { PageContainer, Button, Alert, Link } from '@dinnerdonebetter/ui';
+  import { PageContainer, Button, Alert, Link } from '@primandproper/platform-ui';
   import type { Passkey } from '@primandproper/platform-client/passkeys/v1';
   import { parseRegistrationOptions, serializeRegistration } from '@primandproper/platform-client/webauthn';
 
@@ -145,35 +145,35 @@
   .passkeys-content {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xl);
-    margin-top: var(--space-lg);
+    gap: var(--pp-space-xl);
+    margin-top: var(--pp-space-lg);
   }
   .add-section .muted,
   .empty-section .muted {
     font-size: 0.875rem;
     color: var(--color-muted, #666);
-    margin: 0 0 var(--space-md);
+    margin: 0 0 var(--pp-space-md);
   }
   .list-section h2,
   .add-section h2 {
     font-size: 1.125rem;
-    font-weight: var(--font-weight-medium);
-    margin: 0 0 var(--space-sm);
+    font-weight: var(--pp-font-weight-medium);
+    margin: 0 0 var(--pp-space-sm);
   }
   .passkey-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--pp-space-sm);
   }
   .passkey-card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-md);
-    padding: var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
+    gap: var(--pp-space-md);
+    padding: var(--pp-space-md);
+    border: 1px solid var(--pp-color-border);
+    border-radius: var(--pp-radius-md);
+    background: var(--pp-color-surface);
   }
   .passkey-info {
     flex: 1;
@@ -181,7 +181,7 @@
   }
   .passkey-name {
     display: block;
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--pp-font-weight-medium);
   }
   .passkey-details {
     font-size: 0.875rem;
@@ -194,7 +194,7 @@
   .remove-btn {
     font-size: 0.875rem;
     padding: 0.25rem 0.5rem;
-    color: var(--color-error, #c00);
-    border-color: var(--color-error, #c00);
+    color: var(--pp-color-error, #c00);
+    border-color: var(--pp-color-error, #c00);
   }
 </style>
